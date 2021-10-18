@@ -2,4 +2,5 @@
 .idea
 venv
 jungle_venv
-
+research-papers/*
+Images
