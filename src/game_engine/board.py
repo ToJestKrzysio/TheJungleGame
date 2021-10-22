@@ -5,12 +5,10 @@ class BoardState(np.ndarray):
     """ Class used for representation of current BoardState"""
 
     def __new__(cls, pawns, fields, player):
-        """"""
+        """ Create new instance of BoardState. """
         pawns = np.asarray(pawns, dtype=int)
         fields = np.asarray(fields, dtype=int)
         player = np.asarray(player, dtype=int)
-        if not player.shape == fields.shape == pawns.shape == (9, 7):
-            raise ValueError("Wrong shape of input board shapes.")
         obj = np.stack((pawns, fields, player), axis=0).view(cls)
         return obj
 
@@ -41,7 +39,3 @@ def initialize_board():
     ])
     board_state = BoardState(pawns, fields, player)
     return board_state
-
-
-a = initialize_board()
-tmp = 1

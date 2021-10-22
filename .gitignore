@@ -4,3 +4,5 @@ venv
 jungle_venv
 research-papers/*
 Images
+.coverage
+.pytest_cache
