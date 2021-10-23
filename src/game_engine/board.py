@@ -1,7 +1,14 @@
 import numpy as np
 
 
+class Board(np.ndarray):
+
+    def __new__(cls, cells):
+        return np.asarray(cells, dtype=object).view(cls)
+
+
 class BoardState(np.ndarray):
+    """ TODO - may be obsolete """
     """ Class used for representation of current BoardState"""
 
     def __new__(cls, pawns, fields, player):

@@ -49,3 +49,6 @@ class Cell:
     def get_cell_state(self) -> tuple[int, int]:
         """ Returns tuple representing cell occupant and cell ground value. """
         return self.occupant, self.ground_value
+
+    def __repr__(self):
+        return f"{type(self).__name__}(occupant={self.occupant}, water={self.water}, trap={self.trap})"
