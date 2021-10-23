@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 
 from src.game_engine.board import BoardState, Board
-from src.game_engine.cell import Cell
 
 
 @pytest.mark.parametrize("shape", [(7, 9), (19, 19)])
@@ -20,14 +19,23 @@ def test_board_state_new(shape: tuple):
     assert np.array_equal(board_state[2], board_3)
 
 
-@pytest.mark.parametrize("shape", [(7, 9), (19, 19)])
-def test_board_new(shape):
-    cells = np.empty(shape, dtype=object)
-    for row_id in range(cells.shape[0]):
-        for column_id in range(cells.shape[1]):
-            cells[row_id, column_id] = Cell(0, False, False)
 
-    board = Board(cells)
-    assert isinstance(board, Board)
-    assert board.shape == shape
-    assert np.array_equal(board, cells)
+class TestBoard:
+
+    def test_board_new(self, cell_array):
+        board = Board(cell_array)
+
+        assert isinstance(board, Board)
+        assert board.shape == cell_array.shape
+        assert np.array_equal(board, cell_array)
+        assert not board.positions
+
+    @pytest.mark.parametrize("position", [(1, 1), (2, 3), (6, 9)])
+    def test_board_get_unit_locations(self, position, cell_array):
+        cell_array[position].occupant = 4
+        board = Board(cell_array)
+
+        result = Board.get_unit_locations(board)
+
+        assert len(result) == 1
+        assert result[4] == position

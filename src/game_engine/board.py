@@ -3,9 +3,33 @@ import numpy as np
 
 class Board(np.ndarray):
 
-    def __new__(cls, cells):
-        return np.asarray(cells, dtype=object).view(cls)
+    def __new__(cls, cells: np.ndarray | list[list]):
+        obj = np.asarray(cells, dtype=object).view(cls)
+        obj.positions = cls.get_unit_locations(obj)
+        return obj
 
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self.positions = getattr(obj, 'positions', None)
+
+    @staticmethod
+    def get_unit_locations(board: np.ndarray) -> dict:
+        locations = dict()
+        for row_id in range(board.shape[0]):
+            for column_id in range(board.shape[1]):
+                cell = board[row_id, column_id]
+                if cell:
+                    locations[cell.occupant] = (row_id, column_id)
+        return locations
+
+
+# class BoardRepresentation(np.ndarray):
+#
+#     def __new__(cls, board: Board):
+#         return np.zeros_like(board)
+#
+#     # def get_pawn_positions(self):
 
 class BoardState(np.ndarray):
     """ TODO - may be obsolete """

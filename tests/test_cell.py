@@ -69,3 +69,8 @@ class TestCell:
         cell = Cell(occupant, water, trap)
 
         assert repr(cell) == f"Cell(occupant={occupant}, water={water}, trap={trap})"
+
+    def test_bool(self):
+        assert not Cell(0, False, False)
+        assert Cell(1, False, False)
+

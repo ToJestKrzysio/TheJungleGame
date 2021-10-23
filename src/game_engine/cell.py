@@ -52,3 +52,6 @@ class Cell:
 
     def __repr__(self):
         return f"{type(self).__name__}(occupant={self.occupant}, water={self.water}, trap={self.trap})"
+
+    def __bool__(self):
+        return self.occupied
