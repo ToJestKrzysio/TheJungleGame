@@ -13,9 +13,9 @@ non_water_examples = [value * sign for value in set(range(0, 9)).difference(wate
 class TestCell:
 
     @pytest.mark.parametrize("water, trap, result", [
-        (False, False, (True, False, False, 1)),
-        (True, False, (False, True, False, 2)),
-        (False, True, (True, False, True, 3)),
+        (False, False, (True, False, False, GroundStates.LAND.value)),
+        (True, False, (False, True, False, GroundStates.WATER.value)),
+        (False, True, (True, False, True, GroundStates.TRAP.value)),
     ])
     def test_init_ground(self, water, trap, result):
         assert Cell.init_ground(water, trap) == result
@@ -54,9 +54,18 @@ class TestCell:
 
     @pytest.mark.parametrize("occupant", range(-9, 10))
     @pytest.mark.parametrize("ground", range(0, 4))
-    def test__get_cell_state(self, occupant, ground):
+    def test_get_cell_state(self, occupant, ground):
         cell_mock = Mock(spec=Cell)
         cell_mock.occupant = occupant
         cell_mock.ground_value = ground
 
         assert Cell.get_cell_state(self=cell_mock) == (occupant, ground)
+
+    @pytest.mark.parametrize("occupant", range(-9, 10))
+    @pytest.mark.parametrize("water, trap", [(True, False), (False, True), (False, False)])
+    @patch("src.game_engine.cell.Cell.occupant", new_callable=PropertyMock)
+    def test_repr(self, occupant_patch, occupant: int, water: bool, trap: bool):
+        occupant_patch.return_value = occupant
+        cell = Cell(occupant, water, trap)
+
+        assert repr(cell) == f"Cell(occupant={occupant}, water={water}, trap={trap})"
