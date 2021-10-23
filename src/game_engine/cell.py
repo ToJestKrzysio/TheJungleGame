@@ -3,9 +3,13 @@ from src.game_engine.exceptions import JumpIntoWaterError
 
 
 class Cell:
+
+    __slots__ = ["land", "water", "trap", "occupied", "ground_value", "_occupant"]
+
     land: bool
     water: bool
     trap: bool
+    occupied: bool
     occupant: int
     ground_value: int
 
