@@ -1,4 +1,5 @@
-from enums import GroundStates
+from src.game_engine.properties import GroundStates, water_types, Units
+from src.game_engine.exceptions import JumpIntoWaterError
 
 
 class Cell:
@@ -36,6 +37,8 @@ class Cell:
     @occupant.setter
     def occupant(self, occupant: int) -> None:
         """ Assigns new occupant to a cell and changes its occupancy. """
+        if self.water and abs(occupant) not in water_types:
+            raise JumpIntoWaterError(f"Unit {Units(abs(occupant))} cannot enter water.")
         self.occupied = bool(occupant)
         self._occupant = occupant
 
