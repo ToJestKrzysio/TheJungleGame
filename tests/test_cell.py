@@ -4,10 +4,10 @@ import pytest
 
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.properties import water_types, GroundStates
+from src.game_engine.properties import enters_water, GroundStates
 
-water_examples = [value * sign for value in water_types for sign in (-1, 1)]
-non_water_examples = [value * sign for value in set(range(0, 9)).difference(water_types) for sign in (-1, 1)]
+water_examples = [value * sign for value in enters_water for sign in (-1, 1)]
+non_water_examples = [value * sign for value in set(range(0, 9)).difference(enters_water) for sign in (-1, 1)]
 
 
 class TestCell:

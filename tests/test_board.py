@@ -19,10 +19,9 @@ def test_board_state_new(shape: tuple):
     assert np.array_equal(board_state[2], board_3)
 
 
-
 class TestBoard:
 
-    def test_board_new(self, cell_array):
+    def test_new(self, cell_array):
         board = Board(cell_array)
 
         assert isinstance(board, Board)
@@ -31,11 +30,26 @@ class TestBoard:
         assert not board.positions
 
     @pytest.mark.parametrize("position", [(1, 1), (2, 3), (6, 9)])
-    def test_board_get_unit_locations(self, position, cell_array):
+    def test_get_positions(self, position, cell_array):
         cell_array[position].occupant = 4
         board = Board(cell_array)
 
-        result = Board.get_unit_locations(board)
+        positions = board.get_positions()
 
-        assert len(result) == 1
-        assert result[4] == position
+        assert len(positions) == 1
+        assert positions[4] == position
+
+    @pytest.mark.parametrize("position, value, moves", [
+        ((0, 0), {(0, 1), (1, 0)})
+    ])
+    def test_get_units_moves(self, position, moves, cell_array):
+        pass
+
+"""
+2 1 8 0 0
+0 0 0 0 0
+0 W W 0 0 
+0 0 0 0 0
+0 0 0 0 0
+"""
+

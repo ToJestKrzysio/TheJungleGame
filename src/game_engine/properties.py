@@ -21,8 +21,6 @@ class Units(Enum):
     ELEPHANT = 9
 
 
-water_types = {Units.EMPTY.value, Units.MOUSE.value, }
-
-
-
-
+enters_water = {Units.EMPTY.value, Units.MOUSE.value, }
+jumps_over_water = {Units.TIGER.value, Units.LION.value, }
+no_water_interaction = {Units.CAT.value, Units.DOG.value, Units.WOLF.value, Units.LEOPARD.value, Units.ELEPHANT.value}
