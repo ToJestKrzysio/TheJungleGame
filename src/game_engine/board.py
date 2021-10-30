@@ -89,7 +89,7 @@ class Board(np.ndarray):
 
 class BoardState(np.ndarray):
     """ TODO - may be obsolete """
-    """ Class used for representation of current BoardState"""
+    """ Class used for representation of current BoardState. """
 
     def __new__(cls, pawns, fields, player):
         """ Create new instance of BoardState. """
