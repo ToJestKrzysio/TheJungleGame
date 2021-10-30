@@ -1,26 +1,31 @@
-from src.game_engine.properties import GroundStates, enters_water, Units
+from src.game_engine.properties import GroundStates, Units
 from src.game_engine.exceptions import JumpIntoWaterError
+from src.game_engine.unit import Unit, Empty
 
 
 class Cell:
-
-    __slots__ = ["land", "water", "trap", "occupied", "ground_value", "_occupant"]
+    __slots__ = ["land", "water", "trap", "occupied", "ground_value",
+                 "_occupant", "white_trap"]
 
     land: bool
     water: bool
     trap: bool
+    white_trap: bool
     occupied: bool
-    occupant: int
+    occupant: Unit
     ground_value: int
 
     def __init__(
             self,
-            occupant: int = 0,
+            occupant: Unit,
             water: bool = False,
-            trap: bool = False
+            trap: bool = False,
+            white_trap: bool = True
     ):
         """ Initializes instance of a Cell. """
-        self.land, self.water, self.trap, self.ground_value = type(self).init_ground(water, trap)
+        self.land, self.water, self.trap, self.ground_value = self.init_ground(
+            water, trap)
+        self.white_trap = white_trap
         self.occupant = occupant
 
     @staticmethod
@@ -34,28 +39,40 @@ class Cell:
             return True, False, False, GroundStates.LAND.value
 
     @property
-    def occupant(self) -> int:
+    def occupant(self) -> Unit:
         """ Returns occupant of the current cell. """
         return self._occupant
 
     @occupant.setter
-    def occupant(self, occupant: int) -> None:
+    def occupant(self, occupant: Unit) -> None:
         """ Assigns new occupant to a cell and changes its occupancy. """
-        if self.water and abs(occupant) not in enters_water:
-            raise JumpIntoWaterError(f"Unit {Units(abs(occupant))} cannot enter water.")
+        if self.water and not occupant.swims:
+            raise JumpIntoWaterError(
+                f"Unit '{Units(abs(occupant.value))}' cannot enter water.")
         self.occupied = bool(occupant)
         self._occupant = occupant
 
     def get_cell_state(self) -> tuple[int, int]:
         """ Returns tuple representing cell occupant and cell ground value. """
-        return self.occupant, self.ground_value
+        return self.occupant.value, self.ground_value
 
     def __repr__(self):
-        return f"{type(self).__name__}(occupant={self.occupant}, water={self.water}, trap={self.trap})"
+        return (f"{type(self).__name__}(occupant={self.occupant}, "
+                f"water={self.water}, trap={self.trap})")
 
     def __bool__(self):
         return self.occupied
 
-    def can_be_captured(self, attacker: Cell) -> bool:
-        if not self:
+    def can_capture(self, other):
+        if self.water:
+            if other.water:
+                return other.occupant.value in self.occupant.captures_water
+            return other.occupant.value in self.occupant.captures_mixed
+        if other.trap:
+            if (other.white_trap == other.occupant.white and
+                    not isinstance(other.occupant, Empty)):
+                return False
             return True
+        if other.water:
+            return other.occupant.value in self.occupant.captures_mixed
+        return other.occupant.value in self.occupant.captures_land

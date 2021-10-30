@@ -4,13 +4,16 @@ import pytest
 
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.properties import enters_water, GroundStates
-
-water_examples = [value * sign for value in enters_water for sign in (-1, 1)]
-non_water_examples = [value * sign for value in set(range(0, 9)).difference(enters_water) for sign in (-1, 1)]
+from src.game_engine.properties import GroundStates
+from src.game_engine.unit import Empty, Den, Unit
 
 
 class TestCell:
+
+    ENTERS_WATER = [child(white) for child in Unit.__subclasses__()
+                    for white in (True, False)]
+    SWIMMER_EXAMPLES = [pet for pet in ENTERS_WATER if pet.swims]
+    NON_SWIMMER_EXAMPLES = [pet for pet in ENTERS_WATER if not pet.swims]
 
     @pytest.mark.parametrize("water, trap, result", [
         (False, False, (True, False, False, GroundStates.LAND.value)),
@@ -20,8 +23,10 @@ class TestCell:
     def test_init_ground(self, water, trap, result):
         assert Cell.init_ground(water, trap) == result
 
-    @pytest.mark.parametrize("water, trap", [(True, False), (False, True), (False, False)])
-    @pytest.mark.parametrize("occupant", non_water_examples)
+    @pytest.mark.parametrize("water, trap", [
+        (True, False), (False, True), (False, False)
+    ])
+    @pytest.mark.parametrize("occupant", NON_SWIMMER_EXAMPLES)
     @patch("src.game_engine.cell.Cell.occupant", new_callable=PropertyMock)
     def test_init_land(self, occupant_spy, occupant, water, trap):
         cell = Cell(occupant, water=water, trap=trap)
@@ -31,46 +36,42 @@ class TestCell:
         assert cell.land != water
         assert cell.trap == trap
 
-    @pytest.mark.parametrize("occupant", non_water_examples)
+    @pytest.mark.parametrize("occupant", NON_SWIMMER_EXAMPLES)
     def test_occupant_jump_into_water_error(self, occupant):
         with pytest.raises(JumpIntoWaterError):
             Cell(occupant, water=True, trap=False)
 
-    @pytest.mark.parametrize("occupant", water_examples)
+    @pytest.mark.parametrize("occupant", SWIMMER_EXAMPLES)
     def test_occupant_water(self, occupant):
-        cell = Cell(0, water=True, trap=False)
+        cell = Cell(Empty(), water=True, trap=False)
 
         cell.occupant = occupant
         assert cell.occupant == occupant
         assert cell.occupied == bool(occupant)
 
-    @pytest.mark.parametrize("occupant", non_water_examples)
+    @pytest.mark.parametrize("occupant", NON_SWIMMER_EXAMPLES)
     def test_occupant_land(self, occupant):
-        cell = Cell(0, water=False, trap=False)
+        cell = Cell(Empty(), water=False, trap=False)
 
         cell.occupant = occupant
         assert cell.occupant == occupant
         assert cell.occupied == bool(occupant)
 
-    @pytest.mark.parametrize("occupant", range(-9, 10))
+    @pytest.mark.parametrize("occupant_value", range(-9, 10))
     @pytest.mark.parametrize("ground", range(0, 4))
-    def test_get_cell_state(self, occupant, ground):
+    def test_get_cell_state(self, occupant_value, ground):
         cell_mock = Mock(spec=Cell)
-        cell_mock.occupant = occupant
+        cell_mock.occupant = Mock(value=occupant_value)
         cell_mock.ground_value = ground
 
-        assert Cell.get_cell_state(self=cell_mock) == (occupant, ground)
+        assert Cell.get_cell_state(self=cell_mock) == (occupant_value, ground)
 
-    @pytest.mark.parametrize("occupant", range(-9, 10))
-    @pytest.mark.parametrize("water, trap", [(True, False), (False, True), (False, False)])
-    @patch("src.game_engine.cell.Cell.occupant", new_callable=PropertyMock)
-    def test_repr(self, occupant_patch, occupant: int, water: bool, trap: bool):
-        occupant_patch.return_value = occupant
-        cell = Cell(occupant, water, trap)
+    # def test_can_capture_mouse_captures_elephant(self):
+    # def test_can_capture_elephant_captures_mouse(self):
+    # def test_can_capture_mouse_water_to_water(self):
+    # def test_can_capture_mouse_water_to_land(self):
+    # def test_can_capture_mouse_land_to_water(self):
+    # def test_can_capture_attack_trapped_animal(self):
+    # def test_can_capture_swimming_mouse(self):
 
-        assert repr(cell) == f"Cell(occupant={occupant}, water={water}, trap={trap})"
-
-    def test_bool(self):
-        assert not Cell(0, False, False)
-        assert Cell(1, False, False)
 
