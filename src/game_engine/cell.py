@@ -1,6 +1,6 @@
 from src.game_engine.properties import GroundStates, Units
 from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.unit import Unit, Empty
+from src.game_engine.unit import Unit, Empty, Den
 
 
 class Cell:
@@ -17,10 +17,10 @@ class Cell:
 
     def __init__(
             self,
-            occupant: Unit,
+            occupant: Unit = Empty(),
             water: bool = False,
             trap: bool = False,
-            white_trap: bool = True
+            white_trap: bool = False
     ):
         """ Initializes instance of a Cell. """
         self.land, self.water, self.trap, self.ground_value = self.init_ground(
@@ -57,20 +57,28 @@ class Cell:
         return self.occupant.value, self.ground_value
 
     def __repr__(self):
-        return (f"{type(self).__name__}(occupant={self.occupant}, "
-                f"water={self.water}, trap={self.trap})")
+        return (f"{type(self).__name__}(occupant={self.occupant})")
+        #, "f"water={self.water}, trap={self.trap})
 
     def __bool__(self):
         return self.occupied
 
     def can_capture(self, other):
+        """
+        Checks is occupant of the current cell can capture the other.
+
+        :param other: Cell instance.
+
+        :return: True if cell can be captured otherwise False
+        """
         if self.water:
             if other.water:
                 return other.occupant.value in self.occupant.captures_water
             return other.occupant.value in self.occupant.captures_mixed
         if other.trap:
-            if (other.white_trap == other.occupant.white and
-                    not isinstance(other.occupant, Empty)):
+            if (isinstance(self.occupant, Den) or (
+                    other.white_trap == other.occupant.white and
+                    not isinstance(other.occupant, Empty))):
                 return False
             return True
         if other.water:

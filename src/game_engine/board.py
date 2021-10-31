@@ -1,12 +1,16 @@
 import numpy as np
 
-# from src.game_engine.properties import jumps_over_water, enters_water, no_water_interaction
+from src.game_engine.cell import Cell
+from src.game_engine.exceptions import MoveNotPossibleError
+from src.game_engine.unit import Empty, Unit
+from src.game_engine.unit import Mouse, Cat, Dog, Wolf, Leopard, Tiger, Lion, \
+    Elephant, Den
 
 
 class Board(np.ndarray):
 
-    def __new__(cls, cells: np.ndarray | list[list]):
-        obj = np.asarray(cells, dtype=object).view(cls)
+    def __new__(cls, cells: np.ndarray | list[list[Cell]]):
+        obj = np.asarray(cells, dtype=Cell).view(cls)
         return obj
 
     def __array_finalize__(self, obj):
@@ -14,9 +18,9 @@ class Board(np.ndarray):
         if obj is None:
             return
         self.positions = self.get_positions()
-        # self.moves = self.get_unit_moves()
+        self.moves = self.get_moves_for_all_units()
 
-    def get_positions(self) -> dict:
+    def get_positions(self) -> dict[Unit, tuple[int, int]]:
         """
         Generates dictionary of units on the board.
 
@@ -30,11 +34,19 @@ class Board(np.ndarray):
                     positions[cell.occupant] = (row_id, column_id)
         return positions
 
-    # def get_unit_moves(self, position):
-    #     moves = []
-    #     for move in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-    #         valid_move, new_y, new_x = self.find_move_position(position, move)
-    #         if not valid_move:
+    def get_moves_for_all_units(self) -> dict[Unit, set[tuple[int, int]]]:
+        """ Collects moves every unit can make into a dictionary. """
+        return {unit: self.get_single_unit_moves(position)
+                for unit, position in self.positions.items()}
+
+    def get_single_unit_moves(
+            self,
+            position: tuple[int, int]
+    ) -> set[tuple[int, int]]:
+        """ Collects all_moves unit can make and returns only valid ones. """
+        all_moves = [self.find_move_position(position, move)
+                     for move in ((-1, 0), (1, 0), (0, -1), (0, 1))]
+        return {tuple(move) for valid, *move in all_moves if valid}
 
     def is_position_valid(self, position: tuple[int, int]) -> bool:
         """ Checks if position is inside the board space. """
@@ -57,42 +69,52 @@ class Board(np.ndarray):
             move: tuple[int, int]
     ) -> tuple[bool, int, int]:
         """ Checks if move in the given direction is valid. """
+        INVALID_POSITION = (False, -1, -1)
         old_cell = self[position]
         new_position = self.get_new_position_tuple(position, move)
 
         if not self.is_position_valid(new_position):
-            return False, 0, 0
+            return INVALID_POSITION
+
         new_cell = self[new_position]
-        occupant = old_cell.occupant
-
-        if new_cell.water:
-            if occupant.swims and old_cell >= new_cell:
-                return True, new_position[0], new_position[1]
-
-            if occupant.jumps:
-                while self[new_position].water:
-                    new_position = self.get_new_position_tuple(new_position,
-                                                               move)
-                    if not self.is_position_valid(new_position):
-                        return False, 0, 0
+        if new_cell.water and old_cell.occupant.jumps:
+            while new_cell.water and isinstance(new_cell.occupant, Empty):
+                new_position = self.get_new_position_tuple(new_position, move)
+                if not self.is_position_valid(new_position):
+                    return INVALID_POSITION
                 new_cell = self[new_position]
-                if new_cell >=
+
+        if old_cell.can_capture(new_cell):
+            return True, new_position[0], new_position[1]
+
+        return INVALID_POSITION
 
 
-    # def position_may_be_captured(self, new_position, position):
-    #     attacker = self[position].occupant
-    #     defender = self[new_position].occupant
-    #
-    #     if not defender:
-    #         return True
-    #
-    #     if attacker * defender > 0:
-    #         return False
-    #
-    #     if
-    #
-    #     if attacker * attacker >= defender * defender:
-    #         return True
+def move(board_state, unit_position, new_position):
+    """
+    Creates new instance of a board and moves animal to new location.
+    """
+
+    if (new_position not in
+            board_state.moves[board_state[unit_position].occupant]):
+        raise MoveNotPossibleError("Selected move is not valid")
+
+    new_board = Board(np.deepcopy(board_state))  # TODO maybe deep copy?
+    moved_unit = new_board[unit_position].occupant
+    captured_unit = new_board[new_position]
+
+    if new_board[new_position]:
+        del new_board.poitions[captured_unit]
+        del new_board.moves[captured_unit]
+
+    new_board[new_position].occupant = moved_unit
+    new_board[unit_position].occupant = Empty()
+    new_board.positions[moved_unit] = new_position
+    new_board.moves[moved_unit] = new_board.get_single_unit_moves(
+        new_position)
+
+    return new_board
+
 
 # class BoardRepresentation(np.ndarray):
 #
@@ -102,42 +124,46 @@ class Board(np.ndarray):
 #     # def get_pawn_positions(self):
 
 
-class BoardState(np.ndarray):
-    """ TODO - may be obsolete """
-    """ Class used for representation of current BoardState. """
-
-    def __new__(cls, pawns, fields, player):
-        """ Create new instance of BoardState. """
-        pawns = np.asarray(pawns, dtype=int)
-        fields = np.asarray(fields, dtype=int)
-        player = np.asarray(player, dtype=int)
-        obj = np.stack((pawns, fields, player), axis=0).view(cls)
-        return obj
+# class BoardState(np.ndarray):
+#     """ TODO - may be obsolete """
+#     """ Class used for representation of current BoardState. """
+#
+#     def __new__(cls, pawns, fields, player):
+#         """ Create new instance of BoardState. """
+#         pawns = np.asarray(pawns, dtype=int)
+#         fields = np.asarray(fields, dtype=int)
+#         player = np.asarray(player, dtype=int)
+#         obj = np.stack((pawns, fields, player), axis=0).view(cls)
+#         return obj
 
 
 def initialize_board():
-    player = np.ones((9, 7), dtype=int)
-    fields = np.array([
-        [0, 0, 2, 0, 2, 0, 0],
-        [0, 0, 0, 2, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 1, 1, 0, 1, 1, 0],
-        [0, 1, 1, 0, 1, 1, 0],
-        [0, 1, 1, 0, 1, 1, 0],
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 2, 0, 0, 0],
-        [0, 0, 2, 0, 2, 0, 0],
+    # TODO update
+    board = Board([
+        [Cell(Lion(False)), Cell(), Cell(trap=True, white_trap=False),
+         Cell(Den(False)), Cell(trap=True, white_trap=False), Cell(),
+         Cell(Tiger(False))],
+        [Cell(), Cell(Dog(False)), Cell(), Cell(trap=True, white_trap=False),
+         Cell(), Cell(Cat(False)), Cell()],
+        [Cell(Mouse(False)), Cell(), Cell(Leopard(False)), Cell(),
+         Cell(Wolf(False)), Cell(), Cell(Elephant(False))],
+        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+         Cell(water=True), Cell()],
+        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+         Cell(water=True), Cell()],
+        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+         Cell(water=True), Cell()],
+        [Cell(Elephant(True)), Cell(), Cell(Wolf(True)), Cell(),
+         Cell(Leopard(True)), Cell(), Cell(Mouse(True))],
+        [Cell(), Cell(Cat(True)), Cell(), Cell(trap=True, white_trap=True),
+         Cell(), Cell(Dog(True)), Cell()],
+        [Cell(Tiger(True)), Cell(), Cell(trap=True, white_trap=True),
+         Cell(Den(True)), Cell(trap=True, white_trap=True), Cell(),
+         Cell(Lion(True))],
     ])
-    pawns = np.array([
-        [-7, 00, 00, -9, 00, 00, -6],
-        [00, -3, 00, 00, 00, -2, 00],
-        [-1, 00, -5, 00, -4, 00, -8],
-        [00, 00, 00, 00, 00, 00, 00],
-        [00, 00, 00, 00, 00, 00, 00],
-        [00, 00, 00, 00, 00, 00, 00],
-        [+8, 00, +4, 00, +5, 00, +1],
-        [00, +2, 00, 00, 00, +3, 00],
-        [+6, 00, 00, +9, 00, 00, +7],
-    ])
-    board_state = BoardState(pawns, fields, player)
-    return board_state
+    return board
+
+
+board = initialize_board()
+new_board = move(board, (0, 0), (0, 1))
+breakpoint()
