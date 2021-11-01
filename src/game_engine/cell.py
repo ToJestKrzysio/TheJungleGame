@@ -56,9 +56,12 @@ class Cell:
         """ Returns tuple representing cell occupant and cell ground value. """
         return self.occupant.value, self.ground_value
 
+    # def __repr__(self):
+    #     return (f"{type(self).__name__}(occupant={self.occupant}, "
+    #             f"water={self.water}, trap={self.trap}")
+
     def __repr__(self):
-        return (f"{type(self).__name__}(occupant={self.occupant})")
-        #, "f"water={self.water}, trap={self.trap})
+        return f"Cell({repr(self.occupant)}),"
 
     def __bool__(self):
         return self.occupied

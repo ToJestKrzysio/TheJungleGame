@@ -27,6 +27,9 @@ class Empty(Unit):
     value: int = Units.EMPTY.value
     swims: bool = True
 
+    def __repr__(self):
+        return f"Empty"
+
 
 @dataclass(frozen=True, repr=False)
 class Den(Unit):

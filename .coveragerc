@@ -2,3 +2,4 @@
 omit =
     research-papers/
     .pytest_cache/
+    tests/
