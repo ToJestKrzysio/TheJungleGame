@@ -4,9 +4,7 @@ import numpy as np
 
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
-from src.game_engine.unit import Empty, Unit
-from src.game_engine.unit import Mouse, Cat, Dog, Wolf, Leopard, Tiger, Lion, \
-    Elephant, Den
+from src.game_engine.unit import *
 
 
 class Board(np.ndarray):
@@ -73,7 +71,7 @@ class Board(np.ndarray):
         """ Moves across the water and returns the position across it. """
         new_cell = self[new_position]
         while new_cell.water:
-            if not isinstance(new_cell.occupant, Empty):
+            if new_cell.occupant is not EMPTY:
                 return False, -1, -1
 
             new_position = self._get_new_position_tuple(new_position, move)
@@ -117,16 +115,18 @@ def move(board_state, unit_position, new_position):
             board_state.moves[board_state[unit_position].occupant]):
         raise MoveNotPossibleError("Selected move is not valid")
 
-    new_board = copy.deepcopy(board_state)
+    new_board = copy.copy(board_state)
+    new_board[unit_position] = copy.copy(new_board[unit_position])
+    new_board[new_position] = copy.copy(new_board[new_position])
     moved_unit = new_board[unit_position].occupant
     captured_unit = new_board[new_position].occupant
 
     if new_board[new_position]:
-        del new_board.poitions[captured_unit]
+        del new_board.positions[captured_unit]
         del new_board.moves[captured_unit]
 
     new_board[new_position].occupant = moved_unit
-    new_board[unit_position].occupant = Empty()
+    new_board[unit_position].occupant = EMPTY
     new_board.positions[moved_unit] = new_position
     new_board.moves[moved_unit] = new_board.get_single_unit_moves(
         new_position)
@@ -136,25 +136,30 @@ def move(board_state, unit_position, new_position):
 
 def initialize_board():
     board = [
-        [Cell(Lion(False)), Cell(), Cell(trap=True, white_trap=False),
-         Cell(Den(False)), Cell(trap=True, white_trap=False), Cell(),
-         Cell(Tiger(False))],
-        [Cell(), Cell(Dog(False)), Cell(), Cell(trap=True, white_trap=False),
-         Cell(), Cell(Cat(False)), Cell()],
-        [Cell(Mouse(False)), Cell(), Cell(Leopard(False)), Cell(),
-         Cell(Wolf(False)), Cell(), Cell(Elephant(False))],
+        [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
+         Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
+         Cell(BLACK_LEOPARD)],
+        [Cell(), Cell(BLACK_DOG), Cell(), Cell(trap=True, white_trap=False),
+         Cell(), Cell(BLACK_CAT), Cell()],
+        [Cell(BLACK_MOUSE), Cell(), Cell(BLACK_LEOPARD), Cell(),
+         Cell(BLACK_WOLF), Cell(), Cell(BLACK_ELEPHANT)],
         [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
          Cell(water=True), Cell()],
         [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
          Cell(water=True), Cell()],
         [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
          Cell(water=True), Cell()],
-        [Cell(Elephant(True)), Cell(), Cell(Wolf(True)), Cell(),
-         Cell(Leopard(True)), Cell(), Cell(Mouse(True))],
-        [Cell(), Cell(Cat(True)), Cell(), Cell(trap=True, white_trap=True),
-         Cell(), Cell(Dog(True)), Cell()],
-        [Cell(Tiger(True)), Cell(), Cell(trap=True, white_trap=True),
-         Cell(Den(True)), Cell(trap=True, white_trap=True), Cell(),
-         Cell(Lion(True))],
+        [Cell(WHITE_ELEPHANT), Cell(), Cell(WHITE_WOLF), Cell(),
+         Cell(WHITE_LEOPARD), Cell(), Cell(WHITE_MOUSE)],
+        [Cell(), Cell(WHITE_CAT), Cell(), Cell(trap=True, white_trap=True),
+         Cell(), Cell(WHITE_DOG), Cell()],
+        [Cell(WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
+         Cell(WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
+         Cell(WHITE_LION)],
     ]
     return board
+
+
+# board_1 = Board(initialize_board())
+# board_2 = move(board_1, (0, 0), (0, 1))
+# breakpoint()

@@ -1,6 +1,6 @@
 from src.game_engine.properties import GroundStates, Units
 from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.unit import Unit, Empty, Den
+from src.game_engine.unit import EMPTY, Den, Unit
 
 
 class Cell:
@@ -17,7 +17,7 @@ class Cell:
 
     def __init__(
             self,
-            occupant: Unit = Empty(),
+            occupant: Unit = EMPTY,
             water: bool = False,
             trap: bool = False,
             white_trap: bool = False
@@ -81,7 +81,7 @@ class Cell:
         if other.trap:
             if (isinstance(self.occupant, Den) or (
                     other.white_trap == other.occupant.white and
-                    not isinstance(other.occupant, Empty))):
+                    other.occupant is not EMPTY)):
                 return False
             return True
         if other.water:

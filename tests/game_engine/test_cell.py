@@ -5,7 +5,7 @@ import pytest
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import JumpIntoWaterError
 from src.game_engine.properties import GroundStates
-from src.game_engine.unit import Empty, Den, Unit
+from src.game_engine.unit import EMPTY, Unit
 
 
 class TestCell:
@@ -43,7 +43,7 @@ class TestCell:
 
     @pytest.mark.parametrize("occupant", SWIMMER_EXAMPLES)
     def test_occupant_water(self, occupant):
-        cell = Cell(Empty(), water=True, trap=False)
+        cell = Cell(EMPTY, water=True, trap=False)
 
         cell.occupant = occupant
         assert cell.occupant == occupant
@@ -51,7 +51,7 @@ class TestCell:
 
     @pytest.mark.parametrize("occupant", NON_SWIMMER_EXAMPLES)
     def test_occupant_land(self, occupant):
-        cell = Cell(Empty(), water=False, trap=False)
+        cell = Cell(EMPTY, water=False, trap=False)
 
         cell.occupant = occupant
         assert cell.occupant == occupant

@@ -2,6 +2,16 @@ from dataclasses import dataclass
 from src.game_engine.properties import Units
 
 
+__all__ = [
+    "Unit", "Den",
+    "EMPTY", "WHITE_DEN", "BLACK_DEN",
+    "WHITE_MOUSE", "WHITE_CAT", "WHITE_DOG", "WHITE_WOLF",
+    "WHITE_LEOPARD", "WHITE_TIGER", "WHITE_LION", "WHITE_ELEPHANT",
+    "BLACK_MOUSE", "BLACK_CAT", "BLACK_DOG", "BLACK_WOLF",
+    "BLACK_LEOPARD", "BLACK_TIGER", "BLACK_LION", "BLACK_ELEPHANT",
+]
+
+
 @dataclass(frozen=True, repr=False)
 class Unit:
     white: bool
@@ -119,6 +129,30 @@ class Elephant(Unit):
          Units.DOG.value, Units.WOLF.value, Units.LEOPARD.value,
          Units.TIGER.value, Units.LION.value, Units.ELEPHANT.value]
     )
+
+
+EMPTY = Empty()
+
+WHITE_DEN = Den(True)
+WHITE_MOUSE = Mouse(True)
+WHITE_CAT = Cat(True)
+WHITE_DOG = Dog(True)
+WHITE_WOLF = Wolf(True)
+WHITE_LEOPARD = Leopard(True)
+WHITE_TIGER = Tiger(True)
+WHITE_LION = Lion(True)
+WHITE_ELEPHANT = Elephant(True)
+
+BLACK_DEN = Den(False)
+BLACK_MOUSE = Mouse(False)
+BLACK_CAT = Cat(False)
+BLACK_DOG = Dog(False)
+BLACK_WOLF = Wolf(False)
+BLACK_LEOPARD = Leopard(False)
+BLACK_TIGER = Tiger(False)
+BLACK_LION = Lion(False)
+BLACK_ELEPHANT = Elephant(False)
+
 
 
 
