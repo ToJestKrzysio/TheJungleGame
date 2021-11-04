@@ -4,7 +4,9 @@ import pytest
 import numpy as np
 
 from src.game_engine.board import Board
-from src.game_engine.unit import Unit, Empty, Mouse, Tiger, Dog
+from src.game_engine.unit import Unit, Empty, Mouse, Tiger, Dog, EMPTY
+from src.game_engine.unit import *
+
 
 
 class TestBoard:
@@ -90,8 +92,8 @@ class TestBoard:
         move = (1, 0)
         board_mock = MagicMock(spec=Board)
         board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=Empty()),
-            Mock(water=False, occupant=Empty()),
+            Mock(water=True, occupant=EMPTY),
+            Mock(water=False, occupant=EMPTY),
         ]
         board_mock._get_new_position_tuple.side_effect = [(2, 1)]
         board_mock._is_position_valid.return_value = False
@@ -110,9 +112,9 @@ class TestBoard:
         move = (1, 0)
         board_mock = MagicMock(spec=Board)
         board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=Empty()),
+            Mock(water=True, occupant=EMPTY),
             Mock(water=True, occupant=Mouse(False)),
-            Mock(water=False, occupant=Empty()),
+            Mock(water=False, occupant=EMPTY),
         ]
         board_mock._get_new_position_tuple.side_effect = [(2, 1), (3, 1)]
         board_mock._is_position_valid.return_value = True
@@ -131,9 +133,9 @@ class TestBoard:
         move = (1, 0)
         board_mock = MagicMock(spec=Board)
         board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=Empty()),
-            Mock(water=True, occupant=Empty()),
-            Mock(water=False, occupant=Empty()),
+            Mock(water=True, occupant=EMPTY),
+            Mock(water=True, occupant=EMPTY),
+            Mock(water=False, occupant=EMPTY),
         ]
         board_mock._get_new_position_tuple.side_effect = [(2, 1), (3, 1)]
         board_mock._is_position_valid.return_value = True
@@ -170,14 +172,112 @@ class TestBoard:
         board_mock._is_position_valid.assest_called_once_with((4, 1))
         assert result == (False, -1, -1)
 
-    def test_find_move_position_jumps_no_water(self):
-        pass  # TODO
+    @pytest.mark.parametrize("position, move, new_position", [
+        ((2, 2), (1, 0), (3, 2)),
+        ((2, 2), (-1, 0), (1, 2)),
+        ((2, 2), (0, 1), (2, 3)),
+        ((2, 2), (0, -1), (2, 1)),
+    ])
+    def test_find_move_position_jumps_no_water(
+            self,
+            position,
+            move,
+            new_position
+    ):
+        old_cell = Mock(
+            water=False,
+            occupant=Mock(jumps=True),
+            can_capture=Mock(return_value=True)
+        )
+        new_cell = Mock(water=False)
+        board_mock = MagicMock()
+        board_mock.__getitem__.side_effect = [old_cell, new_cell]
+        board_mock._get_new_position_tuple.return_value = new_position
 
-    def test_find_move_position_jumps_over_water(self):
-        pass  # TODO
+        result = Board._find_move_position(board_mock, position, move)
 
-    def test_find_move_position_can_capture(self):
-        pass  # TODO
+        board_mock._get_new_position_tuple.assert_called_once_with(
+            position, move
+        ),
+        board_mock._is_position_valid.assert_called_once_with(new_position)
+        assert not board_mock._get_land_position_across_the_water.called
+        old_cell.can_capture.assert_called_once_with(new_cell)
+        assert result == (True, new_position[0], new_position[1])
 
-    def test_find_move_position_cannot_capture(self):
-        pass  # TODO
+    @pytest.mark.parametrize("position, move, next_position, land_position", [
+        ((2, 2), (1, 0), (3, 2), (6, 2)),
+        ((6, 4), (-1, 0), (4, 4), (2, 4)),
+        ((4, 0), (0, 1), (4, 1), (4, 3)),
+        ((6, 6), (0, -1), (5, 5), (6, 3)),
+    ])
+    def test_find_move_position_jumps_over_water(
+            self,
+            position,
+            move,
+            next_position,
+            land_position
+    ):
+        old_cell = Mock(
+            water=False,
+            occupant=Mock(jumps=True),
+            can_capture=Mock(return_value=True),
+        )
+        water_1 = Mock(water=True, occupant=EMPTY)
+        new_land_cell = Mock(water=True)
+        board_mock = MagicMock()
+        board_mock.__getitem__.side_effect = [old_cell, water_1, new_land_cell]
+        board_mock._get_new_position_tuple.side_effect = [next_position, ]
+        board_mock._is_position_valid.return_value = True
+        board_mock._get_land_position_across_the_water.return_value = (
+            True, *land_position
+        )
+
+        result = Board._find_move_position(board_mock, position, move)
+
+        board_mock._get_new_position_tuple.assest_called_once_with(
+            position, move
+        )
+        board_mock._is_position_valid.assest_called_once_with(next_position)
+        board_mock._get_land_position_across_the_water.assert_called_once_with(
+            next_position, move
+        )
+        old_cell.can_capture.assert_called_once_with(new_land_cell)
+        assert result == (True, *land_position)
+
+    @pytest.mark.parametrize("position, move, next_position", [
+        ((2, 2), (1, 0), (3, 2)),
+        ((6, 4), (-1, 0), (5, 4)),
+        ((4, 0), (0, 1), (4, 1)),
+        ((6, 6), (0, -1), (6, 5)),
+    ])
+    def test_find_move_position_cant_jump_over_water(
+            self,
+            position,
+            move,
+            next_position
+    ):
+        old_cell = Mock(
+            water=False,
+            occupant=Mock(jumps=False),
+            can_capture=Mock(return_value=False)
+        )
+        new_cell = Mock(water=True)
+        board_mock = MagicMock()
+        board_mock.__getitem__.side_effect = [old_cell, new_cell]
+        board_mock._get_new_position_tuple.return_value = next_position
+        board_mock._is_position_valid.return_value = True
+
+        result = Board._find_move_position(board_mock, position, move)
+
+        board_mock._get_new_position_tuple.assest_called_once_with(
+            next_position
+        )
+        board_mock._is_position_valid.assest_called_once_with(next_position)
+        assert not board_mock._get_land_position_across_the_water.called
+        old_cell.can_capture.assert_called_once_with(new_cell)
+        assert result == (False, -1, -1)
+
+    # def test_find_move_position_land_can_captuxre(self):
+
+
+
