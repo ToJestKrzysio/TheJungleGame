@@ -234,9 +234,8 @@ class TestBoard:
 
         result = Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assest_called_once_with(
-            position, move
-        )
+        board_mock._get_new_position_tuple.assest_called_once_with(position,
+                                                                   move)
         board_mock._is_position_valid.assest_called_once_with(next_position)
         board_mock._get_land_position_across_the_water.assert_called_once_with(
             next_position, move
@@ -269,15 +268,41 @@ class TestBoard:
 
         result = Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assest_called_once_with(
-            next_position
-        )
+        board_mock._get_new_position_tuple.assert_called_once_with(position,
+                                                                   move)
         board_mock._is_position_valid.assest_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (False, -1, -1)
 
-    # def test_find_move_position_land_can_captuxre(self):
+    def test_find_move_position_can_capture_other_on_land(self):
+        """
+        Tests if given unit can capture other one occupying land cell.
+        """
+        position = (1, 1)
+        move = (1, 0)
+        next_position = (2, 1)
+        old_cell = Mock(
+            water=False,
+            occupant=Mock(),
+            can_capture=Mock(return_value=True)
+        )
+        new_cell = Mock(water=False)
+        board_mock = MagicMock()
+        board_mock.__getitem__.side_effect = [old_cell, new_cell]
+        board_mock._get_new_position_tuple.return_value = next_position
+        board_mock._is_position_valid.return_value = True
+
+        result = Board._find_move_position(board_mock, position, move)
+
+        board_mock._get_new_position_tuple.assert_called_once_with(position,
+                                                                   move)
+        board_mock._is_position_valid.assert_called_once_with(next_position)
+        assert not board_mock._get_land_position_across_the_water.called
+        old_cell.can_capture.assert_called_once_with(new_cell)
+        assert result == (True, *next_position)
+
+
 
 
 
