@@ -1,4 +1,3 @@
-import enum
 from enum import Enum
 
 
@@ -19,10 +18,3 @@ class Units(Enum):
     TIGER = 7
     LION = 8
     ELEPHANT = 9
-
-
-water_types = {Units.EMPTY.value, Units.MOUSE.value, }
-
-
-
-
