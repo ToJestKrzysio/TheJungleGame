@@ -19,6 +19,7 @@ class Board(np.ndarray):
             return
         self.positions = self.get_positions()
         self.moves = self.get_moves_for_all_units()
+        self.previous_board = None
 
     def get_positions(self) -> dict[Unit, tuple[int, int]]:
         """
@@ -108,8 +109,15 @@ class Board(np.ndarray):
         return INVALID_POSITION
 
 
-def move(board_state, unit_position, new_position):
-    """ Creates new instance of a board and moves animal to new location. """
+def move(
+        board_state: Board,
+        unit_position: tuple[int, int],
+        new_position: tuple[int, int]
+) -> Board:
+    """
+    Creates new instance of a board and moves selected unit to new location
+    on that board.
+    """
 
     if (new_position not in
             board_state.moves[board_state[unit_position].occupant]):
@@ -130,6 +138,7 @@ def move(board_state, unit_position, new_position):
     new_board.positions[moved_unit] = new_position
     new_board.moves[moved_unit] = new_board.get_single_unit_moves(
         new_position)
+    new_board.previous_board = board_state
 
     return new_board
 
@@ -158,8 +167,3 @@ def initialize_board():
          Cell(WHITE_LION)],
     ]
     return board
-
-
-# board_1 = Board(initialize_board())
-# board_2 = move(board_1, (0, 0), (0, 1))
-# breakpoint()

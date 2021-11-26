@@ -3,10 +3,11 @@ from unittest.mock import Mock, call, MagicMock
 import pytest
 import numpy as np
 
-from src.game_engine.board import Board
-from src.game_engine.unit import Unit, Empty, Mouse, Tiger, Dog, EMPTY
+from src.game_engine.board import Board, move
+from src.game_engine.cell import Cell
+from src.game_engine.exceptions import MoveNotPossibleError
+from src.game_engine.unit import Empty, Mouse, Tiger, EMPTY
 from src.game_engine.unit import *
-
 
 
 class TestBoard:
@@ -303,6 +304,90 @@ class TestBoard:
         assert result == (True, *next_position)
 
 
+class TestMove:
 
+    @pytest.mark.parametrize("new_position, unit_position, moves", [
+        ((0, 0), (-1, -1), {(0, -1), (-1, 0), (-2, -1), (-1, -2)}),
+        ((-1, -1), (-1, -1), {(0, -1), (-1, 0), (-2, -1), (-1, -2)}),
+        ((123, 98), (341, 0), {(123, 99), (123, 97), (122, 98), (124, 98)}),
+    ])
+    def test__move__impossible_move(self, new_position, unit_position, moves):
+        """
+        If new position is not a valid position for selected unit.
+        MoveNotPossibleError should be raised.
+        """
+        occupant_mock = Mock()
+        board_state = MagicMock()
+        board_state.__getitem__.return_value = Mock(occupant=occupant_mock)
+        board_state.moves = {occupant_mock: moves}
 
+        with pytest.raises(MoveNotPossibleError):
+            move(board_state, unit_position, new_position)
 
+    @pytest.mark.parametrize("unit_position, new_position", [
+        [(0, 0), (1, 0)],
+        [(0, 0), (0, 1)],
+        [(1, 0), (0, 0)],
+        [(1, 0), (1, 1)],
+        [(1, 0), (2, 0)],
+        [(2, 0), (2, 1)],
+        [(2, 0), (1, 0)],
+
+        [(0, 1), (0, 0)],
+        [(0, 1), (0, 2)],
+        [(0, 1), (1, 1)],
+        [(1, 1), (0, 1)],
+        [(1, 1), (1, 0)],
+        [(1, 1), (1, 2)],
+        [(1, 1), (2, 1)],
+        [(2, 1), (2, 0)],
+        [(2, 1), (1, 1)],
+        [(2, 1), (2, 2)],
+
+        [(0, 2), (0, 1)],
+        [(0, 2), (1, 2)],
+        [(1, 2), (0, 2)],
+        [(1, 2), (1, 1)],
+        [(1, 2), (2, 2)],
+        [(2, 2), (1, 2)],
+        [(2, 2), (2, 1)],
+    ])
+    @pytest.mark.parametrize("unit", [
+        WHITE_MOUSE, WHITE_CAT, WHITE_DOG, WHITE_WOLF, WHITE_LEOPARD,
+        WHITE_TIGER, WHITE_LION, WHITE_ELEPHANT, BLACK_MOUSE, BLACK_CAT,
+        BLACK_DOG, BLACK_WOLF, BLACK_LEOPARD, BLACK_TIGER, BLACK_LION,
+        BLACK_ELEPHANT,
+    ])
+    def test__move__board_copying(
+            self,
+            unit_position: tuple[int, int],
+            new_position: tuple[int, int],
+            unit: Unit
+    ):
+        """
+        If new position is valid, new board should be created.
+        New position should be occupied by occupant of old position nad old
+        position should be empty.
+        """
+        board_array = [
+            [Cell(), Cell(), Cell()],
+            [Cell(), Cell(), Cell()],
+            [Cell(), Cell(), Cell()]
+        ]
+        board_array[unit_position[0]][unit_position[1]] = Cell(unit)
+        old_board = Board(board_array)
+
+        new_board = move(old_board, unit_position, new_position)
+
+        assert new_board.shape == old_board.shape
+        assert (new_board[new_position].occupant
+                == old_board[unit_position].occupant)
+        assert new_board[unit_position].occupant == EMPTY
+        assert new_board[new_position].occupant == unit
+        assert new_board.previous_board is old_board
+        for idx in set(range(new_board.shape[0])):
+            for idy in range(new_board.shape[1]):
+                if (idx, idy) in (new_position, unit_position):
+                    continue
+                assert (new_board[idx, idy].occupant
+                        == old_board[idx, idy].occupant)
