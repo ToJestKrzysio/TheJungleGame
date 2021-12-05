@@ -3,7 +3,7 @@ from unittest.mock import Mock, call, MagicMock
 import pytest
 import numpy as np
 
-from src.game_engine.board import Board, move
+from src.game_engine.board import Board, move, BoardTensor
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
 from src.game_engine.unit import Empty, Mouse, Tiger, EMPTY
@@ -303,6 +303,13 @@ class TestBoard:
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (True, *next_position)
 
+    @pytest.mark.parametrize("items, expected", [
+        [(), 0],
+        [(None, None, None, None, None, None), 0],
+        [(1, 2, 3, 3, 3, 3, None, None, None, None, None, None), 4],
+    ])
+    def test_get_repetitions(self, items, expected):
+        result = Board.get_repetition(items)
 
 class TestMove:
 
