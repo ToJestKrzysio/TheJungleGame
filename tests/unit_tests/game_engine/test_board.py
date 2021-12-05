@@ -308,8 +308,19 @@ class TestBoard:
         [(None, None, None, None, None, None), 0],
         [(1, 2, 3, 3, 3, 3, None, None, None, None, None, None), 4],
     ])
-    def test_get_repetitions(self, items, expected):
-        result = Board.get_repetition(items)
+    def test_get_repetition(self, items, expected):
+        result = Board._get_repetition(items)
+
+        assert result == expected
+
+    def test_get_repetitions(self):
+        player, opponent = Mock(), Mock()
+        board_mock = Mock(last_moves=[player, opponent])
+        Board.get_repetitions(self=board_mock)
+
+        board_mock.get_repetition.assert_has_calls([call(player),
+                                                    call(opponent)])
+
 
 class TestMove:
 

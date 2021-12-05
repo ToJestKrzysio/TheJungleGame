@@ -9,7 +9,6 @@ from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
 from src.game_engine.unit import *
 
-
 MAX_REPETITIONS = 3
 
 
@@ -26,6 +25,9 @@ class Board(np.ndarray):
     positions: dict[Unit, tuple[int, int]]
     moves: dict[Unit, set[tuple[int, int]]]
     previous_board: Board | None
+    last_moves: list[list, list]
+    move_count: int
+    white_move: bool
 
     def __new__(cls, cells: np.ndarray | list[list[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)
@@ -42,7 +44,9 @@ class Board(np.ndarray):
             [None] * (MAX_REPETITIONS - 1),
             [None] * (MAX_REPETITIONS - 1),
         ]
-
+        self.white_move = True
+        self.move_count = 0
+        
     def get_positions(self) -> dict[Unit, tuple[int, int]]:
         """
         Generates dictionary of units on the board.
@@ -130,18 +134,21 @@ class Board(np.ndarray):
 
         return INVALID_POSITION
 
-        def get_repetitions(self) -> tuple[int, int]:
+    def get_repetitions(self) -> tuple[int, int]:
+        """ Get number of repetitions for player and the opponent. """
+        player, opponent = self.last_moves
+        return self._get_repetition(player), self._get_repetition(opponent)
 
-        @staticmethod
-        def get_repetition(moves: list) -> int:
-            counter = Counter(moves)
-            del counter[None]
-            return counter[0]
-
-            @staticmethod
-            def get_repetitions(moves: list):
-
-
+    @staticmethod
+    def _get_repetition(moves: list) -> int:
+        """
+        Calculates maximum number of repetitions within the given list of
+        moves.
+        """
+        counter = Counter(moves)
+        del counter[None]
+        most_common = counter.most_common(1)
+        return most_common[0][1] if most_common else 0
 
 
 def move(
@@ -156,7 +163,13 @@ def move(
 
     if (new_position not in
             board_state.moves[board_state[unit_position].occupant]):
-        raise MoveNotPossibleError("Selected move is not valid")
+        raise MoveNotPossibleError("Selected move is not valid.")
+    if board_state[unit_position].occupant.white is not board_state.white_move:
+        raise MoveNotPossibleError(
+            "Wrong piece selected, it's {} player turn.".format(
+                "white" if board_state.white_move else "black"
+            )
+        )
 
     new_board = copy.copy(board_state)
     new_board[unit_position] = copy.copy(new_board[unit_position])
@@ -182,7 +195,9 @@ def move(
     current_player_moves.pop(0)
     current_player_moves.append((unit_position, new_position))
     new_board.last_moves = [next_player_moves, current_player_moves]
-
+        
+    new_board.white_move = not board_state.white_move
+    new_board.move_count = board_state.move_count + 1
     new_board.previous_board = board_state
 
     return new_board
@@ -219,9 +234,67 @@ class BoardTensor(np.ndarray):
     def __new__(cls, board: Board):
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
-        obj = np.zeros(shape=(176, 9, 7)).view(cls)
-        obj.current_board = board
+        obj = np.zeros(shape=(175, 9, 7))
+
+        obj[-1, :, :] = board.white_move
+        obj[-2, :, :] = board.move_count
+
+        STEP_BOARDS = 22
+        current_board = board
+        for step in range(8):
+            start = step * STEP_BOARDS
+            stop = (step + 1) * STEP_BOARDS
+            if current_board is None:
+                break
+            obj[start:stop, :, :] = BoardTensor.get_step_tensor(
+                current_board, board.white_move)
+            current_board = current_board.previous_board
         return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        STEP_BOARDS = 22
+        current_board = obj.current_board
+        current_white = current_board.white_move
+        for step in range(8):
+            start = step * STEP_BOARDS
+            stop = (step + 1) * STEP_BOARDS
+            if self.current_board is None:
+                self[start:stop, :, :] = self.get_empty_step_tensor()
+            else:
+                self[start:stop, :, :] = self.get_step_tensor(current_board,
+                                                              current_white)
+            current_board = current_board.previous_board
+        current_board[-1, :, :] = current_white
+        current_board[-2, :, :] = obj.current_board.move_count
+        
+    @staticmethod
+    def get_step_tensor(board: Board, current_white: bool):
+        unit_tensor = np.zeros((20, 9, 7), dtype=bool)
+        white_offset, black_offset = (0, 10) if current_white else (10, 0)
+        unit_tensor[black_offset, :, :] = BoardTensor.black_trap_array()
+        unit_tensor[white_offset, :, :] = BoardTensor.white_trap_array()
+        for animal, position in board.positions.items():
+            idx = white_offset if animal.white else black_offset
+            idx += animal.value
+            unit_tensor[idx, position[0], position[1]] = 1
+        repetition_tensor = np.ones((2, 9, 7), dtype=int)
+        player, opponent = board.get_repetitions()
+        repetition_tensor[0, :, :] *= player
+        repetition_tensor[1, :, :] *= opponent
+        if current_white:
+            return np.concatenate([unit_tensor, repetition_tensor], axis=0)
+        return np.flip(
+            np.concatenate([unit_tensor, repetition_tensor], axis=0),
+            axis=1
+        )
+
+    @staticmethod
+    def get_empty_step_tensor():
+        unit_tensor = np.zeros((20, 9, 7), dtype=bool)
+        repetition_tensor = np.zeros((2, 9, 7), dtype=int)
+        return np.concatenate([unit_tensor, repetition_tensor], axis=0)
 
     @staticmethod
     def black_trap_array():
@@ -238,27 +311,3 @@ class BoardTensor(np.ndarray):
         array[8, 4] = 1
         array[7, 3] = 1
         return array
-
-    def __array_finalize__(self, obj):
-        STEP_BOARDS = 22
-        current_board = obj.current_board
-        for step in range(8):
-            start = step * STEP_BOARDS
-            stop = (step+1) * STEP_BOARDS
-            player_moves, opponent_moves = current_board.last_moves
-            Counter(player_moves)
-
-            current_board = current_board.previous_board
-
-    @staticmethod
-    def get_step_tensor(board: Board):
-        unit_tensor = np.zeros((20, 9, 7), dtype=bool)
-        unit_tensor[0, :, :] = BoardTensor.black_trap_array()
-        unit_tensor[10, :, :] = BoardTensor.white_trap_array()
-        for animal, position in board.positions.items():
-            idx = animal.value
-            if animal.white:
-                idx += 10
-            unit_tensor[idx, position[0], position[1]] = 1
-        repetition_tensor = np.zeros((20, 9, 7), dtype=bool)
-        return unit_tensor
