@@ -232,14 +232,14 @@ def initialize_board():
 class BoardTensor(np.ndarray):
 
     def __new__(cls, board: Board):
+        STEP_BOARDS = 22
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
-        obj = np.zeros(shape=(175, 9, 7))
+        obj = np.zeros(shape=(STEP_BOARDS*8+2, 9, 7))
 
         obj[-1, :, :] = board.white_move
         obj[-2, :, :] = board.move_count
 
-        STEP_BOARDS = 22
         current_board = board
         for step in range(8):
             start = step * STEP_BOARDS
