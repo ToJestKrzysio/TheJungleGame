@@ -6,16 +6,25 @@ FILTERS = 128
 INPUT_SHAPE = 9, 7, 178
 
 
-def get_policy_head():
-    policy_network = Sequential([initial_layer])
-    for idx in range(11):
-        policy_network.add(conv_1_layer)
-    policy_network.add(final_policy_layer)
+def get_policy_head(filters: int) -> Sequential:
+    policy_layer = Sequential()
+    policy_layer.add(layers.InputLayer(input_shape=(9, 7, filters)))
+    policy_layer.add(
+        layers.Conv2D(filters=10, strides=1, kernel_size=(1, 1), activation="softmax"))
+    return policy_layer
 
-    return policy_network
+
+def get_value_head(filters: int) -> Sequential:
+    value_layer = Sequential()
+    value_layer.add(layers.InputLayer(input_shape=(9, 7, filters)))
+    value_layer.add(
+        layers.Conv2D(filters=1, strides=1, kernel_size=(1, 1), activation="relu"))
+    value_layer.add(layers.Dense(units=256, activation="linear"))
+    value_layer.add(layers.Dense(units=1, activation="tanh"))
+    return value_layer
 
 
-def get_base_network(filters: int):
+def get_base_network(filters: int) -> Sequential:
     initial_layer = Sequential()
     initial_layer.add(layers.InputLayer(input_shape=INPUT_SHAPE))
     initial_layer.add(layers.ZeroPadding2D(padding=2, data_format="channels_last"))
@@ -27,10 +36,6 @@ def get_base_network(filters: int):
     initial_layer.add(
         layers.Conv2D(filters=filters, strides=1, kernel_size=(3, 3), activation="relu"))
 
-    final_value_layer = Sequential()
-    final_value_layer.add(
-        layers.Conv2D(filters=10, strides=1, kernel_size=(1, 1), activation="softmax"))
-
     base_network = Sequential([initial_layer])
     for idx in range(11):
         base_network.add(conv_1_layer)
@@ -38,6 +43,14 @@ def get_base_network(filters: int):
     return base_network
 
 
-policy_network = get_policy_network(FILTERS)
-y = policy_network(x)
+base_network = get_base_network(filters=FILTERS)
+value_network = get_value_head(filters=FILTERS)
+policy_network = get_policy_head(filters=FILTERS)
+
+y = base_network(x)
+value = value_network(y)
+policy = policy_network(y)
+
 print(y.shape)
+print(value.shape)
+print(policy.shape)
