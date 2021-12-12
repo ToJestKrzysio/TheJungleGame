@@ -8,6 +8,7 @@ import numpy as np
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
 from src.game_engine.unit import *
+from typing import Dict, List, Set, Tuple
 
 MAX_REPETITIONS = 3
 
@@ -22,14 +23,14 @@ class Board(np.ndarray):
         does not exist equals None.
     last_moves: List
     """
-    positions: dict[Unit, tuple[int, int]]
-    moves: dict[Unit, set[tuple[int, int]]]
+    positions: Dict[Unit, Tuple[int, int]]
+    moves: Dict[Unit, Set[Tuple[int, int]]]
     previous_board: Board | None
-    last_moves: list[list, list]
+    last_moves: List[List, List]
     move_count: int
     white_move: bool
 
-    def __new__(cls, cells: np.ndarray | list[list[Cell]]):
+    def __new__(cls, cells: np.ndarray | List[List[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)
         return obj
 
@@ -46,7 +47,7 @@ class Board(np.ndarray):
         ]
         self.white_move = True
         self.move_count = 0
-        
+
     def get_positions(self) -> dict[Unit, tuple[int, int]]:
         """
         Generates dictionary of units on the board.
@@ -61,30 +62,30 @@ class Board(np.ndarray):
                     positions[cell.occupant] = (row_id, column_id)
         return positions
 
-    def get_moves_for_all_units(self) -> dict[Unit, set[tuple[int, int]]]:
+    def get_moves_for_all_units(self) -> Dict[Unit, Set[Tuple[int, int]]]:
         """ Collects moves every unit can make into a dictionary. """
         return {unit: self.get_single_unit_moves(position)
                 for unit, position in self.positions.items()}
 
     def get_single_unit_moves(
             self,
-            position: tuple[int, int]
-    ) -> set[tuple[int, int]]:
+            position: Tuple[int, int]
+    ) -> set[Tuple[int, int]]:
         """ Collects all_moves unit can make and returns only valid ones. """
         all_moves = [self._find_move_position(position, move)
                      for move in ((-1, 0), (1, 0), (0, -1), (0, 1))]
         return {tuple(move) for valid, *move in all_moves if valid}
 
-    def _is_position_valid(self, position: tuple[int, int]) -> bool:
+    def _is_position_valid(self, position: Tuple[int, int]) -> bool:
         """ Checks if position is inside the board space. """
         y, x = position
         return y in range(self.shape[0]) and x in range(self.shape[1])
 
     @staticmethod
     def _get_new_position_tuple(
-            position: tuple[int, int],
-            move: tuple[int, int],
-    ) -> tuple[int, int]:
+            position: Tuple[int, int],
+            move: Tuple[int, int],
+    ) -> Tuple[int, int]:
         """ Returns new position as a tuple. """
         y, x = position
         move_y, move_x = move
@@ -92,9 +93,9 @@ class Board(np.ndarray):
 
     def _get_land_position_across_the_water(
             self,
-            new_position: tuple[int, int],
-            move: tuple[int, int]
-    ) -> tuple[bool, int, int]:
+            new_position: Tuple[int, int],
+            move: Tuple[int, int]
+    ) -> Tuple[bool, int, int]:
         """ Moves across the water and returns the position across it. """
         new_cell = self[new_position]
         while new_cell.water:
@@ -109,9 +110,9 @@ class Board(np.ndarray):
 
     def _find_move_position(
             self,
-            position: tuple[int, int],
-            move: tuple[int, int]
-    ) -> tuple[bool, int, int]:
+            position: Tuple[int, int],
+            move: Tuple[int, int]
+    ) -> Tuple[bool, int, int]:
         """ Checks if move in the given direction is valid. """
         INVALID_POSITION = (False, -1, -1)
         old_cell = self[position]
@@ -134,13 +135,13 @@ class Board(np.ndarray):
 
         return INVALID_POSITION
 
-    def get_repetitions(self) -> tuple[int, int]:
+    def get_repetitions(self) -> Tuple[int, int]:
         """ Get number of repetitions for player and the opponent. """
         player, opponent = self.last_moves
         return self._get_repetition(player), self._get_repetition(opponent)
 
     @staticmethod
-    def _get_repetition(moves: list) -> int:
+    def _get_repetition(moves: List) -> int:
         """
         Calculates maximum number of repetitions within the given list of
         moves.
@@ -153,8 +154,8 @@ class Board(np.ndarray):
 
 def move(
         board_state: Board,
-        unit_position: tuple[int, int],
-        new_position: tuple[int, int]
+        unit_position: Tuple[int, int],
+        new_position: Tuple[int, int]
 ) -> Board:
     """
     Creates new instance of a board and moves selected unit to new location
@@ -195,7 +196,7 @@ def move(
     current_player_moves.pop(0)
     current_player_moves.append((unit_position, new_position))
     new_board.last_moves = [next_player_moves, current_player_moves]
-        
+
     new_board.white_move = not board_state.white_move
     new_board.move_count = board_state.move_count + 1
     new_board.previous_board = board_state
@@ -203,7 +204,8 @@ def move(
     return new_board
 
 
-def initialize_board():
+def initialize_board() -> List[List]:
+    """ Initializes board according to game rules. """
     board = [
         [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
          Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
@@ -235,10 +237,10 @@ class BoardTensor(np.ndarray):
         STEP_BOARDS = 22
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
-        obj = np.zeros(shape=(STEP_BOARDS*8+2, 9, 7))
+        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2))
 
-        obj[-1, :, :] = board.white_move
-        obj[-2, :, :] = board.move_count
+        obj[:, :, -1] = board.white_move
+        obj[:, :, -2] = board.move_count
 
         current_board = board
         for step in range(8):
@@ -246,7 +248,7 @@ class BoardTensor(np.ndarray):
             stop = (step + 1) * STEP_BOARDS
             if current_board is None:
                 break
-            obj[start:stop, :, :] = BoardTensor.get_step_tensor(
+            obj[:, :, start:stop] = BoardTensor.get_step_tensor(
                 current_board, board.white_move)
             current_board = current_board.previous_board
         return obj
@@ -261,43 +263,46 @@ class BoardTensor(np.ndarray):
             start = step * STEP_BOARDS
             stop = (step + 1) * STEP_BOARDS
             if self.current_board is None:
-                self[start:stop, :, :] = self.get_empty_step_tensor()
+                self[:, :, start:stop] = self.get_empty_step_tensor()
             else:
-                self[start:stop, :, :] = self.get_step_tensor(current_board,
+                self[:, :, start:stop] = self.get_step_tensor(current_board,
                                                               current_white)
             current_board = current_board.previous_board
-        current_board[-1, :, :] = current_white
-        current_board[-2, :, :] = obj.current_board.move_count
-        
+        current_board[:, :, -1] = current_white
+        current_board[:, :, -2] = obj.current_board.move_count
+
     @staticmethod
-    def get_step_tensor(board: Board, current_white: bool):
-        unit_tensor = np.zeros((20, 9, 7), dtype=bool)
+    def get_step_tensor(board: Board, current_white: bool) -> np.ndarray:
+        """ Generates tensor out of provided board state. """
+        unit_tensor = np.zeros((9, 7, 20), dtype=bool)
         white_offset, black_offset = (0, 10) if current_white else (10, 0)
-        unit_tensor[black_offset, :, :] = BoardTensor.black_trap_array()
-        unit_tensor[white_offset, :, :] = BoardTensor.white_trap_array()
+        unit_tensor[:, :, black_offset] = BoardTensor.black_trap_array()
+        unit_tensor[:, :, white_offset] = BoardTensor.white_trap_array()
         for animal, position in board.positions.items():
             idx = white_offset if animal.white else black_offset
             idx += animal.value
-            unit_tensor[idx, position[0], position[1]] = 1
-        repetition_tensor = np.ones((2, 9, 7), dtype=int)
+            unit_tensor[position[0], position[1], idx] = 1
+        repetition_tensor = np.ones((9, 7, 2), dtype=int)
         player, opponent = board.get_repetitions()
-        repetition_tensor[0, :, :] *= player
-        repetition_tensor[1, :, :] *= opponent
+        repetition_tensor[:, :, 0] *= player
+        repetition_tensor[:, :, 1] *= opponent
         if current_white:
-            return np.concatenate([unit_tensor, repetition_tensor], axis=0)
+            return np.concatenate([unit_tensor, repetition_tensor], axis=2)
         return np.flip(
-            np.concatenate([unit_tensor, repetition_tensor], axis=0),
+            np.concatenate([unit_tensor, repetition_tensor], axis=2),
             axis=1
         )
 
     @staticmethod
-    def get_empty_step_tensor():
-        unit_tensor = np.zeros((20, 9, 7), dtype=bool)
-        repetition_tensor = np.zeros((2, 9, 7), dtype=int)
-        return np.concatenate([unit_tensor, repetition_tensor], axis=0)
+    def get_empty_step_tensor() -> np.ndarray:
+        """ Creates empty tensor. """
+        unit_tensor = np.zeros((9, 7, 20), dtype=bool)
+        repetition_tensor = np.zeros((9, 7, 2), dtype=int)
+        return np.concatenate([unit_tensor, repetition_tensor], axis=2)
 
     @staticmethod
     def black_trap_array():
+        """ Creates 2D array representing black player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[0, 2] = 1
         array[0, 4] = 1
@@ -306,8 +311,17 @@ class BoardTensor(np.ndarray):
 
     @staticmethod
     def white_trap_array():
+        """ Creates 2D array representing white player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[8, 2] = 1
         array[8, 4] = 1
         array[7, 3] = 1
         return array
+
+
+if __name__ == '__main__':
+    import numpy as np
+    board = Board(initialize_board())
+    board_tensor = BoardTensor(board)
+    print(board_tensor.shape)
+    np.save("../tensor.npy", board_tensor)
