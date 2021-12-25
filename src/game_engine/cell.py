@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from src.game_engine.properties import GroundStates, Units
 from src.game_engine.exceptions import JumpIntoWaterError
 from src.game_engine.unit import EMPTY, Den, Unit
@@ -52,7 +54,7 @@ class Cell:
         self.occupied = bool(occupant)
         self._occupant = occupant
 
-    def get_cell_state(self) -> tuple[int, int]:
+    def get_cell_state(self) -> Tuple[int, int]:
         """ Returns tuple representing cell occupant and cell ground value. """
         return self.occupant.value, self.ground_value
 
