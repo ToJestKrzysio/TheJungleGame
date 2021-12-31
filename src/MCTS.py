@@ -4,8 +4,7 @@ from math import log, inf, sqrt
 import random
 from typing import List
 
-from src.game_engine.board import Board
-
+from src.game_engine.board import Board, move
 
 EXPLORATION_COEFFICIENT_C = 2
 
@@ -53,9 +52,16 @@ class Node:
             return self.value
         if self.visits == 1:
             self.expand_node()
-        self.pick_best_child_node()
+        best_child_node = self.pick_best_child_node()
 
     def expand_node(self):
+        """ generate nodes for each of possible moves. """
+        for unit, new_positions in self.board.moves.items():
+            for new_position in new_positions:
+                current_position = self.board.positions[unit]
+                new_board = move(self.board, current_position, new_position)
+                new_node = Node(board=new_board, parent=self)
+                self.nodes.append(new_node)
 
     def pick_best_child_node(self) -> Node:
         """ Selects the best node out of all possible child nodes. """
