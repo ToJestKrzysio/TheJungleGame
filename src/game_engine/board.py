@@ -116,19 +116,19 @@ class Board(np.ndarray):
         """ Checks if move in the given direction is valid. """
         INVALID_POSITION = (False, -1, -1)
         old_cell = self[position]
-        new_position_x,  = self._get_new_position_tuple(position, move)
+        new_position = self._get_new_position_tuple(position, move)
 
         if not self._is_position_valid(new_position):
             return INVALID_POSITION
 
-        new_cell = self[new_position]
+        new_cell = self[new_position[0], new_position[1]]
         if new_cell.water and old_cell.occupant.jumps:
             valid, *new_position = (
                 self._get_land_position_across_the_water(new_position, move)
             )
             if not valid:
                 return INVALID_POSITION
-            new_cell = self[new_position]
+            new_cell = self[new_position[0], new_position[1]]
 
         if old_cell.can_capture(new_cell):
             return True, new_position[0], new_position[1]
