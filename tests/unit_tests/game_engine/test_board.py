@@ -1,3 +1,4 @@
+from typing import Tuple
 from unittest.mock import Mock, call, MagicMock
 
 import pytest
@@ -52,7 +53,7 @@ class TestBoard:
         assert isinstance(result, dict)
 
     @pytest.mark.parametrize("position", [(1, 1), (0, 0), (9, 7), (19, 19)])
-    def test_get_single_unit_moves(self, position: tuple[int, int]):
+    def test_get_single_unit_moves(self, position: Tuple[int, int]):
         board_mock = Mock()
         board_mock._find_move_position.return_value = (True, 1, 1)
 
@@ -318,7 +319,7 @@ class TestBoard:
         board_mock = Mock(last_moves=[player, opponent])
         Board.get_repetitions(self=board_mock)
 
-        board_mock.get_repetition.assert_has_calls([call(player),
+        board_mock._get_repetition.assert_has_calls([call(player),
                                                     call(opponent)])
 
 
@@ -378,8 +379,8 @@ class TestMove:
     ])
     def test__move__board_copying(
             self,
-            unit_position: tuple[int, int],
-            new_position: tuple[int, int],
+            unit_position: Tuple[int, int],
+            new_position: Tuple[int, int],
             unit: Unit
     ):
         """
@@ -394,6 +395,7 @@ class TestMove:
         ]
         board_array[unit_position[0]][unit_position[1]] = Cell(unit)
         old_board = Board(board_array)
+        old_board.white_move = unit.white
 
         new_board = move(old_board, unit_position, new_position)
 

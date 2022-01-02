@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Tuple
 
 from src.game_engine.properties import GroundStates, Units
@@ -62,13 +63,17 @@ class Cell:
     #     return (f"{type(self).__name__}(occupant={self.occupant}, "
     #             f"water={self.water}, trap={self.trap}")
 
-    def __repr__(self):
+    def __str__(self):
         return f"Cell({repr(self.occupant)}),"
+
+    def __repr__(self):
+        sign = "+" if self.occupant.white else "-"
+        return f"{sign}{repr(self.occupant.value)}"
 
     def __bool__(self):
         return self.occupied
 
-    def can_capture(self, other):
+    def can_capture(self, other: Cell):
         """
         Checks is occupant of the current cell can capture the other.
 

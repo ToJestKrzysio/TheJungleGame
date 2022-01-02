@@ -116,7 +116,7 @@ class Board(np.ndarray):
         """ Checks if move in the given direction is valid. """
         INVALID_POSITION = (False, -1, -1)
         old_cell = self[position]
-        new_position = self._get_new_position_tuple(position, move)
+        new_position_x,  = self._get_new_position_tuple(position, move)
 
         if not self._is_position_valid(new_position):
             return INVALID_POSITION
@@ -178,6 +178,9 @@ def move(
     moved_unit = new_board[unit_position].occupant
     captured_unit = new_board[new_position].occupant
 
+    new_board.positions = board_state.positions.copy()
+    new_board.moves = board_state.moves.copy()
+
     if new_board[new_position]:
         del new_board.positions[captured_unit]
         del new_board.moves[captured_unit]
@@ -185,10 +188,8 @@ def move(
     new_board[new_position].occupant = moved_unit
     new_board[unit_position].occupant = EMPTY
 
-    new_board.positions = board_state.positions.copy()
     new_board.positions[moved_unit] = new_position
 
-    new_board.moves = board_state.moves.copy()
     new_board.moves[moved_unit] = new_board.get_single_unit_moves(
         new_position)
 
