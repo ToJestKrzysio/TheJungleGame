@@ -5,9 +5,9 @@ from collections import Counter
 
 import numpy as np
 
-from src.game_engine.cell import Cell
-from src.game_engine.exceptions import MoveNotPossibleError
-from src.game_engine.unit import *
+from src.game.cell import Cell
+from src.game.exceptions import MoveNotPossibleError
+from src.game.unit import *
 from typing import Dict, List, Set, Tuple, Iterable
 
 
@@ -240,22 +240,23 @@ class Board(np.ndarray):
         """ Returns True if given collection of moves contains no valid moves else False. """
         return any(bool(move) for move in moves)
 
-    def find_outcome(self) -> [-1, 0, 1, 2]:
+    def find_outcome(self) -> Tuple[bool, int]:
         """
         Returns outcome of the current game state.
+        Boolean value defines if game reached terminal state.
+        If game reached terminal state then integer values represent following cases:
         -1 - Black player won.
          0 - Draw.
          1 - White player won.
-         2 - Non-terminal state.
         """
         alive_pieces = set(self.positions.keys())
-        if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
-            return 1
-        if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
-            return -1
+        if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
+            return True, 1
+        if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
+            return True, -1
         if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
-            return 0
-        return 2
+            return True, 0
+        return False, 0
 
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """

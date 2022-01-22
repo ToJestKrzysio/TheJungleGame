@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.game_engine.properties import Units
+from src.game.properties import Units
 
 
 __all__ = [
@@ -152,7 +152,3 @@ BLACK_LEOPARD = Leopard(False)
 BLACK_TIGER = Tiger(False)
 BLACK_LION = Lion(False)
 BLACK_ELEPHANT = Elephant(False)
-
-
-
-

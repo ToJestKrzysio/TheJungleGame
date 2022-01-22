@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import math
-from abc import ABC, abstractmethod
-from math import log, inf, sqrt
-import random
 from typing import List, Tuple, Optional
 
-import numpy as np
-
-from src.game_engine.board import Board
-from src.game_engine.unit import Unit
+from src import MCTS_policy, MCTS_value
+from src.game.board import Board
+from src.game.unit import Unit
 
 EXPLORATION_COEFFICIENT_C = 2
 
@@ -48,66 +43,6 @@ class MCTS:
         return best_node
 
 
-class Policy(ABC):
-
-    @abstractmethod
-    def __call__(self, node: Node) -> None:
-        pass
-
-    @abstractmethod
-    def select_child(self, node: Node) -> Node:
-        pass
-
-
-class BasePolicy(Policy):
-    C = 1.5
-
-    def __call__(self, node: Node):
-        if not node.visits:
-            node.get_value()
-            node.expand_node()
-        else:
-            best_child_node = self.select_child(node)
-            best_child_node.evaluate()
-            node.value = sum(child_node.value for child_node in node.child_nodes)
-        node.visits += 1
-
-    def get_node_value(self, node: Node) -> float:
-        """ Calculates the node value for the given child node. """
-        if node.visits == 0:
-            return inf
-        return node.q + self.C * sqrt(log(MCTS.evaluations) / node.visits)
-
-    def select_child(self, node: Node) -> Node:
-        values = [node.evaluate_child_node(node)
-                  for node in node.child_nodes]
-        return node.child_nodes[np.argmax(values)]
-
-
-class NetworkPolicy(Policy):
-    EPSILON = 0.25
-    ALPHA = 0.5
-    C = 1.5
-
-    def __call__(self, node: Node):
-        if not node.visits:
-            node.get_value()
-            node.expand_node()
-        else:
-            best_child_node = self.select_child(node)
-            best_child_node.evaluate()
-            node.value = sum(child_node.value for child_node in node.child_nodes)
-        node.visits += 1
-
-    def select_child(self, node: Node) -> Node:
-        prior_probabilities = np.array(child.prior_probability for child in node.child_nodes)
-        psa_probs = ((1 - self.EPSILON) * prior_probabilities
-                     + self.EPSILON * np.random.dirichlet([self.ALPHA] * len(node.child_nodes)))
-        puct_values = [child.q + self.C * psa * math.sqrt(node.visits) / (1 + child.visits)
-                       for child, psa in zip(node.child_nodes, psa_probs)]
-        return node.child_nodes[np.argmax(puct_values)]
-
-
 class Node:
     board: Board
     value: float
@@ -128,19 +63,19 @@ class Node:
         self.value = 0
         self.visits = 0
         self.child_nodes = []
-        self.policy = BasePolicy()
+        self.policy_strategy = MCTS_policy.base_policy
+        self.value_strategy = MCTS_value.base_value
         self.prior_probability = 0
 
     def evaluate(self):
         """ Calls current policy"""
-        self.policy(self)
+        self.policy_strategy(self)
 
     def get_value(self):
         """
         Calculates value for the current node.
-        TODO implementation of value / policy network
         """
-        self.value = random.random()
+        self.value_strategy(self)
 
     def expand_node(self):
         """ generate nodes for each of possible moves. """
@@ -159,16 +94,6 @@ class Node:
             self.value / self.visits
         except ZeroDivisionError:
             return 0
-
-    @staticmethod
-    def evaluate_child_node(child_node) -> float:
-        """ Calculates the node value for the given child node. """
-        if child_node.visits == 0:
-            return inf
-        average_value = child_node.value / child_node.visits
-        exploration_value = EXPLORATION_COEFFICIENT_C * sqrt(
-            log(MCTS.evaluations) / child_node.visits)
-        return average_value + exploration_value
 
 
 if __name__ == '__main__':

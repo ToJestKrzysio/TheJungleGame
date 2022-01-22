@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Tuple
 
-from src.game_engine.properties import GroundStates, Units
-from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.unit import EMPTY, Den, Unit
+from src.game.properties import GroundStates, Units
+from src.game.exceptions import JumpIntoWaterError
+from src.game.unit import EMPTY, Den, Unit
 
 
 class Cell:
