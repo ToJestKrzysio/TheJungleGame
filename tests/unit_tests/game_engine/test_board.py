@@ -4,7 +4,7 @@ from unittest.mock import Mock, call, MagicMock
 import pytest
 import numpy as np
 
-from src.game_engine.board import Board, move, BoardTensor
+from src.game_engine.board import Board, BoardTensor
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
 from src.game_engine.unit import Empty, Mouse, Tiger, EMPTY
@@ -341,7 +341,7 @@ class TestMove:
         board_state.moves = {occupant_mock: moves}
 
         with pytest.raises(MoveNotPossibleError):
-            move(board_state, unit_position, new_position)
+            Board.move(board_state, unit_position, new_position)
 
     @pytest.mark.parametrize("unit_position, new_position", [
         [(0, 0), (1, 0)],
@@ -397,7 +397,7 @@ class TestMove:
         old_board = Board(board_array)
         old_board.white_move = unit.white
 
-        new_board = move(old_board, unit_position, new_position)
+        new_board = Board.move(old_board, unit_position, new_position)
 
         assert new_board.shape == old_board.shape
         assert (new_board[new_position].occupant

@@ -8,9 +8,7 @@ import numpy as np
 from src.game_engine.cell import Cell
 from src.game_engine.exceptions import MoveNotPossibleError
 from src.game_engine.unit import *
-from typing import Dict, List, Set, Tuple
-
-MAX_REPETITIONS = 3
+from typing import Dict, List, Set, Tuple, Iterable
 
 
 class Board(np.ndarray):
@@ -29,6 +27,7 @@ class Board(np.ndarray):
     last_moves: List[List, List]
     move_count: int
     white_move: bool
+    MAX_REPETITIONS: int = 3
 
     def __new__(cls, cells: np.ndarray | List[List[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)
@@ -42,8 +41,8 @@ class Board(np.ndarray):
         self.moves = self.get_moves_for_all_units()
         self.previous_board = None
         self.last_moves = [
-            [None] * (MAX_REPETITIONS - 1),
-            [None] * (MAX_REPETITIONS - 1),
+            [None] * (type(self).MAX_REPETITIONS - 1),
+            [None] * (type(self).MAX_REPETITIONS - 1),
         ]
         self.white_move = True
         self.move_count = 0
@@ -151,85 +150,116 @@ class Board(np.ndarray):
         most_common = counter.most_common(1)
         return most_common[0][1] if most_common else 0
 
+    @classmethod
+    def initialize(cls) -> Board:
+        """ Initializes board according to game rules. """
+        cells = [
+            [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
+             Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
+             Cell(BLACK_LEOPARD)],
+            [Cell(), Cell(BLACK_DOG), Cell(), Cell(trap=True, white_trap=False),
+             Cell(), Cell(BLACK_CAT), Cell()],
+            [Cell(BLACK_MOUSE), Cell(), Cell(BLACK_LEOPARD), Cell(),
+             Cell(BLACK_WOLF), Cell(), Cell(BLACK_ELEPHANT)],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(WHITE_ELEPHANT), Cell(), Cell(WHITE_WOLF), Cell(),
+             Cell(WHITE_LEOPARD), Cell(), Cell(WHITE_MOUSE)],
+            [Cell(), Cell(WHITE_CAT), Cell(), Cell(trap=True, white_trap=True),
+             Cell(), Cell(WHITE_DOG), Cell()],
+            [Cell(WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
+             Cell(WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
+             Cell(WHITE_LION)],
+        ]
+        return Board(cells)
 
-def move(
-        board_state: Board,
-        unit_position: Tuple[int, int],
-        new_position: Tuple[int, int]
-) -> Board:
-    """
-    Creates new instance of a board and moves selected unit to new location
-    on that board.
-    """
+    def move(self, unit_position: Tuple[int, int],
+             new_position: Tuple[int, int]) -> Board:
+        """
+        Creates new instance of a board and moves selected unit to new location on that board.
+        """
 
-    if (new_position not in
-            board_state.moves[board_state[unit_position].occupant]):
-        raise MoveNotPossibleError("Selected move is not valid.")
-    if board_state[unit_position].occupant.white is not board_state.white_move:
-        raise MoveNotPossibleError(
-            "Wrong piece selected, it's {} player turn.".format(
-                "white" if board_state.white_move else "black"
+        if (new_position not in
+                self.moves[self[unit_position].occupant]):
+            raise MoveNotPossibleError("Selected move is not valid.")
+        if self[unit_position].occupant.white is not self.white_move:
+            raise MoveNotPossibleError(
+                "Wrong piece selected, it's {} player turn.".format(
+                    "white" if self.white_move else "black"
+                )
             )
-        )
 
-    new_board = copy.copy(board_state)
-    new_board[unit_position] = copy.copy(new_board[unit_position])
-    new_board[new_position] = copy.copy(new_board[new_position])
-    moved_unit = new_board[unit_position].occupant
-    captured_unit = new_board[new_position].occupant
+        new_board = copy.copy(self)
+        new_board[unit_position] = copy.copy(new_board[unit_position])
+        new_board[new_position] = copy.copy(new_board[new_position])
+        moved_unit = new_board[unit_position].occupant
+        captured_unit = new_board[new_position].occupant
 
-    new_board.positions = board_state.positions.copy()
-    new_board.moves = board_state.moves.copy()
+        new_board.positions = self.positions.copy()
+        new_board.moves = self.moves.copy()
 
-    if new_board[new_position]:
-        del new_board.positions[captured_unit]
-        del new_board.moves[captured_unit]
+        if new_board[new_position]:
+            del new_board.positions[captured_unit]
+            del new_board.moves[captured_unit]
 
-    new_board[new_position].occupant = moved_unit
-    new_board[unit_position].occupant = EMPTY
+        new_board[new_position].occupant = moved_unit
+        new_board[unit_position].occupant = EMPTY
 
-    new_board.positions[moved_unit] = new_position
+        new_board.positions[moved_unit] = new_position
 
-    new_board.moves[moved_unit] = new_board.get_single_unit_moves(
-        new_position)
+        new_board.moves[moved_unit] = new_board.get_single_unit_moves(
+            new_position)
 
-    current_player_moves, next_player_moves = board_state.last_moves.copy()
-    current_player_moves.pop(0)
-    current_player_moves.append((unit_position, new_position))
-    new_board.last_moves = [next_player_moves, current_player_moves]
+        current_player_moves, next_player_moves = self.last_moves.copy()
+        current_player_moves.pop(0)
+        current_player_moves.append((unit_position, new_position))
+        new_board.last_moves = [next_player_moves, current_player_moves]
 
-    new_board.white_move = not board_state.white_move
-    new_board.move_count = board_state.move_count + 1
-    new_board.previous_board = board_state
+        new_board.white_move = not self.white_move
+        new_board.move_count = self.move_count + 1
+        new_board.previous_board = self
 
-    return new_board
+        return new_board
 
+    @property
+    def white_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+        """ Returns all valid moves of white player. """
+        return {unit: moves for unit, moves in self.moves.items() if unit.white}
 
-def initialize_board() -> List[List]:
-    """ Initializes board according to game rules. """
-    board = [
-        [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
-         Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
-         Cell(BLACK_LEOPARD)],
-        [Cell(), Cell(BLACK_DOG), Cell(), Cell(trap=True, white_trap=False),
-         Cell(), Cell(BLACK_CAT), Cell()],
-        [Cell(BLACK_MOUSE), Cell(), Cell(BLACK_LEOPARD), Cell(),
-         Cell(BLACK_WOLF), Cell(), Cell(BLACK_ELEPHANT)],
-        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-         Cell(water=True), Cell()],
-        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-         Cell(water=True), Cell()],
-        [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-         Cell(water=True), Cell()],
-        [Cell(WHITE_ELEPHANT), Cell(), Cell(WHITE_WOLF), Cell(),
-         Cell(WHITE_LEOPARD), Cell(), Cell(WHITE_MOUSE)],
-        [Cell(), Cell(WHITE_CAT), Cell(), Cell(trap=True, white_trap=True),
-         Cell(), Cell(WHITE_DOG), Cell()],
-        [Cell(WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
-         Cell(WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
-         Cell(WHITE_LION)],
-    ]
-    return board
+    @property
+    def black_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+        """ Returns all valid moves of black player. """
+        return {unit: moves for unit, moves in self.moves.items() if not unit.white}
+
+    @staticmethod
+    def no_valid_modes(moves: Iterable) -> bool:
+        """ Returns True if given collection of moves contains no valid moves else False. """
+        return any(bool(move) for move in moves)
+
+    def find_outcome(self) -> [-1, 0, 1, 2]:
+        """
+        Returns outcome of the current game state.
+        -1 - Black player won.
+         0 - Draw.
+         1 - White player won.
+         2 - Non-terminal state.
+        """
+        alive_pieces = set(self.positions.keys())
+        if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
+            return 1
+        if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
+            return -1
+        if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
+            return 0
+        return 2
+
+    def to_tensor(self) -> BoardTensor:
+        """ Creates BoardTensor instance using current board instance. """
+        return BoardTensor(self)
 
 
 class BoardTensor(np.ndarray):
@@ -249,10 +279,9 @@ class BoardTensor(np.ndarray):
             stop = (step + 1) * STEP_BOARDS
             if current_board is None:
                 break
-            obj[:, :, start:stop] = BoardTensor.get_step_tensor(
-                current_board, board.white_move)
+            obj[:, :, start:stop] = BoardTensor.get_step_tensor(current_board, board.white_move)
             current_board = current_board.previous_board
-        return obj
+        return obj.view(cls)
 
     def __array_finalize__(self, obj):
         if obj is None:
@@ -322,7 +351,8 @@ class BoardTensor(np.ndarray):
 
 if __name__ == '__main__':
     import numpy as np
-    board = Board(initialize_board())
-    board_tensor = BoardTensor(board)
+
+    board = Board.initialize()
+    board_tensor = board.to_tensor()
     print(board_tensor.shape)
     np.save("../tensor.npy", board_tensor)

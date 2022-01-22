@@ -4,7 +4,7 @@ from math import log, inf, sqrt
 import random
 from typing import List, Tuple, Optional
 
-from src.game_engine.board import Board, move, initialize_board
+from src.game_engine.board import Board
 from src.game_engine.unit import Unit
 
 EXPLORATION_COEFFICIENT_C = 2
@@ -26,11 +26,16 @@ class MCTS:
         """
         Evaluates current tree according to MCTS rules.
         """
-        while type(self).evaluations < type(self).max_evaluations:
+        while not self.reached_termination_criteria():
             self.node.evaluate()
             type(self).evaluations += 1
         best_node = self.find_best_node()
         return best_node.move
+
+    @classmethod
+    def reached_termination_criteria(cls) -> bool:
+        """ Checks if number of evaluations reach maximum evaluations. """
+        return cls.evaluations >= cls.max_evaluations
 
     def find_best_node(self) -> Node:
         best_node = self.node.child_nodes[0]
@@ -91,7 +96,7 @@ class Node:
         for unit, new_positions in valid_moves.items():
             for new_position in new_positions:
                 current_position = self.board.positions[unit]
-                new_board = move(self.board, current_position, new_position)
+                new_board = self.board.move(current_position, new_position)
                 new_node = Node(board=new_board, parent=self, move=(unit, new_position))
                 self.child_nodes.append(new_node)
 
@@ -116,6 +121,6 @@ class Node:
 
 
 if __name__ == '__main__':
-    board = Board(initialize_board())
-    mcts = MCTS(board, 100001)
+    board = Board.initialize()
+    mcts = MCTS(board, 100)
     print(mcts.evaluate())
