@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Tuple, Optional
 
-from src import MCTS_policy, MCTS_value
+from src.mcts import MCTS_policy, MCTS_value
 from src.game.board import Board
 from src.game.unit import Unit
 

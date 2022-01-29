@@ -1,7 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 
-from src.MCTS import Node
+from src.mcts.MCTS import Node
 
 __all__ = ["base_value", "Value"]
 

@@ -4,7 +4,7 @@ from math import inf, sqrt, log
 
 import numpy as np
 
-from src.MCTS import Node, MCTS
+from src.mcts.MCTS import Node, MCTS
 
 __all__ = ["base_policy", "network_policy", "Policy"]
 

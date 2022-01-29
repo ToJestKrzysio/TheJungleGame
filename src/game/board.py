@@ -354,6 +354,7 @@ if __name__ == '__main__':
     import numpy as np
 
     board = Board.initialize()
-    board_tensor = board.to_tensor()
-    print(board_tensor.shape)
-    np.save("../tensor.npy", board_tensor)
+    print(board)
+    # board_tensor = board.to_tensor()
+    # print(board_tensor.shape)
+    # np.save("../tensor.npy", board_tensor)
