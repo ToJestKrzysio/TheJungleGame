@@ -1,7 +1,7 @@
 from tensorflow.python.keras import Sequential, layers
 from numpy import load
 
-x = load("tensor.npy").reshape((1, 9, 7, 178))
+x = load("../tensor.npy").reshape((1, 9, 7, 178))
 FILTERS = 128
 INPUT_SHAPE = 9, 7, 178
 
