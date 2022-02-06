@@ -13,13 +13,13 @@ class MCTS:
     evaluations = 0
     max_evaluations = 1
 
-    def __init__(self, initial_board: Board, max_evaluations: int):
+    def __init__(self, initial_board: Board, **kwargs):
         """
         Prepares conditions to run the simulation.
         """
         self.node = Node(initial_board)
         type(self).evaluations = 0
-        type(self).max_evaluations = max_evaluations
+        type(self).max_evaluations = kwargs.get("MAX_EVALUATIONS", 100)
 
     def evaluate(self):
         """

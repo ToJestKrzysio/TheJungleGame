@@ -14,4 +14,16 @@ class GameDataGenerator:
 
     def generate(self):
         seed = np.random.seed(42)
-        env = game.AnimalCheckers()
+        env = game.Board.initialize()
+        for game_id in range(self.num_games):
+            print(f"Starting game {game_id + 1} of {self.num_games}")
+            actions = []
+            state = env.to_tensor()
+            mcts_engine = mcts.MCTS(env, **self.mcts_kwargs)
+            game_over = False
+            while not env.game_over:
+                if env.white_move:
+                    mcts_engine.evaluate()
+                    best_child =
+                    env.move
+                else:

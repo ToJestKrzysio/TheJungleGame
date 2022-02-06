@@ -28,6 +28,7 @@ class Board(np.ndarray):
     move_count: int
     white_move: bool
     MAX_REPETITIONS: int = 3
+    game_over: bool
 
     def __new__(cls, cells: np.ndarray | List[List[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)
@@ -46,6 +47,7 @@ class Board(np.ndarray):
         ]
         self.white_move = True
         self.move_count = 0
+        self.game_over = False
 
     def get_positions(self) -> dict[Unit, tuple[int, int]]:
         """
@@ -251,10 +253,13 @@ class Board(np.ndarray):
         """
         alive_pieces = set(self.positions.keys())
         if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
+            self.game_over = True
             return True, 1
         if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
+            self.game_over = True
             return True, -1
         if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
+            self.game_over = True
             return True, 0
         return False, 0
 
