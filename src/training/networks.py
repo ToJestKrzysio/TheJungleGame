@@ -46,8 +46,9 @@ def train_nn(data, model, **kwargs):
     np.random.shuffle(data)
 
     validation_split = kwargs.get("VALIDATION_SPLIT", 0)
+    batch_size = kwargs.get("BATCH_SIZE", 32)
     if validation_split:
         validation_data_length = int(validation_split * len(data))
         validation_data = data[-validation_data_length:]
         del data[-validation_data_length:]
-        validation_generator = Keras
+        validation_generator = DataGenerator(validation_data, batch_size)

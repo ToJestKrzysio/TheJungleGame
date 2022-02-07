@@ -18,12 +18,16 @@ class GameDataGenerator:
         for game_id in range(self.num_games):
             print(f"Starting game {game_id + 1} of {self.num_games}")
             actions = []
-            state = env.to_tensor()
-            mcts_engine = mcts.MCTS(env, **self.mcts_kwargs)
             game_over = False
             while not env.game_over:
-                if env.white_move:
-                    mcts_engine.evaluate()
-                    best_child =
-                    env.move
-                else:
+                current_game_state = env.to_tensor()
+                current_player_value = int(env.white_move) * 2 - 1
+
+                mcts_engine = mcts.MCTS(env, **self.mcts_kwargs)
+                best_node, best_move = mcts_engine.evaluate()
+                current_position, new_position = best_move
+                env.move(current_position, new_position)
+
+                q_value = mcts_engine.node.q * current_player_value
+
+                # probability_planes = self._generate_probability_planes()

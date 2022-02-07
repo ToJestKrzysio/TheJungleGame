@@ -14,22 +14,19 @@ class MCTS:
     max_evaluations = 1
 
     def __init__(self, initial_board: Board, **kwargs):
-        """
-        Prepares conditions to run the simulation.
-        """
+        """ Prepares conditions to run the simulation. """
         self.node = Node(initial_board)
+        self.kwargs = kwargs
         type(self).evaluations = 0
         type(self).max_evaluations = kwargs.get("MAX_EVALUATIONS", 100)
 
     def evaluate(self):
-        """
-        Evaluates current tree according to MCTS rules.
-        """
+        """ Evaluates current tree according to MCTS rules. """
         while not self.reached_termination_criteria():
             self.node.evaluate()
             type(self).evaluations += 1
         best_node = self.find_best_node()
-        return best_node.move
+        return best_node, best_node.move
 
     @classmethod
     def reached_termination_criteria(cls) -> bool:
@@ -54,7 +51,7 @@ class Node:
     def __init__(
             self,
             board: Board,
-            parent: Node = None,
+            parent: Optional[Node] = None,
             move: Optional[Tuple[Unit, Tuple[int, int]]] = None
     ):
         self.board = board
@@ -67,18 +64,23 @@ class Node:
         self.value_strategy = MCTS_value.base_value
         self.prior_probability = 0
 
+        if parent is None:
+            self.history = [board]
+        else:
+            self.history = self.parent.history.copy()
+            self.history.append(board)
+        self.depth = len(self.history)
+
     def evaluate(self):
-        """ Calls current policy"""
+        """ Calls current policy. """
         self.policy_strategy(self)
 
     def get_value(self):
-        """
-        Calculates value for the current node.
-        """
+        """ Calculates value for the current node. """
         self.value_strategy(self)
 
     def expand_node(self):
-        """ generate nodes for each of possible moves. """
+        """ Generate nodes for each of possible moves. """
         valid_moves = {unit: new_positions for unit, new_positions in self.board.moves.items()
                        if unit.white is self.board.white_move}
         for unit, new_positions in valid_moves.items():
@@ -98,5 +100,5 @@ class Node:
 
 if __name__ == '__main__':
     board = Board.initialize()
-    mcts = MCTS(board, 100)
+    mcts = MCTS(board, **{"MAX_EVALUATIONS": 100})
     print(mcts.evaluate())
