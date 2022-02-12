@@ -1,13 +1,15 @@
+import itertools
 from typing import Tuple
 from unittest.mock import Mock, call, MagicMock
 
 import pytest
 import numpy as np
 
-from src.game.board import Board, BoardTensor
+from src.game import moves
+from src.game.board import Board
 from src.game.cell import Cell
 from src.game.exceptions import MoveNotPossibleError
-from src.game.unit import Empty, Mouse, Tiger, EMPTY
+from src.game.unit import Empty, Tiger
 from src.game.unit import *
 
 
@@ -82,82 +84,16 @@ class TestBoard:
         assert result == expected
 
     @pytest.mark.parametrize("position, move, expected", [
-        ((0, 0), (1, -1), (1, -1)),
-        ((6, 3), (2, -3), (8, 0)),
-        ((7, -7), (-7, 7), (0, 0))
+        ((0, 0), moves.Move(value=0, y=1, x=-1), (1, -1)),
+        ((6, 3), moves.Move(value=0, y=2, x=-3), (8, 0)),
+        ((7, -7), moves.Move(value=0, y=-7, x=7), (0, 0))
     ])
     def test_get_new_position_tuple(self, position, move, expected):
         result = Board._get_new_position_tuple(position, move)
         assert result == expected
 
-    def test_get_land_position_across_the_water_invalid_position(self):
-        move = (1, 0)
-        board_mock = MagicMock(spec=Board)
-        board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=EMPTY),
-            Mock(water=False, occupant=EMPTY),
-        ]
-        board_mock._get_new_position_tuple.side_effect = [(2, 1)]
-        board_mock._is_position_valid.return_value = False
-
-        result = Board._get_land_position_across_the_water(
-            board_mock, (1, 1), move
-        )
-
-        board_mock._get_new_position_tuple.assest_called_once_with(
-            (1, 1), move
-        )
-        board_mock._is_position_valid.assest_called_once_with((2, 1))
-        assert result == (False, -1, -1)
-
-    def test_get_land_position_across_the_water_mouse_in_water(self):
-        move = (1, 0)
-        board_mock = MagicMock(spec=Board)
-        board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=EMPTY),
-            Mock(water=True, occupant=Mouse(False)),
-            Mock(water=False, occupant=EMPTY),
-        ]
-        board_mock._get_new_position_tuple.side_effect = [(2, 1), (3, 1)]
-        board_mock._is_position_valid.return_value = True
-
-        result = Board._get_land_position_across_the_water(
-            board_mock, (1, 1), move
-        )
-
-        board_mock._get_new_position_tuple.assest_called_once_with(
-            (1, 1), move
-        )
-        board_mock._is_position_valid.assest_called_once_with((2, 1))
-        assert result == (False, -1, -1)
-
-    def test_get_land_position_across_the_water_whole_path_empty(self):
-        move = (1, 0)
-        board_mock = MagicMock(spec=Board)
-        board_mock.__getitem__.side_effect = [
-            Mock(water=True, occupant=EMPTY),
-            Mock(water=True, occupant=EMPTY),
-            Mock(water=False, occupant=EMPTY),
-        ]
-        board_mock._get_new_position_tuple.side_effect = [(2, 1), (3, 1)]
-        board_mock._is_position_valid.return_value = True
-
-        result = Board._get_land_position_across_the_water(
-            board_mock, (1, 1), move
-        )
-
-        board_mock._get_new_position_tuple.assest_has_calls([
-            call((1, 1), move),
-            call((2, 1), move),
-        ])
-        board_mock._is_position_valid.assert_has_calls([
-            call((2, 1)),
-            call((3, 1)),
-        ])
-        assert result == (True, 3, 1)
-
     def test_find_move_position_invalid_position(self):
-        move = (1, 0)
+        move = moves.Move(value=0, y=1, x=0)
         position = (3, 1)
         board_mock = MagicMock(spec=Board)
         board_mock.__getitem__.side_effect = [
@@ -175,10 +111,10 @@ class TestBoard:
         assert result == (False, -1, -1)
 
     @pytest.mark.parametrize("position, move, new_position", [
-        ((2, 2), (1, 0), (3, 2)),
-        ((2, 2), (-1, 0), (1, 2)),
-        ((2, 2), (0, 1), (2, 3)),
-        ((2, 2), (0, -1), (2, 1)),
+        ((2, 2), moves.Move(value=0, y=1, x=0), (3, 2)),
+        ((2, 2), moves.Move(value=0, y=-1, x=0), (1, 2)),
+        ((2, 2), moves.Move(value=0, y=0, x=1), (2, 3)),
+        ((2, 2), moves.Move(value=0, y=0, x=-1), (2, 1)),
     ])
     def test_find_move_position_jumps_no_water(
             self,
@@ -206,50 +142,11 @@ class TestBoard:
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (True, new_position[0], new_position[1])
 
-    @pytest.mark.parametrize("position, move, next_position, land_position", [
-        ((2, 2), (1, 0), (3, 2), (6, 2)),
-        ((6, 4), (-1, 0), (4, 4), (2, 4)),
-        ((4, 0), (0, 1), (4, 1), (4, 3)),
-        ((6, 6), (0, -1), (5, 5), (6, 3)),
-    ])
-    def test_find_move_position_jumps_over_water(
-            self,
-            position,
-            move,
-            next_position,
-            land_position
-    ):
-        old_cell = Mock(
-            water=False,
-            occupant=Mock(jumps=True),
-            can_capture=Mock(return_value=True),
-        )
-        water_1 = Mock(water=True, occupant=EMPTY)
-        new_land_cell = Mock(water=True)
-        board_mock = MagicMock()
-        board_mock.__getitem__.side_effect = [old_cell, water_1, new_land_cell]
-        board_mock._get_new_position_tuple.side_effect = [next_position, ]
-        board_mock._is_position_valid.return_value = True
-        board_mock._get_land_position_across_the_water.return_value = (
-            True, *land_position
-        )
-
-        result = Board._find_move_position(board_mock, position, move)
-
-        board_mock._get_new_position_tuple.assest_called_once_with(position,
-                                                                   move)
-        board_mock._is_position_valid.assest_called_once_with(next_position)
-        board_mock._get_land_position_across_the_water.assert_called_once_with(
-            next_position, move
-        )
-        old_cell.can_capture.assert_called_once_with(new_land_cell)
-        assert result == (True, *land_position)
-
     @pytest.mark.parametrize("position, move, next_position", [
-        ((2, 2), (1, 0), (3, 2)),
-        ((6, 4), (-1, 0), (5, 4)),
-        ((4, 0), (0, 1), (4, 1)),
-        ((6, 6), (0, -1), (6, 5)),
+        ((2, 2), moves.Move(value=0, y=1, x=0), (3, 2)),
+        ((6, 4), moves.Move(value=0, y=-1, x=0), (5, 4)),
+        ((4, 0), moves.Move(value=0, y=0, x=1), (4, 1)),
+        ((6, 6), moves.Move(value=0, y=0, x=-1), (6, 5)),
     ])
     def test_find_move_position_cant_jump_over_water(
             self,
@@ -282,7 +179,7 @@ class TestBoard:
         Tests if given unit can capture other one occupying land cell.
         """
         position = (1, 1)
-        move = (1, 0)
+        move = moves.Move(value=0, y=1, x=0)
         next_position = (2, 1)
         old_cell = Mock(
             water=False,
@@ -320,15 +217,62 @@ class TestBoard:
         Board.get_repetitions(self=board_mock)
 
         board_mock._get_repetition.assert_has_calls([call(player),
-                                                    call(opponent)])
+                                                     call(opponent)])
+
+    @pytest.mark.parametrize("new_position", [(2, 3), (0, 0), (7, 7)])
+    @pytest.mark.parametrize("move", [
+        moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
+    ])
+    @pytest.mark.parametrize("occupied", [0, 1])
+    def test_validate_jump_moves_cells_occupied(self, new_position, move, occupied):
+        empty_water_cell = MagicMock(water=True)
+        empty_water_cell.__bool__.return_value = False
+        occupied_water_cell = MagicMock(water=True)
+        empty_water_cell.__bool__.return_value = True
+
+        board_mock = MagicMock()
+        cells = [empty_water_cell] * 3
+        cells[occupied] = occupied_water_cell
+        board_mock.__getitem__.side_effect = cells
+        assert Board.validate_jump_move(board_mock, new_position, move) is False
+
+    @pytest.mark.parametrize("new_position", [(2, 3), (0, 0), (7, 7)])
+    @pytest.mark.parametrize("move", [
+        moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
+    ])
+    def test_validate_jump_moves_all_cells_empty(self, new_position, move):
+        empty_water_cell = MagicMock(water=True)
+        empty_water_cell.__bool__.return_value = False
+        board_mock = MagicMock()
+        board_mock.__getitem__.side_effect = [empty_water_cell, empty_water_cell, empty_water_cell]
+
+        assert Board.validate_jump_move(board_mock, new_position, move) is True
 
 
 class TestMove:
 
     @pytest.mark.parametrize("new_position, unit_position, moves", [
-        ((0, 0), (-1, -1), {(0, -1), (-1, 0), (-2, -1), (-1, -2)}),
-        ((-1, -1), (-1, -1), {(0, -1), (-1, 0), (-2, -1), (-1, -2)}),
-        ((123, 98), (341, 0), {(123, 99), (123, 97), (122, 98), (124, 98)}),
+        (
+                moves.Move(0, 0, 0), (-1, -1),
+                {
+                    moves.Move(0, 0, -1), moves.Move(0, -1, 0), moves.Move(0, -2, -1),
+                    moves.Move(0, -1, -2)
+                }
+        ),
+        (
+                moves.Move(0, -1, -1), (-1, -1),
+                {
+                    moves.Move(0, 0, -1), moves.Move(0, -1, 0), moves.Move(0, -2, -1),
+                    moves.Move(0, -1, -2)
+                }
+        ),
+        (
+                moves.Move(0, 123, 98), (341, 0),
+                {
+                    moves.Move(0, 123, 99), moves.Move(0, 123, 97), moves.Move(0, 122, 98),
+                    moves.Move(0, 124, 98)
+                }
+        ),
     ])
     def test__move__impossible_move(self, new_position, unit_position, moves):
         """
@@ -343,33 +287,33 @@ class TestMove:
         with pytest.raises(MoveNotPossibleError):
             Board.move(board_state, unit_position, new_position)
 
-    @pytest.mark.parametrize("unit_position, new_position", [
-        [(0, 0), (1, 0)],
-        [(0, 0), (0, 1)],
-        [(1, 0), (0, 0)],
-        [(1, 0), (1, 1)],
-        [(1, 0), (2, 0)],
-        [(2, 0), (2, 1)],
-        [(2, 0), (1, 0)],
+    @pytest.mark.parametrize("unit_position, new_position, move", [
+        [(0, 0), (1, 0), moves.Move(value=0, y=1, x=0)],
+        [(0, 0), (0, 1), moves.Move(value=0, y=0, x=1)],
+        [(1, 0), (0, 0), moves.Move(value=0, y=-1, x=0)],
+        [(1, 0), (1, 1), moves.Move(value=0, y=0, x=1)],
+        [(1, 0), (2, 0), moves.Move(value=0, y=1, x=0)],
+        [(2, 0), (2, 1), moves.Move(value=0, y=0, x=1)],
+        [(2, 0), (1, 0), moves.Move(value=0, y=-1, x=0)],
 
-        [(0, 1), (0, 0)],
-        [(0, 1), (0, 2)],
-        [(0, 1), (1, 1)],
-        [(1, 1), (0, 1)],
-        [(1, 1), (1, 0)],
-        [(1, 1), (1, 2)],
-        [(1, 1), (2, 1)],
-        [(2, 1), (2, 0)],
-        [(2, 1), (1, 1)],
-        [(2, 1), (2, 2)],
+        [(0, 1), (0, 0), moves.Move(value=0, y=0, x=-1)],
+        [(0, 1), (0, 2), moves.Move(value=0, y=0, x=1)],
+        [(0, 1), (1, 1), moves.Move(value=0, y=1, x=0)],
+        [(1, 1), (0, 1), moves.Move(value=0, y=-1, x=0)],
+        [(1, 1), (1, 0), moves.Move(value=0, y=0, x=-1)],
+        [(1, 1), (1, 2), moves.Move(value=0, y=0, x=1)],
+        [(1, 1), (2, 1), moves.Move(value=0, y=1, x=0)],
+        [(2, 1), (2, 0), moves.Move(value=0, y=0, x=-1)],
+        [(2, 1), (1, 1), moves.Move(value=0, y=-1, x=0)],
+        [(2, 1), (2, 2), moves.Move(value=0, y=0, x=1)],
 
-        [(0, 2), (0, 1)],
-        [(0, 2), (1, 2)],
-        [(1, 2), (0, 2)],
-        [(1, 2), (1, 1)],
-        [(1, 2), (2, 2)],
-        [(2, 2), (1, 2)],
-        [(2, 2), (2, 1)],
+        [(0, 2), (0, 1), moves.Move(value=0, y=0, x=-1)],
+        [(0, 2), (1, 2), moves.Move(value=0, y=1, x=0)],
+        [(1, 2), (0, 2), moves.Move(value=0, y=-1, x=0)],
+        [(1, 2), (1, 1), moves.Move(value=0, y=0, x=-1)],
+        [(1, 2), (2, 2), moves.Move(value=0, y=1, x=0)],
+        [(2, 2), (1, 2), moves.Move(value=0, y=-1, x=0)],
+        [(2, 2), (2, 1), moves.Move(value=0, y=0, x=-1)],
     ])
     @pytest.mark.parametrize("unit", [
         WHITE_MOUSE, WHITE_CAT, WHITE_DOG, WHITE_WOLF, WHITE_LEOPARD,
@@ -381,7 +325,8 @@ class TestMove:
             self,
             unit_position: Tuple[int, int],
             new_position: Tuple[int, int],
-            unit: Unit
+            move: moves.Move,
+            unit: Unit,
     ):
         """
         If new position is valid, new board should be created.
@@ -397,7 +342,7 @@ class TestMove:
         old_board = Board(board_array)
         old_board.white_move = unit.white
 
-        new_board = Board.move(old_board, unit_position, new_position)
+        new_board = Board.move(old_board, unit_position, move)
 
         assert new_board.shape == old_board.shape
         assert (new_board[new_position].occupant

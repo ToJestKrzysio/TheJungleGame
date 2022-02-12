@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import itertools
+import math
 from collections import Counter
 
 import numpy as np
@@ -8,7 +10,7 @@ import numpy as np
 from src.game.cell import Cell
 from src.game.exceptions import MoveNotPossibleError
 from src.game.unit import *
-from src.game import moves as move_constants
+from src.game import moves as unit_moves
 from typing import Dict, List, Set, Tuple, Iterable
 
 
@@ -23,7 +25,7 @@ class Board(np.ndarray):
     last_moves: List
     """
     positions: Dict[Unit, Tuple[int, int]]
-    moves: Dict[Unit, Set[Tuple[int, int]]]
+    moves: Dict[Unit, Set[unit_moves.Move]]
     previous_board: Board | None
     last_moves: List[List, List]
     move_count: int
@@ -64,18 +66,16 @@ class Board(np.ndarray):
                     positions[cell.occupant] = (row_id, column_id)
         return positions
 
-    def get_moves_for_all_units(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+    def get_moves_for_all_units(self) -> Dict[Unit, Set[unit_moves.Move]]:
         """ Collects moves every unit can make into a dictionary. """
         return {unit: self.get_single_unit_moves(position)
                 for unit, position in self.positions.items()}
 
-    def get_single_unit_moves(
-            self,
-            position: Tuple[int, int]
-    ) -> set[Tuple[int, int]]:
+    def get_single_unit_moves(self, position: Tuple[int, int]) -> Set[unit_moves.Move]:
         """ Collects all_moves unit can make and returns only valid ones. """
-        all_moves = [self._find_move_position(position, move)
-                     for move in ((-1, 0), (1, 0), (0, -1), (0, 1))]
+        all_moves = [
+            self._find_move_position(position, move) for move in unit_moves.base_moves
+        ]
         return {tuple(move) for valid, *move in all_moves if valid}
 
     def _is_position_valid(self, position: Tuple[int, int]) -> bool:
@@ -86,34 +86,16 @@ class Board(np.ndarray):
     @staticmethod
     def _get_new_position_tuple(
             position: Tuple[int, int],
-            move: Tuple[int, int],
+            move: unit_moves.Move,
     ) -> Tuple[int, int]:
         """ Returns new position as a tuple. """
         y, x = position
-        move_y, move_x = move
-        return y + move_y, x + move_x
-
-    def _get_land_position_across_the_water(
-            self,
-            new_position: Tuple[int, int],
-            move: Tuple[int, int]
-    ) -> Tuple[bool, int, int]:
-        """ Moves across the water and returns the position across it. """
-        new_cell = self[new_position]
-        while new_cell.water:
-            if new_cell.occupant is not EMPTY:
-                return False, -1, -1
-
-            new_position = self._get_new_position_tuple(new_position, move)
-            if not self._is_position_valid(new_position):
-                return False, -1, -1
-            new_cell = self[new_position]
-        return True, new_position[0], new_position[1]
+        return y + move.y, x + move.x
 
     def _find_move_position(
             self,
             position: Tuple[int, int],
-            move: Tuple[int, int]
+            move: unit_moves.Move
     ) -> Tuple[bool, int, int]:
         """ Checks if move in the given direction is valid. """
         INVALID_POSITION = (False, -1, -1)
@@ -125,17 +107,34 @@ class Board(np.ndarray):
 
         new_cell = self[new_position[0], new_position[1]]
         if new_cell.water and old_cell.occupant.jumps:
-            valid, *new_position = (
-                self._get_land_position_across_the_water(new_position, move)
-            )
-            if not valid:
+            jump_move = unit_moves.get_jump_move(move)
+            if not self.validate_jump_move(new_position, jump_move):
                 return INVALID_POSITION
+            new_position = self._get_new_position_tuple(position, jump_move)
             new_cell = self[new_position[0], new_position[1]]
 
         if old_cell.can_capture(new_cell):
             return True, new_position[0], new_position[1]
 
         return INVALID_POSITION
+
+    def validate_jump_move(self, position: Tuple[int, int], move: unit_moves.Move) -> bool:
+        """
+        Checks if jump is considered valid.
+        Jump is valid if all water cells along its path are empty and land position across the
+        water can be captured by the animal.
+
+        :param position: Position of first water cell as tuple [x_position, y_position].
+        :param move: Move instance.
+
+        :return: True if move is valid False otherwise.
+        """
+        y, x = position
+        xs = tuple(range(x, x + move.x - move.sign, move.sign)) or (x,)
+        ys = tuple(range(y, y + move.y - move.sign, move.sign)) or (y,)
+        water_positions = itertools.product(xs, ys)
+        water_cells = [self[position] for position in water_positions]
+        return not any(water_cells)
 
     def get_repetitions(self) -> Tuple[int, int]:
         """ Get number of repetitions for player and the opponent. """
@@ -179,7 +178,7 @@ class Board(np.ndarray):
         ]
         return Board(cells)
 
-    def move(self, unit_position: Tuple[int, int], selected_move: move_constants.move) -> Board:
+    def move(self, unit_position: Tuple[int, int], selected_move: unit_moves.Move) -> Board:
         """
         Creates new instance of a board and moves selected unit to new location on that board.
 
@@ -188,7 +187,7 @@ class Board(np.ndarray):
 
         :return: New instance of the board with unit moved to new position.
         """
-        new_position = unit_position[0] + selected_move.y, unit_position[0] + selected_move.x
+        new_position = unit_position[0] + selected_move.y, unit_position[1] + selected_move.x
         if (new_position not in
                 self.moves[self[unit_position].occupant]):
             raise MoveNotPossibleError("Selected move is not valid.")
@@ -232,12 +231,12 @@ class Board(np.ndarray):
         return new_board
 
     @property
-    def white_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+    def white_moves(self) -> Dict[Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of white player. """
         return {unit: moves for unit, moves in self.moves.items() if unit.white}
 
     @property
-    def black_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+    def black_moves(self) -> Dict[Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of black player. """
         return {unit: moves for unit, moves in self.moves.items() if not unit.white}
 

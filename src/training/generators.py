@@ -43,7 +43,7 @@ class GameDataGenerator:
         planes = np.zeros(shape=(9, 7, 8))
         children = mcts.node.child_nodes
         for child in children:
-            unit, y, x = child.move
+            unit, y, x = child.Move
             visits = child.visits
             # define what type of move it is?
             plane = 0
