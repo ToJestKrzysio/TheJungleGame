@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 
 from src.game import moves
-from src.game.board import Board
+from src.game import board as game_board
 from src.game.cell import Cell
 from src.game.exceptions import MoveNotPossibleError
 from src.game.unit import Empty, Tiger
@@ -16,9 +16,9 @@ from src.game.unit import *
 class TestBoard:
 
     def test_new(self, empty_cells_array):
-        board = Board(empty_cells_array)
+        board = game_board.Board(empty_cells_array)
 
-        assert isinstance(board, Board)
+        assert isinstance(board, game_board.Board)
         assert board.shape == empty_cells_array.shape
         assert np.array_equal(board, empty_cells_array)
         assert not board.positions
@@ -30,7 +30,7 @@ class TestBoard:
     ])
     def test_get_positions(self, empty_cells_array, position, unit):
         empty_cells_array[position].occupant = unit
-        board = Board(empty_cells_array)
+        board = game_board.Board(empty_cells_array)
 
         positions = board.get_positions()
 
@@ -48,73 +48,102 @@ class TestBoard:
             (0, 0), (1, 1), (2, 2), (3, 3)
         }
 
-        result = Board.get_moves_for_all_units(board_mock)
+        result = game_board.Board.get_moves_for_all_units(board_mock)
 
         expected_calls = [call(position) for position in positions.values()]
         board_mock.get_single_unit_moves.assert_has_calls(expected_calls)
         assert isinstance(result, dict)
 
-    @pytest.mark.parametrize("position", [(1, 1), (0, 0), (9, 7), (19, 19)])
-    def test_get_single_unit_moves(self, position: Tuple[int, int]):
+    @pytest.mark.parametrize("position", [
+        game_board.Position(y=1, x=1),
+        game_board.Position(y=0, x=0),
+        game_board.Position(y=9, x=7),
+        game_board.Position(y=19, x=19),
+    ])
+    def test_get_single_unit_moves(self, position: game_board.Position):
         board_mock = Mock()
-        board_mock._find_move_position.return_value = (True, 1, 1)
+        board_mock._find_move_position.return_value = (True, game_board.Position(y=1, x=1))
 
-        result = Board.get_single_unit_moves(board_mock, position)
+        result = game_board.Board.get_single_unit_moves(board_mock, position)
 
         expected_calls = [
-            call(position, (-1, 0)),
-            call(position, (+1, 0)),
-            call(position, (0, -1)),
-            call(position, (0, +1)),
+            call(position, moves.backward),
+            call(position, moves.forward),
+            call(position, moves.left),
+            call(position, moves.right),
         ]
         board_mock._find_move_position.has_calls(expected_calls)
         assert isinstance(result, set)
 
     @pytest.mark.parametrize("position, expected", [
-        ((10, 3), False),
-        ((-1, 6), False),
-        ((0, 6), True),
-        ((0, 8), False)
+        (game_board.Position(y=10, x=3), False),
+        (game_board.Position(y=-1, x=6), False),
+        (game_board.Position(y=0, x=6), True),
+        (game_board.Position(y=0, x=8), False)
     ])
     def test_is_position_valid(self, position, expected):
         double = Mock(shape=(9, 7))
 
-        result = Board._is_position_valid(double, position)
+        result = game_board.Board._is_position_valid(double, position)
 
         assert result == expected
 
     @pytest.mark.parametrize("position, move, expected", [
-        ((0, 0), moves.Move(value=0, y=1, x=-1), (1, -1)),
-        ((6, 3), moves.Move(value=0, y=2, x=-3), (8, 0)),
-        ((7, -7), moves.Move(value=0, y=-7, x=7), (0, 0))
+        (
+                game_board.Position(y=0, x=0),
+                moves.Move(value=0, y=1, x=-1, sign=1),
+                game_board.Position(y=1, x=-1)
+        ),
+        (
+                game_board.Position(y=6, x=3),
+                moves.Move(value=0, y=2, x=-3, sign=1),
+                game_board.Position(y=8, x=0)
+        ),
+        (
+                game_board.Position(y=7, x=-7),
+                moves.Move(value=0, y=-7, x=7, sign=1),
+                game_board.Position(y=0, x=0)
+        )
     ])
-    def test_get_new_position_tuple(self, position, move, expected):
-        result = Board._get_new_position_tuple(position, move)
+    def test_get_new_position(self, position, move, expected):
+        result = game_board.Board._get_new_position(position, move)
         assert result == expected
 
     def test_find_move_position_invalid_position(self):
-        move = moves.Move(value=0, y=1, x=0)
-        position = (3, 1)
-        board_mock = MagicMock(spec=Board)
+        move = moves.Move(value=0, y=1, x=0, sign=1)
+        position = game_board.Position(y=3, x=1)
+        board_mock = MagicMock(spec=game_board.Board)
         board_mock.__getitem__.side_effect = [
             Mock(water=False, occupant=Tiger(False)),
         ]
-        board_mock._get_new_position_tuple.side_effect = [(4, 1), ]
+        board_mock._get_new_position.side_effect = (game_board.Position(y=4, x=1),)
         board_mock._is_position_valid.return_value = False
 
-        result = Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assest_called_once_with(
+        board_mock._get_new_position.assest_called_once_with(
             (1, 1), (1, 0)
         )
-        board_mock._is_position_valid.assest_called_once_with((4, 1))
-        assert result == (False, -1, -1)
+        board_mock._is_position_valid.assest_called_once_with(game_board.Position(y=4, x=1))
+        assert result == (False, game_board.Position(y=-1, x=-1))
 
     @pytest.mark.parametrize("position, move, new_position", [
-        ((2, 2), moves.Move(value=0, y=1, x=0), (3, 2)),
-        ((2, 2), moves.Move(value=0, y=-1, x=0), (1, 2)),
-        ((2, 2), moves.Move(value=0, y=0, x=1), (2, 3)),
-        ((2, 2), moves.Move(value=0, y=0, x=-1), (2, 1)),
+        (
+                game_board.Position(y=2, x=2),
+                moves.Move(value=0, y=1, x=0, sign=1),
+                game_board.Position(y=3, x=2)),
+        (
+                game_board.Position(y=2, x=2),
+                moves.Move(value=0, y=-1, x=0, sign=1),
+                game_board.Position(y=1, x=2)),
+        (
+                game_board.Position(y=2, x=2),
+                moves.Move(value=0, y=0, x=1, sign=1),
+                game_board.Position(y=2, x=3)),
+        (
+                game_board.Position(y=2, x=2),
+                moves.Move(value=0, y=0, x=-1, sign=1),
+                game_board.Position(y=2, x=1)),
     ])
     def test_find_move_position_jumps_no_water(
             self,
@@ -130,23 +159,39 @@ class TestBoard:
         new_cell = Mock(water=False)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position_tuple.return_value = new_position
+        board_mock._get_new_position.return_value = new_position
 
-        result = Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assert_called_once_with(
+        board_mock._get_new_position.assert_called_once_with(
             position, move
         ),
         board_mock._is_position_valid.assert_called_once_with(new_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (True, new_position[0], new_position[1])
+        assert result == (True, new_position)
 
     @pytest.mark.parametrize("position, move, next_position", [
-        ((2, 2), moves.Move(value=0, y=1, x=0), (3, 2)),
-        ((6, 4), moves.Move(value=0, y=-1, x=0), (5, 4)),
-        ((4, 0), moves.Move(value=0, y=0, x=1), (4, 1)),
-        ((6, 6), moves.Move(value=0, y=0, x=-1), (6, 5)),
+        (
+                game_board.Position(y=2, x=2),
+                moves.Move(value=0, y=1, x=0, sign=1),
+                game_board.Position(y=3, x=2)
+        ),
+        (
+                game_board.Position(y=6, x=4),
+                moves.Move(value=0, y=-1, x=0, sign=1),
+                game_board.Position(y=5, x=4)
+        ),
+        (
+                game_board.Position(y=4, x=0),
+                moves.Move(value=0, y=0, x=1, sign=1),
+                game_board.Position(y=4, x=1)
+        ),
+        (
+                game_board.Position(y=6, x=6),
+                moves.Move(value=0, y=0, x=-1, sign=1),
+                game_board.Position(y=6, x=5)
+        ),
     ])
     def test_find_move_position_cant_jump_over_water(
             self,
@@ -162,25 +207,25 @@ class TestBoard:
         new_cell = Mock(water=True)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position_tuple.return_value = next_position
+        board_mock._get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
-        result = Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assert_called_once_with(position,
-                                                                   move)
+        board_mock._get_new_position.assert_called_once_with(position,
+                                                             move)
         board_mock._is_position_valid.assest_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (False, -1, -1)
+        assert result == (False, game_board.Position(y=-1, x=-1))
 
     def test_find_move_position_can_capture_other_on_land(self):
         """
         Tests if given unit can capture other one occupying land cell.
         """
-        position = (1, 1)
-        move = moves.Move(value=0, y=1, x=0)
-        next_position = (2, 1)
+        position = game_board.Position(y=1, x=1)
+        move = moves.Move(value=0, y=1, x=0, sign=1)
+        next_position = game_board.Position(y=2, x=1)
         old_cell = Mock(
             water=False,
             occupant=Mock(),
@@ -189,17 +234,16 @@ class TestBoard:
         new_cell = Mock(water=False)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position_tuple.return_value = next_position
+        board_mock._get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
-        result = Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._find_move_position(board_mock, position, move)
 
-        board_mock._get_new_position_tuple.assert_called_once_with(position,
-                                                                   move)
+        board_mock._get_new_position.assert_called_once_with(position, move)
         board_mock._is_position_valid.assert_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (True, *next_position)
+        assert result == (True, next_position)
 
     @pytest.mark.parametrize("items, expected", [
         [(), 0],
@@ -207,19 +251,23 @@ class TestBoard:
         [(1, 2, 3, 3, 3, 3, None, None, None, None, None, None), 4],
     ])
     def test_get_repetition(self, items, expected):
-        result = Board._get_repetition(items)
+        result = game_board.Board._get_repetition(items)
 
         assert result == expected
 
     def test_get_repetitions(self):
         player, opponent = Mock(), Mock()
         board_mock = Mock(last_moves=[player, opponent])
-        Board.get_repetitions(self=board_mock)
+        game_board.Board.get_repetitions(self=board_mock)
 
         board_mock._get_repetition.assert_has_calls([call(player),
                                                      call(opponent)])
 
-    @pytest.mark.parametrize("new_position", [(2, 3), (0, 0), (7, 7)])
+    @pytest.mark.parametrize("new_position", [
+        game_board.Position(y=2, x=3),
+        game_board.Position(y=0, x=0),
+        game_board.Position(y=7, x=7),
+    ])
     @pytest.mark.parametrize("move", [
         moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
     ])
@@ -234,9 +282,13 @@ class TestBoard:
         cells = [empty_water_cell] * 3
         cells[occupied] = occupied_water_cell
         board_mock.__getitem__.side_effect = cells
-        assert Board.validate_jump_move(board_mock, new_position, move) is False
+        assert game_board.Board.validate_jump_move(board_mock, new_position, move) is False
 
-    @pytest.mark.parametrize("new_position", [(2, 3), (0, 0), (7, 7)])
+    @pytest.mark.parametrize("new_position", [
+        game_board.Position(y=2, x=3),
+        game_board.Position(y=0, x=0),
+        game_board.Position(y=7, x=7),
+    ])
     @pytest.mark.parametrize("move", [
         moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
     ])
@@ -246,7 +298,7 @@ class TestBoard:
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [empty_water_cell, empty_water_cell, empty_water_cell]
 
-        assert Board.validate_jump_move(board_mock, new_position, move) is True
+        assert game_board.Board.validate_jump_move(board_mock, new_position, move) is True
 
 
 class TestMove:
@@ -285,35 +337,131 @@ class TestMove:
         board_state.moves = {occupant_mock: moves}
 
         with pytest.raises(MoveNotPossibleError):
-            Board.move(board_state, unit_position, new_position)
+            game_board.Board.move(board_state, unit_position, new_position)
 
     @pytest.mark.parametrize("unit_position, new_position, move", [
-        [(0, 0), (1, 0), moves.Move(value=0, y=1, x=0)],
-        [(0, 0), (0, 1), moves.Move(value=0, y=0, x=1)],
-        [(1, 0), (0, 0), moves.Move(value=0, y=-1, x=0)],
-        [(1, 0), (1, 1), moves.Move(value=0, y=0, x=1)],
-        [(1, 0), (2, 0), moves.Move(value=0, y=1, x=0)],
-        [(2, 0), (2, 1), moves.Move(value=0, y=0, x=1)],
-        [(2, 0), (1, 0), moves.Move(value=0, y=-1, x=0)],
+        [
+            game_board.Position(y=0, x=0),
+            game_board.Position(y=1, x=0),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=0, x=0),
+            game_board.Position(y=0, x=1),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=0, x=0),
+            moves.Move(value=0, y=-1, x=0, sign=-1)
+        ],
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=1, x=1),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=2, x=0),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=2, x=0),
+            game_board.Position(y=2, x=1),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
+        [
+            game_board.Position(y=2, x=0),
+            game_board.Position(y=1, x=0),
+            moves.Move(value=0, y=-1, x=0, sign=-1)
+        ],
 
-        [(0, 1), (0, 0), moves.Move(value=0, y=0, x=-1)],
-        [(0, 1), (0, 2), moves.Move(value=0, y=0, x=1)],
-        [(0, 1), (1, 1), moves.Move(value=0, y=1, x=0)],
-        [(1, 1), (0, 1), moves.Move(value=0, y=-1, x=0)],
-        [(1, 1), (1, 0), moves.Move(value=0, y=0, x=-1)],
-        [(1, 1), (1, 2), moves.Move(value=0, y=0, x=1)],
-        [(1, 1), (2, 1), moves.Move(value=0, y=1, x=0)],
-        [(2, 1), (2, 0), moves.Move(value=0, y=0, x=-1)],
-        [(2, 1), (1, 1), moves.Move(value=0, y=-1, x=0)],
-        [(2, 1), (2, 2), moves.Move(value=0, y=0, x=1)],
+        [
+            game_board.Position(y=0, x=1),
+            game_board.Position(y=0, x=0),
+            moves.Move(value=0, y=0, x=-1, sign=-1)
+        ],
+        [
+            game_board.Position(y=0, x=1),
+            game_board.Position(y=0, x=2),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
+        [
+            game_board.Position(y=0, x=1),
+            game_board.Position(y=1, x=1),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=1),
+            game_board.Position(y=0, x=1),
+            moves.Move(value=0, y=-1, x=0, sign=-1)
+        ],
+        [
+            game_board.Position(y=1, x=1),
+            game_board.Position(y=1, x=0),
+            moves.Move(value=0, y=0, x=-1, sign=-1)
+        ],
+        [
+            game_board.Position(y=1, x=1),
+            game_board.Position(y=1, x=2),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=1),
+            game_board.Position(y=2, x=1),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=2, x=1),
+            game_board.Position(y=2, x=0),
+            moves.Move(value=0, y=0, x=-1, sign=-1)
+        ],
+        [
+            game_board.Position(y=2, x=1),
+            game_board.Position(y=1, x=1),
+            moves.Move(value=0, y=-1, x=0, sign=-1)
+        ],
+        [
+            game_board.Position(y=2, x=1),
+            game_board.Position(y=2, x=2),
+            moves.Move(value=0, y=0, x=1, sign=1)
+        ],
 
-        [(0, 2), (0, 1), moves.Move(value=0, y=0, x=-1)],
-        [(0, 2), (1, 2), moves.Move(value=0, y=1, x=0)],
-        [(1, 2), (0, 2), moves.Move(value=0, y=-1, x=0)],
-        [(1, 2), (1, 1), moves.Move(value=0, y=0, x=-1)],
-        [(1, 2), (2, 2), moves.Move(value=0, y=1, x=0)],
-        [(2, 2), (1, 2), moves.Move(value=0, y=-1, x=0)],
-        [(2, 2), (2, 1), moves.Move(value=0, y=0, x=-1)],
+        [
+            game_board.Position(y=0, x=2),
+            game_board.Position(y=0, x=1),
+            moves.Move(value=0, y=0, x=-1, sign=1)
+        ],
+        [
+            game_board.Position(y=0, x=2),
+            game_board.Position(y=1, x=2),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=2),
+            game_board.Position(y=0, x=2),
+            moves.Move(value=0, y=-1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=2),
+            game_board.Position(y=1, x=1),
+            moves.Move(value=0, y=0, x=-1, sign=1)
+        ],
+        [
+            game_board.Position(y=1, x=2),
+            game_board.Position(y=2, x=2),
+            moves.Move(value=0, y=1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=2, x=2),
+            game_board.Position(y=1, x=2),
+            moves.Move(value=0, y=-1, x=0, sign=1)
+        ],
+        [
+            game_board.Position(y=2, x=2),
+            game_board.Position(y=2, x=1),
+            moves.Move(value=0, y=0, x=-1, sign=1)
+        ],
     ])
     @pytest.mark.parametrize("unit", [
         WHITE_MOUSE, WHITE_CAT, WHITE_DOG, WHITE_WOLF, WHITE_LEOPARD,
@@ -323,8 +471,8 @@ class TestMove:
     ])
     def test__move__board_copying(
             self,
-            unit_position: Tuple[int, int],
-            new_position: Tuple[int, int],
+            unit_position: game_board.Position,
+            new_position: game_board.Position,
             move: moves.Move,
             unit: Unit,
     ):
@@ -338,11 +486,11 @@ class TestMove:
             [Cell(), Cell(), Cell()],
             [Cell(), Cell(), Cell()]
         ]
-        board_array[unit_position[0]][unit_position[1]] = Cell(unit)
-        old_board = Board(board_array)
+        board_array[unit_position.y][unit_position.x] = Cell(unit)
+        old_board = game_board.Board(board_array)
         old_board.white_move = unit.white
 
-        new_board = Board.move(old_board, unit_position, move)
+        new_board = game_board.Board.move(old_board, unit_position, move)
 
         assert new_board.shape == old_board.shape
         assert (new_board[new_position].occupant
