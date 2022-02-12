@@ -32,7 +32,7 @@ def train_nn(data, model, **kwargs):
 
     training_iteration = kwargs.get("TRAINING_ITERATION", -1)
     timestamp = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
-    checkpoint_filepath = f"data/models/training_iteration_{training_iteration}_{timestamp}.h5
+    checkpoint_filepath = f"data/models/training_iteration_{training_iteration}_{timestamp}.h5"
     save_best_model = callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         monitor="val_loss",

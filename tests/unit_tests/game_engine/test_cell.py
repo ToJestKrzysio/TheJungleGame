@@ -2,10 +2,10 @@ from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 
-from src.game_engine.cell import Cell
-from src.game_engine.exceptions import JumpIntoWaterError
-from src.game_engine.properties import GroundStates
-from src.game_engine.unit import EMPTY, Unit
+from src.game.cell import Cell
+from src.game.exceptions import JumpIntoWaterError
+from src.game.properties import GroundStates
+from src.game.unit import EMPTY, Unit
 
 
 class TestCell:
@@ -27,7 +27,7 @@ class TestCell:
         (True, False), (False, True), (False, False)
     ])
     @pytest.mark.parametrize("occupant", NON_SWIMMER_EXAMPLES)
-    @patch("src.game_engine.cell.Cell.occupant", new_callable=PropertyMock)
+    @patch("src.game.cell.Cell.occupant", new_callable=PropertyMock)
     def test_init_land(self, occupant_spy, occupant, water, trap):
         cell = Cell(occupant, water=water, trap=trap)
 
@@ -73,5 +73,3 @@ class TestCell:
     # def test_can_capture_mouse_land_to_water(self):
     # def test_can_capture_attack_trapped_animal(self):
     # def test_can_capture_swimming_mouse(self):
-
-

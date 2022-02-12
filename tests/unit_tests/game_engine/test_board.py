@@ -4,11 +4,11 @@ from unittest.mock import Mock, call, MagicMock
 import pytest
 import numpy as np
 
-from src.game_engine.board import Board, BoardTensor
-from src.game_engine.cell import Cell
-from src.game_engine.exceptions import MoveNotPossibleError
-from src.game_engine.unit import Empty, Mouse, Tiger, EMPTY
-from src.game_engine.unit import *
+from src.game.board import Board, BoardTensor
+from src.game.cell import Cell
+from src.game.exceptions import MoveNotPossibleError
+from src.game.unit import Empty, Mouse, Tiger, EMPTY
+from src.game.unit import *
 
 
 class TestBoard:

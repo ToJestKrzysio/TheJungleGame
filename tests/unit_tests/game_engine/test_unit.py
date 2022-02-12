@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.game_engine.unit import Unit
+from src.game.unit import Unit
 
 
 class TestUnit:

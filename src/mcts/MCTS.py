@@ -71,15 +71,15 @@ class Node:
             self.history.append(board)
         self.depth = len(self.history)
 
-    def evaluate(self):
+    def evaluate(self) -> None:
         """ Calls current policy. """
         self.policy_strategy(self)
 
-    def get_value(self):
+    def get_value(self) -> float:
         """ Calculates value for the current node. """
-        self.value_strategy(self)
+        return self.value_strategy(self)
 
-    def expand_node(self):
+    def expand_node(self) -> None:
         """ Generate nodes for each of possible moves. """
         valid_moves = {unit: new_positions for unit, new_positions in self.board.moves.items()
                        if unit.white is self.board.white_move}
@@ -91,7 +91,7 @@ class Node:
                 self.child_nodes.append(new_node)
 
     @property
-    def q(self):
+    def q(self) -> float:
         try:
             self.value / self.visits
         except ZeroDivisionError:

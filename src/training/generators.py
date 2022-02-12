@@ -17,8 +17,7 @@ class GameDataGenerator:
         env = game.Board.initialize()
         for game_id in range(self.num_games):
             print(f"Starting game {game_id + 1} of {self.num_games}")
-            actions = []
-            game_over = False
+
             while not env.game_over:
                 current_game_state = env.to_tensor()
                 current_player_value = int(env.white_move) * 2 - 1
@@ -30,4 +29,24 @@ class GameDataGenerator:
 
                 q_value = mcts_engine.node.q * current_player_value
 
-                # probability_planes = self._generate_probability_planes()
+                probability_planes = self._generate_probability_planes(mcts_engine)
+
+    def _generate_probability_planes(self, mcts: mcts.MCTS) -> np.ndarray:
+        """
+        Generates probability planes based on the number of child node visits. More visits indicate
+        higher possibility of finding a better reward in the given node.
+
+        :param mcts: Instance of MCTS class storing tree generated during evaluation phase.
+
+        :return: Probability planes represented as ndarray.
+        """
+        planes = np.zeros(shape=(9, 7, 8))
+        children = mcts.node.child_nodes
+        for child in children:
+            unit, y, x = child.move
+            visits = child.visits
+            # define what type of move it is?
+            plane = 0
+            planes[y, x, plane] = visits
+
+        return

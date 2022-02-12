@@ -8,6 +8,7 @@ import numpy as np
 from src.game.cell import Cell
 from src.game.exceptions import MoveNotPossibleError
 from src.game.unit import *
+from src.game import moves as move_constants
 from typing import Dict, List, Set, Tuple, Iterable
 
 
@@ -144,8 +145,7 @@ class Board(np.ndarray):
     @staticmethod
     def _get_repetition(moves: List) -> int:
         """
-        Calculates maximum number of repetitions within the given list of
-        moves.
+        Calculates maximum number of repetitions within the given list of moves.
         """
         counter = Counter(moves)
         del counter[None]
@@ -179,12 +179,16 @@ class Board(np.ndarray):
         ]
         return Board(cells)
 
-    def move(self, unit_position: Tuple[int, int],
-             new_position: Tuple[int, int]) -> Board:
+    def move(self, unit_position: Tuple[int, int], selected_move: move_constants.move) -> Board:
         """
         Creates new instance of a board and moves selected unit to new location on that board.
-        """
 
+        :param unit_position: Current unit position, tuple (x_position, y_position).
+        :param selected_move: Position to move unit to, tuple (x_position, y_position).
+
+        :return: New instance of the board with unit moved to new position.
+        """
+        new_position = unit_position[0] + selected_move.y, unit_position[0] + selected_move.x
         if (new_position not in
                 self.moves[self[unit_position].occupant]):
             raise MoveNotPossibleError("Selected move is not valid.")
