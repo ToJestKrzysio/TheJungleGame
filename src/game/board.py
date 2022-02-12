@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import collections
 import copy
 import itertools
-import math
-from collections import Counter
 
 import numpy as np
 
-from src.game.cell import Cell
-from src.game.exceptions import MoveNotPossibleError
-from src.game.unit import *
+from src.game import cell, exceptions, unit
 from src.game import moves as unit_moves
+# from src.game.unit import *
+
 from typing import Dict, List, Set, Tuple, Iterable
+
+Position = collections.namedtuple("Position", ["y", "x"])
 
 
 class Board(np.ndarray):
@@ -24,8 +25,8 @@ class Board(np.ndarray):
         does not exist equals None.
     last_moves: List
     """
-    positions: Dict[Unit, Tuple[int, int]]
-    moves: Dict[Unit, Set[unit_moves.Move]]
+    positions: Dict[unit.Unit, Tuple[int, int]]
+    moves: Dict[unit.Unit, Set[unit_moves.Move]]
     previous_board: Board | None
     last_moves: List[List, List]
     move_count: int
@@ -33,8 +34,8 @@ class Board(np.ndarray):
     MAX_REPETITIONS: int = 3
     game_over: bool
 
-    def __new__(cls, cells: np.ndarray | List[List[Cell]]):
-        obj = np.asarray(cells, dtype=Cell).view(cls)
+    def __new__(cls, cells: np.ndarray | List[List[cell.Cell]]):
+        obj = np.asarray(cells, dtype=cell.Cell).view(cls)
         return obj
 
     def __array_finalize__(self, obj):
@@ -52,7 +53,7 @@ class Board(np.ndarray):
         self.move_count = 0
         self.game_over = False
 
-    def get_positions(self) -> dict[Unit, tuple[int, int]]:
+    def get_positions(self) -> dict[unit.Unit, tuple[int, int]]:
         """
         Generates dictionary of units on the board.
 
@@ -66,7 +67,7 @@ class Board(np.ndarray):
                     positions[cell.occupant] = (row_id, column_id)
         return positions
 
-    def get_moves_for_all_units(self) -> Dict[Unit, Set[unit_moves.Move]]:
+    def get_moves_for_all_units(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Collects moves every unit can make into a dictionary. """
         return {unit: self.get_single_unit_moves(position)
                 for unit, position in self.positions.items()}
@@ -146,7 +147,7 @@ class Board(np.ndarray):
         """
         Calculates maximum number of repetitions within the given list of moves.
         """
-        counter = Counter(moves)
+        counter = collections.Counter(moves)
         del counter[None]
         most_common = counter.most_common(1)
         return most_common[0][1] if most_common else 0
@@ -155,26 +156,28 @@ class Board(np.ndarray):
     def initialize(cls) -> Board:
         """ Initializes board according to game rules. """
         cells = [
-            [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
-             Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
-             Cell(BLACK_LEOPARD)],
-            [Cell(), Cell(BLACK_DOG), Cell(), Cell(trap=True, white_trap=False),
-             Cell(), Cell(BLACK_CAT), Cell()],
-            [Cell(BLACK_MOUSE), Cell(), Cell(BLACK_LEOPARD), Cell(),
-             Cell(BLACK_WOLF), Cell(), Cell(BLACK_ELEPHANT)],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(WHITE_ELEPHANT), Cell(), Cell(WHITE_WOLF), Cell(),
-             Cell(WHITE_LEOPARD), Cell(), Cell(WHITE_MOUSE)],
-            [Cell(), Cell(WHITE_CAT), Cell(), Cell(trap=True, white_trap=True),
-             Cell(), Cell(WHITE_DOG), Cell()],
-            [Cell(WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
-             Cell(WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
-             Cell(WHITE_LION)],
+            [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
+             cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
+             cell.Cell(unit.BLACK_LEOPARD)],
+            [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
+             cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
+             cell.Cell()],
+            [cell.Cell(unit.BLACK_MOUSE), cell.Cell(), cell.Cell(unit.BLACK_LEOPARD), cell.Cell(),
+             cell.Cell(unit.BLACK_WOLF), cell.Cell(), cell.Cell(unit.BLACK_ELEPHANT)],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(unit.WHITE_ELEPHANT), cell.Cell(), cell.Cell(unit.WHITE_WOLF), cell.Cell(),
+             cell.Cell(unit.WHITE_LEOPARD), cell.Cell(), cell.Cell(unit.WHITE_MOUSE)],
+            [cell.Cell(), cell.Cell(unit.WHITE_CAT), cell.Cell(),
+             cell.Cell(trap=True, white_trap=True),
+             cell.Cell(), cell.Cell(unit.WHITE_DOG), cell.Cell()],
+            [cell.Cell(unit.WHITE_TIGER), cell.Cell(), cell.Cell(trap=True, white_trap=True),
+             cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
+             cell.Cell(unit.WHITE_LION)],
         ]
         return Board(cells)
 
@@ -190,9 +193,9 @@ class Board(np.ndarray):
         new_position = unit_position[0] + selected_move.y, unit_position[1] + selected_move.x
         if (new_position not in
                 self.moves[self[unit_position].occupant]):
-            raise MoveNotPossibleError("Selected move is not valid.")
+            raise exceptions.MoveNotPossibleError("Selected move is not valid.")
         if self[unit_position].occupant.white is not self.white_move:
-            raise MoveNotPossibleError(
+            raise exceptions.MoveNotPossibleError(
                 "Wrong piece selected, it's {} player turn.".format(
                     "white" if self.white_move else "black"
                 )
@@ -212,7 +215,7 @@ class Board(np.ndarray):
             del new_board.moves[captured_unit]
 
         new_board[new_position].occupant = moved_unit
-        new_board[unit_position].occupant = EMPTY
+        new_board[unit_position].occupant = unit.EMPTY
 
         new_board.positions[moved_unit] = new_position
 
@@ -231,12 +234,12 @@ class Board(np.ndarray):
         return new_board
 
     @property
-    def white_moves(self) -> Dict[Unit, Set[unit_moves.Move]]:
+    def white_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of white player. """
         return {unit: moves for unit, moves in self.moves.items() if unit.white}
 
     @property
-    def black_moves(self) -> Dict[Unit, Set[unit_moves.Move]]:
+    def black_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of black player. """
         return {unit: moves for unit, moves in self.moves.items() if not unit.white}
 
@@ -255,10 +258,10 @@ class Board(np.ndarray):
          1 - White player won.
         """
         alive_pieces = set(self.positions.keys())
-        if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
+        if unit.BLACK_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
             self.game_over = True
             return True, 1
-        if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
+        if unit.WHITE_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
             self.game_over = True
             return True, -1
         if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
