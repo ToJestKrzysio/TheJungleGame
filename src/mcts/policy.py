@@ -1,29 +1,30 @@
+__all__ = ["base_policy", "network_policy", "Policy"]
+
 import math
 from abc import ABC, abstractmethod
 from math import inf, sqrt, log
 
 import numpy as np
 
-from src.mcts.MCTS import Node, MCTS
-
-__all__ = ["base_policy", "network_policy", "Policy"]
+from src.mcts.counter import evaluations_counter
+from src.mcts import mcts_node
 
 
 class Policy(ABC):
 
     @abstractmethod
-    def __call__(self, node: Node) -> None:
+    def __call__(self, node: "mcts_node.Node") -> None:
         pass
 
     @abstractmethod
-    def select_child(self, node: Node) -> Node:
+    def select_child(self, node: "mcts_node.Node") -> "mcts_node.Node":
         pass
 
 
 class BasePolicy(Policy):
     C = 1.5
 
-    def __call__(self, node: Node):
+    def __call__(self, node: "mcts_node.Node"):
         if not node.visits:
             node.get_value()
             node.expand_node()
@@ -33,13 +34,13 @@ class BasePolicy(Policy):
             node.value = sum(child_node.value for child_node in node.child_nodes)
         node.visits += 1
 
-    def get_node_value(self, node: Node) -> float:
+    def get_node_value(self, node: "mcts_node.Node") -> float:
         """ Calculates the node value for the given child node. """
         if node.visits == 0:
             return inf
-        return node.q + self.C * sqrt(log(MCTS.evaluations) / node.visits)
+        return node.q + self.C * sqrt(log(evaluations_counter.evaluations) / node.visits)
 
-    def select_child(self, node: Node) -> Node:
+    def select_child(self, node: "mcts_node.Node") -> "mcts_node.Node":
         values = [self.get_node_value(node) for node in node.child_nodes]
         return node.child_nodes[np.argmax(values)]
 
@@ -49,7 +50,7 @@ class NetworkPolicy(Policy):
     ALPHA = 0.5
     C = 1.5
 
-    def __call__(self, node: Node):
+    def __call__(self, node: "mcts_node.Node"):
         if not node.visits:
             node.get_value()
             node.expand_node()
@@ -59,7 +60,7 @@ class NetworkPolicy(Policy):
             node.value = sum(child_node.value for child_node in node.child_nodes)
         node.visits += 1
 
-    def select_child(self, node: Node) -> Node:
+    def select_child(self, node: "mcts_node.Node") -> "mcts_node.Node":
         prior_probabilities = np.array(child.prior_probability for child in node.child_nodes)
         psa_probs = ((1 - self.EPSILON) * prior_probabilities
                      + self.EPSILON * np.random.dirichlet([self.ALPHA] * len(node.child_nodes)))

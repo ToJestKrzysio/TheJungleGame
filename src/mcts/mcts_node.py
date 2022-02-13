@@ -1,43 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Optional
 
-from src.mcts import MCTS_policy, MCTS_value
+from typing import Tuple, List, Optional
+
 from src.game.board import Board
 from src.game.unit import Unit
-
-EXPLORATION_COEFFICIENT_C = 2
-
-
-class MCTS:
-    evaluations = 0
-    max_evaluations = 1
-
-    def __init__(self, initial_board: Board, **kwargs):
-        """ Prepares conditions to run the simulation. """
-        self.node = Node(initial_board)
-        self.kwargs = kwargs
-        type(self).evaluations = 0
-        type(self).max_evaluations = kwargs.get("MAX_EVALUATIONS", 100)
-
-    def evaluate(self):
-        """ Evaluates current tree according to MCTS rules. """
-        while not self.reached_termination_criteria():
-            self.node.evaluate()
-            type(self).evaluations += 1
-        best_node = self.find_best_node()
-        return best_node, best_node.move
-
-    @classmethod
-    def reached_termination_criteria(cls) -> bool:
-        """ Checks if number of evaluations reach maximum evaluations. """
-        return cls.evaluations >= cls.max_evaluations
-
-    def find_best_node(self) -> Node:
-        best_node = self.node.child_nodes[0]
-        for child_node in self.node.child_nodes[1:]:
-            best_node = best_node if best_node.value > child_node.value else child_node
-        return best_node
+from src.mcts import value, policy
 
 
 class Node:
@@ -60,8 +28,8 @@ class Node:
         self.value = 0
         self.visits = 0
         self.child_nodes = []
-        self.policy_strategy = MCTS_policy.base_policy
-        self.value_strategy = MCTS_value.base_value
+        self.policy_strategy = policy.base_policy
+        self.value_strategy = value.base_value
         self.prior_probability = 0
 
         if parent is None:
@@ -96,9 +64,3 @@ class Node:
             self.value / self.visits
         except ZeroDivisionError:
             return 0
-
-
-if __name__ == '__main__':
-    board = Board.initialize()
-    mcts = MCTS(board, **{"MAX_EVALUATIONS": 100})
-    print(mcts.evaluate())

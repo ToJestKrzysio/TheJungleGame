@@ -16,6 +16,7 @@ right_jump = Move(value=7, x=3, y=0, sign=1)
 base_moves = (forward, backward, left, right)
 jump_moves = (forward_jump, backward_jump, left_jump, right_jump)
 
+
 def get_jump_move(move: Move) -> Move:
     jump_mapping = {
         forward: forward_jump,

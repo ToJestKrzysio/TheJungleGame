@@ -22,7 +22,7 @@ class GameDataGenerator:
                 current_game_state = env.to_tensor()
                 current_player_value = int(env.white_move) * 2 - 1
 
-                mcts_engine = mcts.MCTS(env, **self.mcts_kwargs)
+                mcts_engine = mcts.Root(env, **self.mcts_kwargs)
                 best_node, best_move = mcts_engine.evaluate()
                 current_position, new_position = best_move
                 env.move(current_position, new_position)
@@ -31,7 +31,7 @@ class GameDataGenerator:
 
                 probability_planes = self._generate_probability_planes(mcts_engine)
 
-    def _generate_probability_planes(self, mcts: mcts.MCTS) -> np.ndarray:
+    def _generate_probability_planes(self, mcts: mcts.Root) -> np.ndarray:
         """
         Generates probability planes based on the number of child node visits. More visits indicate
         higher possibility of finding a better reward in the given node.
@@ -43,7 +43,7 @@ class GameDataGenerator:
         planes = np.zeros(shape=(9, 7, 8))
         children = mcts.node.child_nodes
         for child in children:
-            unit, y, x = child.Move
+            unit, y, x = child.move
             visits = child.visits
             # define what type of move it is?
             plane = 0
