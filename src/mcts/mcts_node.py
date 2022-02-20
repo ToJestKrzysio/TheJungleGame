@@ -33,11 +33,9 @@ class Node:
         self.prior_probability = 0
 
         if parent is None:
-            self.history = [board]
+            self.depth = 1
         else:
-            self.history = self.parent.history.copy()
-            self.history.append(board)
-        self.depth = len(self.history)
+            self.depth = self.parent.depth + 1
 
     def evaluate(self) -> None:
         """ Calls current policy. """
