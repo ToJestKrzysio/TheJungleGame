@@ -22,9 +22,11 @@ class Root:
 
     def evaluate(self):
         """ Evaluates current tree according to MCTS rules. """
-        while not self.counter.over():
+        value = self.counter.over()
+        while not value:
             self.node.evaluate()
             self.counter += 1
+            value = self.counter.over()
         best_node = self.find_best_node()
         return best_node, best_node.move
 
@@ -33,9 +35,3 @@ class Root:
         for child_node in self.node.child_nodes[1:]:
             best_node = best_node if best_node.value > child_node.value else child_node
         return best_node
-
-
-# if __name__ == '__main__':
-#     board = Board.initialize()
-#     mcts = Root(board, **{"MAX_EVALUATIONS": 100})
-#     print(mcts.evaluate())
