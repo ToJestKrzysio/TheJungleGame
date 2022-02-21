@@ -8,7 +8,7 @@ from src.game.unit import Unit
 from src.mcts import value, policy
 
 
-class Node:
+class Node(object):
     board: Board
     value: float
     visits: int
@@ -47,13 +47,13 @@ class Node:
 
     def expand_node(self) -> None:
         """ Generate nodes for each of possible moves. """
-        valid_moves = {unit: new_positions for unit, new_positions in self.board.moves.items()
+        valid_moves = {unit: unit_moves for unit, unit_moves in self.board.moves.items()
                        if unit.white is self.board.white_move}
-        for unit, new_positions in valid_moves.items():
-            for new_position in new_positions:
+        for unit, unit_moves in valid_moves.items():
+            for move in unit_moves:
                 current_position = self.board.positions[unit]
-                new_board = self.board.move(current_position, new_position)
-                new_node = Node(board=new_board, parent=self, move=(unit, new_position))
+                new_board = self.board.move(unit_position=current_position, selected_move=move)
+                new_node = Node(board=new_board, parent=self, move=(unit, move))
                 self.child_nodes.append(new_node)
 
     @property
@@ -62,3 +62,17 @@ class Node:
             self.value / self.visits
         except ZeroDivisionError:
             return 0
+
+
+class Foo:
+
+    values: list
+    children: list
+
+    def __init__(self, value):
+        self.value = value
+
+    def create_children(self):
+        for value in self.values:
+            new_instance = Foo(value)
+            self.children.append(new_instance)
