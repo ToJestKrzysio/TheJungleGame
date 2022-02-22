@@ -31,6 +31,7 @@ class GameDataGenerator:
 
                 probability_planes = self._generate_probability_planes(mcts_engine)
 
+    @staticmethod
     def _generate_probability_planes(mcts: mcts.Root) -> np.ndarray:
         """
         Generates probability planes based on the number of child node visits. More visits indicate
