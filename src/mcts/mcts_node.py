@@ -59,20 +59,6 @@ class Node(object):
     @property
     def q(self) -> float:
         try:
-            self.value / self.visits
+            return self.value / self.visits
         except ZeroDivisionError:
             return 0
-
-
-class Foo:
-
-    values: list
-    children: list
-
-    def __init__(self, value):
-        self.value = value
-
-    def create_children(self):
-        for value in self.values:
-            new_instance = Foo(value)
-            self.children.append(new_instance)
