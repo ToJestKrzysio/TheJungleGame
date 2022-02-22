@@ -61,15 +61,15 @@ class Board(np.ndarray):
         positions = dict()
         for row_id in range(self.shape[0]):
             for column_id in range(self.shape[1]):
-                cell = self[row_id, column_id]
-                if cell:
-                    positions[cell.occupant] = Position(y=row_id, x=column_id)
+                current_cell = self[row_id, column_id]
+                if current_cell:
+                    positions[current_cell.occupant] = Position(y=row_id, x=column_id)
         return positions
 
     def get_moves_for_all_units(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Collects moves every unit can make into a dictionary. """
-        return {unit: self.get_single_unit_moves(position)
-                for unit, position in self.positions.items()}
+        return {current_unit: self.get_single_unit_moves(position)
+                for current_unit, position in self.positions.items()}
 
     def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
         """ Collects all_moves unit can make and returns only valid ones. """
@@ -223,12 +223,14 @@ class Board(np.ndarray):
     @property
     def white_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of white player. """
-        return {unit: moves for unit, moves in self.moves.items() if unit.white}
+        return {current_unit: moves for current_unit, moves in self.moves.items()
+                if current_unit.white}
 
     @property
     def black_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of black player. """
-        return {unit: moves for unit, moves in self.moves.items() if not unit.white}
+        return {current_unit: moves for current_unit, moves in self.moves.items()
+                if not current_unit.white}
 
     @staticmethod
     def no_valid_moves(moves: Iterable) -> bool:
@@ -346,13 +348,3 @@ class BoardTensor(np.ndarray):
         array[8, 4] = 1
         array[7, 3] = 1
         return array
-
-
-if __name__ == '__main__':
-    import numpy as np
-
-    board = Board.initialize()
-    print(board)
-    # board_tensor = board.to_tensor()
-    # print(board_tensor.shape)
-    # np.save("../tensor.npy", board_tensor)

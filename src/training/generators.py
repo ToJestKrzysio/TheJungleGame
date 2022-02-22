@@ -31,7 +31,7 @@ class GameDataGenerator:
 
                 probability_planes = self._generate_probability_planes(mcts_engine)
 
-    def _generate_probability_planes(self, mcts: mcts.Root) -> np.ndarray:
+    def _generate_probability_planes(mcts: mcts.Root) -> np.ndarray:
         """
         Generates probability planes based on the number of child node visits. More visits indicate
         higher possibility of finding a better reward in the given node.
@@ -43,10 +43,9 @@ class GameDataGenerator:
         planes = np.zeros(shape=(9, 7, 8))
         children = mcts.node.child_nodes
         for child in children:
-            unit, y, x = child.move
+            unit, move = child.move
             visits = child.visits
-            # define what type of move it is?
-            plane = 0
-            planes[y, x, plane] = visits
-
-        return
+            plane = move.value
+            planes[move.y, move.x, plane] = visits
+        # Normalize values
+        return planes

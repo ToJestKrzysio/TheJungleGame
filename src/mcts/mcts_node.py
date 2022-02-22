@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Tuple, List, Optional
 
 from src.game.board import Board
+from src.game.moves import Move
 from src.game.unit import Unit
 from src.mcts import value, policy
 
@@ -20,7 +21,7 @@ class Node(object):
             self,
             board: Board,
             parent: Optional[Node] = None,
-            move: Optional[Tuple[Unit, Tuple[int, int]]] = None
+            move: Optional[Tuple[Unit, Move]] = None
     ):
         self.board = board
         self.parent = parent
