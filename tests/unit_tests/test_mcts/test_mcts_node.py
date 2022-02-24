@@ -52,6 +52,20 @@ class TestNode:
 
         value_strategy.assert_called_once_with(node_mock)
 
+    @pytest.mark.parametrize("value, visits, expected", [
+        (14, 2, 7),
+        (7, 0, 0),
+        (0, 0, 0),
+        (0, 14, 0),
+        (1, 197434, 1 / 197434),
+    ])
+    def test_q(self, value, visits, expected):
+        node = src.mcts.mcts_node.Node(mock.Mock())
+        node.value = value
+        node.visits = visits
+
+        assert node.q == expected
+
     @pytest.mark.parametrize("moves, positions, new_boards, new_nodes, units, player_moves", [
         [
             {
@@ -238,16 +252,5 @@ class TestNode:
         append_calls = [mock.call(node) for node in new_nodes]
         append_mock.assert_has_calls(append_calls)
 
-    @pytest.mark.parametrize("value, visits, expected", [
-        (14, 2, 7),
-        (7, 0, 0),
-        (0, 0, 0),
-        (0, 14, 0),
-        (1, 197434, 1 / 197434),
-    ])
-    def test_q(self, value, visits, expected):
-        node = src.mcts.mcts_node.Node(mock.Mock())
-        node.value = value
-        node.visits = visits
 
-        assert node.q == expected
+#

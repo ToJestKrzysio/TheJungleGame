@@ -41,12 +41,31 @@ class GameDataGenerator:
 
         :return: Probability planes represented as ndarray.
         """
-        planes = np.zeros(shape=(9, 7, 8))
+        planes = np.zeros(shape=(8, 9, 7))
         children = mcts.node.child_nodes
         for child in children:
-            unit, move = child.move
-            visits = child.visits
-            plane = move.value
-            planes[move.y, move.x, plane] = visits
-        # Normalize values
+            planes = GameDataGenerator._update_plane_for_child(planes, child)
+        planes /= np.sum(planes)
+        if not np.isclose(np.sum(planes), 1):
+            raise ValueError("Sum of probabilities is not equal to 1.")
+        return planes
+
+    @staticmethod
+    def _update_plane_for_child(planes: np.ndarray, child: mcts.mcts_node.Node) -> np.ndarray:
+        """
+        Updates child move position with number of visits to that position.
+
+        :param planes: 3D numpy array representing moves.
+        :param child: Instance of Node class, holding data about move and visits.
+
+        :return: 3D numpy array representing moves, with updated position equal to child move
+            position.
+        """
+        unit, move = child.move
+        visits = child.visits
+        plane = move.value
+        current_y, current_x = child.board.positions[unit]
+        y = current_y + move.y
+        x = current_x + move.x
+        planes[plane, y, x] = visits
         return planes
