@@ -1,11 +1,15 @@
 import datetime
+from itertools import cycle
 import os
 import pickle
 from collections import namedtuple
-from typing import List
+from typing import List, Tuple
 
+import keras
 import numpy as np
-from src import networks, mcts, game
+
+from src.game import Board
+from src import networks, mcts
 from tensorflow.keras import models
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
@@ -18,7 +22,7 @@ class GameDataGenerator:
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
         self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 10)
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER")
-        self.nn_model = models.load_model(game_kwargs["NETWORK_MODEL"])
+        # self.nn_model = models.load_model(game_kwargs["NETWORK_MODEL"])
         self.mcts_kwargs = mcts_kwargs
         self.training_data_output = os.path.join("data", "training")
         os.makedirs(self.training_data_output, exist_ok=True)
@@ -26,7 +30,7 @@ class GameDataGenerator:
     def generate(self):
         memory = []
         np.random.seed(42)
-        env = game.Board.initialize()
+        env = Board.initialize()
 
         for game_id in range(self.num_games):
             print(f"Starting game {game_id + 1} of {self.num_games}")
@@ -39,9 +43,12 @@ class GameDataGenerator:
                 current_player_value = int(env.white_move) * 2 - 1
 
                 mcts_engine = mcts.Root(env, **self.mcts_kwargs)
+                # TODO add support for passing NN to generate value and policy data
                 best_node, best_move = mcts_engine.evaluate()
-                current_position, new_position = best_move
-                new_env = env.move(current_position, new_position)
+                print(best_node, best_move)
+                unit, selected_move = best_move
+                current_position = env.positions[unit]
+                new_env = env.move(current_position, selected_move)
 
                 q_value = mcts_engine.node.q * current_player_value
                 probability_planes = self._generate_probability_planes(mcts_engine)
@@ -160,4 +167,58 @@ class GameDataGenerator:
 
 
 class TournamentDataGenerator:
-    pass
+
+    def __init__(self, tournament_kwargs, mcts_kwargs):
+        """ Loads neural networks and sets up generator parameters. """
+        self.network_model_1 = models.load_model(tournament_kwargs["NETWORK_MODEL_1"])
+        self.network_model_2 = models.load_model(tournament_kwargs["NETWORK_MODEL_2"])
+        self.NUMBER_OF_GAMES = tournament_kwargs.get("TOURNAMENT_GAMES", 2)
+        self.mcts_kwargs = mcts_kwargs
+
+    def _get_player_networks(self) -> Tuple[keras.Model, keras.Model]:
+        while True:
+            yield (self.network_model_1, self.network_model_2), (1, 2)
+            yield (self.network_model_2, self.network_model_1), (2, 1)
+
+    def generate(self):
+        outcomes = []
+        for game_number in range(self.NUMBER_OF_GAMES):
+            (network_1, network_2), order = self._get_player_networks()
+            outcome, move_count = self._play_tournament_game(network_1, network_2)
+            outcomes.append((game_number, outcome, move_count, *order))
+        # self._save_results()
+
+    @staticmethod
+    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[int, int]:
+        get_network_model = cycle([network_1, network_2])
+
+        env = Board.initialize()
+        print("Starting new game.")
+
+        while not env.game_over:
+            current_network_model = next(get_network_model)
+
+            mcts_engine = mcts.Root(env)
+            # TODO add support for passing NN to generate value and policy data
+            best_node, best_move = mcts_engine.evaluate()
+            unit, selected_move = best_move
+            current_position = env.positions[unit]
+            env = env.move(current_position, selected_move)
+
+        _, outcome = env.find_outcome()
+        print(f"Game finished with result {outcome} after {env.move_count} moves.")
+
+        return outcome, env.move_count
+
+
+if __name__ == '__main__':
+    game_kwargs = {
+        "NUMBER_OF_GAMES": 1,
+        "TRAINING_ITERATION": 2,
+        "TERMINATE_COUNTER": 50,
+    }
+    mcts_kwargs = {
+        "MAX_EVALUATIONS": 10,
+    }
+    data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
+    data_generator.generate()

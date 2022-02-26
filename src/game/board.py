@@ -269,31 +269,24 @@ class BoardTensor(np.ndarray):
         STEP_BOARDS = 22
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
-        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2))
 
-        obj[:, :, -1] = board.white_move
-        obj[:, :, -2] = board.move_count
-
-        current_board = board
-        for step in range(8):
-            start = step * STEP_BOARDS
-            stop = (step + 1) * STEP_BOARDS
-            if current_board is None:
-                break
-            obj[:, :, start:stop] = BoardTensor.get_step_tensor(current_board, board.white_move)
-            current_board = current_board.previous_board
-        return obj.view(cls)
+        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2)).view(cls)
+        obj.current_board = board
+        return obj
 
     def __array_finalize__(self, obj):
         if obj is None:
             return
+        current_board = getattr(obj, "current_board", None)
+        if not current_board:
+            return
+
         STEP_BOARDS = 22
-        current_board = obj.current_board
         current_white = current_board.white_move
         for step in range(8):
             start = step * STEP_BOARDS
             stop = (step + 1) * STEP_BOARDS
-            if self.current_board is None:
+            if current_board is None:
                 self[:, :, start:stop] = self.get_empty_step_tensor()
             else:
                 self[:, :, start:stop] = self.get_step_tensor(current_board,
@@ -348,3 +341,9 @@ class BoardTensor(np.ndarray):
         array[8, 4] = 1
         array[7, 3] = 1
         return array
+
+
+if __name__ == '__main__':
+    board = Board.initialize()
+    tensor = board.to_tensor()
+    print(tensor.shape)

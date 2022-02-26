@@ -33,3 +33,8 @@ class Root:
         for child_node in self.node.child_nodes[1:]:
             best_node = best_node if best_node.value > child_node.value else child_node
         return best_node
+
+if __name__ == '__main__':
+    board = Board.initialize()
+    mcts_engine = Root(board)
+    best_node, best_move = mcts_engine.evaluate()
