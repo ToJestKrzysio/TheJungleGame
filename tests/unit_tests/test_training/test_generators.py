@@ -58,3 +58,25 @@ class TestGameDataGenerator:
             mock.call(mock.ANY, child_3),
         ]
         update_plane_mock.assert_has_calls(expected_calls)
+
+    def test_generate_empty_probability_planes(self):
+        result = src.training.generators.GameDataGenerator._generate_empty_probability_planes()
+
+        assert np.array_equal(result, np.zeros(shape=(8, 9, 7)))
+
+    @mock.patch(f"{PATH}.open")
+    @mock.patch(f"{PATH}.pickle.dump")
+    @mock.patch(f"{PATH}.datetime.datetime")
+    def test_save_memory_file(self, datetime_patch, pickle_patch, open_patch):
+        strftime_mock = mock.Mock()
+        strftime_mock.strftime.return_value = "24-02-2022_10:51:17"
+        datetime_patch.now.return_value = strftime_mock
+        generator_mock = mock.Mock(spec=src.training.generators.GameDataGenerator,
+                                   training_data_output="")
+        memory_mock = mock.Mock()
+
+        result = src.training.generators.GameDataGenerator._save_memory_file(generator_mock, memory_mock, 42)
+
+        assert result == "training_data_42_24-02-2022_10:51:17.pickle"
+        open_patch.assert_called_once_with("training_data_42_24-02-2022_10:51:17.pickle", "wb")
+        pickle_patch.assert_called_once_with(memory_mock, mock.ANY)
