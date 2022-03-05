@@ -12,6 +12,7 @@ forward_jump = Move(value=4, x=0, y=4, sign=1)
 backward_jump = Move(value=5, x=0, y=-4, sign=-1)
 left_jump = Move(value=6, x=-3, y=0, sign=-1)
 right_jump = Move(value=7, x=3, y=0, sign=1)
+invalid_move = Move(value=-1, x=0, y=0, sign=0)
 
 base_moves = (forward, backward, left, right)
 jump_moves = (forward_jump, backward_jump, left_jump, right_jump)

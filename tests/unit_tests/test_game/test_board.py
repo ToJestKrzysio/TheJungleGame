@@ -125,7 +125,7 @@ class TestBoard:
             (1, 1), (1, 0)
         )
         board_mock._is_position_valid.assest_called_once_with(game_board.Position(y=4, x=1))
-        assert result == (False, game_board.Position(y=-1, x=-1))
+        assert result == (False, moves.invalid_move)
 
     @pytest.mark.parametrize("position, move, new_position", [
         (
@@ -169,7 +169,7 @@ class TestBoard:
         board_mock._is_position_valid.assert_called_once_with(new_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (True, new_position)
+        assert result == (True, move)
 
     @pytest.mark.parametrize("position, move, next_position", [
         (
@@ -217,7 +217,7 @@ class TestBoard:
         board_mock._is_position_valid.assest_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (False, game_board.Position(y=-1, x=-1))
+        assert result == (False, moves.invalid_move)
 
     def test_find_move_position_can_capture_other_on_land(self):
         """
@@ -243,7 +243,7 @@ class TestBoard:
         board_mock._is_position_valid.assert_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
-        assert result == (True, next_position)
+        assert result == (True, move)
 
     @pytest.mark.parametrize("items, expected", [
         [(), 0],
@@ -292,7 +292,7 @@ class TestBoard:
     @pytest.mark.parametrize("move", [
         moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
     ])
-    def test_validate_jump_moves_all_cells_empty(self, new_position, move):
+    def test_validate_jump_moves_all_cells_empty(self, new_position: game_board.Position, move):
         empty_water_cell = MagicMock(water=True)
         empty_water_cell.__bool__.return_value = False
         board_mock = MagicMock()
@@ -305,31 +305,31 @@ class TestMove:
 
     @pytest.mark.parametrize("new_position, unit_position, moves", [
         (
-                moves.Move(0, 0, 0), (-1, -1),
+                moves.Move(0, 0, 0, 1), (-1, -1),
                 {
-                    moves.Move(0, 0, -1), moves.Move(0, -1, 0), moves.Move(0, -2, -1),
-                    moves.Move(0, -1, -2)
+                    moves.Move(0, 0, -1, 1), moves.Move(0, -1, 0, 1),
+                    moves.Move(0, -2, -1, 1), moves.Move(0, -1, -2, 1)
                 }
         ),
         (
-                moves.Move(0, -1, -1), (-1, -1),
+                moves.Move(0, -1, -1, 1), (-1, -1),
                 {
-                    moves.Move(0, 0, -1), moves.Move(0, -1, 0), moves.Move(0, -2, -1),
-                    moves.Move(0, -1, -2)
+                    moves.Move(0, 0, -1, 1), moves.Move(0, -1, 0, 1),
+                    moves.Move(0, -2, -1, 1), moves.Move(0, -1, -2, 1)
                 }
         ),
         (
-                moves.Move(0, 123, 98), (341, 0),
+                moves.Move(0, 123, 98, 1), (341, 0),
                 {
-                    moves.Move(0, 123, 99), moves.Move(0, 123, 97), moves.Move(0, 122, 98),
-                    moves.Move(0, 124, 98)
+                    moves.Move(0, 123, 99, 1), moves.Move(0, 123, 97, 1),
+                    moves.Move(0, 122, 98, 1), moves.Move(0, 124, 98, 1)
                 }
         ),
     ])
     def test__move__impossible_move(self, new_position, unit_position, moves):
         """
-        If new position is not a valid position for selected unit.
-        MoveNotPossibleError should be raised.
+        If new position is not a valid position for selected unit, MoveNotPossibleError should
+        be raised.
         """
         occupant_mock = Mock()
         board_state = MagicMock()
@@ -339,128 +339,267 @@ class TestMove:
         with pytest.raises(MoveNotPossibleError):
             game_board.Board.move(board_state, unit_position, new_position)
 
+    # @pytest.mark.parametrize("unit_position, new_position, move", [
+    #     [
+    #         game_board.Position(y=0, x=0),
+    #         game_board.Position(y=1, x=0),
+    #         moves.forward
+    #     ],
+    #     [
+    #         game_board.Position(y=0, x=0),
+    #         game_board.Position(y=0, x=1),
+    #         moves.right
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=0),
+    #         game_board.Position(y=0, x=0),
+    #         moves.backward
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=1),
+    #         game_board.Position(y=1, x=0),
+    #         moves.left
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=0),
+    #         game_board.Position(y=2, x=0),
+    #         moves.forward
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=0),
+    #         game_board.Position(y=2, x=1),
+    #         moves.right
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=0),
+    #         game_board.Position(y=1, x=0),
+    #         moves.backward
+    #     ],
+    #
+    #     [
+    #         game_board.Position(y=0, x=1),
+    #         game_board.Position(y=0, x=0),
+    #         moves.left
+    #     ],
+    #     [
+    #         game_board.Position(y=0, x=1),
+    #         game_board.Position(y=0, x=2),
+    #         moves.Move(value=0, y=0, x=1, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=0, x=1),
+    #         game_board.Position(y=1, x=1),
+    #         moves.Move(value=0, y=1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=1),
+    #         game_board.Position(y=0, x=1),
+    #         moves.Move(value=0, y=-1, x=0, sign=-1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=1),
+    #         game_board.Position(y=1, x=0),
+    #         moves.Move(value=0, y=0, x=-1, sign=-1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=1),
+    #         game_board.Position(y=1, x=2),
+    #         moves.Move(value=0, y=0, x=1, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=1),
+    #         game_board.Position(y=2, x=1),
+    #         moves.Move(value=0, y=1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=1),
+    #         game_board.Position(y=2, x=0),
+    #         moves.Move(value=0, y=0, x=-1, sign=-1)
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=1),
+    #         game_board.Position(y=1, x=1),
+    #         moves.Move(value=0, y=-1, x=0, sign=-1)
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=1),
+    #         game_board.Position(y=2, x=2),
+    #         moves.Move(value=0, y=0, x=1, sign=1)
+    #     ],
+    #
+    #     [
+    #         game_board.Position(y=0, x=2),
+    #         game_board.Position(y=0, x=1),
+    #         moves.Move(value=0, y=0, x=-1, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=0, x=2),
+    #         game_board.Position(y=1, x=2),
+    #         moves.Move(value=0, y=1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=2),
+    #         game_board.Position(y=0, x=2),
+    #         moves.Move(value=0, y=-1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=2),
+    #         game_board.Position(y=1, x=1),
+    #         moves.Move(value=0, y=0, x=-1, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=1, x=2),
+    #         game_board.Position(y=2, x=2),
+    #         moves.Move(value=0, y=1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=2),
+    #         game_board.Position(y=1, x=2),
+    #         moves.Move(value=0, y=-1, x=0, sign=1)
+    #     ],
+    #     [
+    #         game_board.Position(y=2, x=2),
+    #         game_board.Position(y=2, x=1),
+    #         moves.Move(value=0, y=0, x=-1, sign=1)
+    #     ],
+    # ])
     @pytest.mark.parametrize("unit_position, new_position, move", [
+        # starting position (y=0, x=0)
         [
             game_board.Position(y=0, x=0),
             game_board.Position(y=1, x=0),
-            moves.Move(value=0, y=1, x=0, sign=1)
+            moves.forward
         ],
         [
             game_board.Position(y=0, x=0),
             game_board.Position(y=0, x=1),
-            moves.Move(value=0, y=0, x=1, sign=1)
-        ],
-        [
-            game_board.Position(y=1, x=0),
-            game_board.Position(y=0, x=0),
-            moves.Move(value=0, y=-1, x=0, sign=-1)
-        ],
-        [
-            game_board.Position(y=1, x=0),
-            game_board.Position(y=1, x=1),
-            moves.Move(value=0, y=0, x=1, sign=1)
-        ],
-        [
-            game_board.Position(y=1, x=0),
-            game_board.Position(y=2, x=0),
-            moves.Move(value=0, y=1, x=0, sign=1)
-        ],
-        [
-            game_board.Position(y=2, x=0),
-            game_board.Position(y=2, x=1),
-            moves.Move(value=0, y=0, x=1, sign=1)
-        ],
-        [
-            game_board.Position(y=2, x=0),
-            game_board.Position(y=1, x=0),
-            moves.Move(value=0, y=-1, x=0, sign=-1)
+            moves.right
         ],
 
+        # starting position (y=0, x=1)
+        [
+            game_board.Position(y=0, x=1),
+            game_board.Position(y=1, x=1),
+            moves.forward
+        ],
         [
             game_board.Position(y=0, x=1),
             game_board.Position(y=0, x=0),
-            moves.Move(value=0, y=0, x=-1, sign=-1)
+            moves.left
         ],
         [
             game_board.Position(y=0, x=1),
             game_board.Position(y=0, x=2),
-            moves.Move(value=0, y=0, x=1, sign=1)
+            moves.right
+        ],
+
+        # starting position (y=0, x=2)
+        [
+            game_board.Position(y=0, x=2),
+            game_board.Position(y=1, x=2),
+            moves.forward
         ],
         [
+            game_board.Position(y=0, x=2),
             game_board.Position(y=0, x=1),
-            game_board.Position(y=1, x=1),
-            moves.Move(value=0, y=1, x=0, sign=1)
+            moves.left
         ],
+
+        # starting position (y=1, x=0)
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=0, x=0),
+            moves.backward
+        ],
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=2, x=0),
+            moves.forward
+        ],
+        [
+            game_board.Position(y=1, x=0),
+            game_board.Position(y=1, x=1),
+            moves.right
+        ],
+
+        # starting position (y=1, x=1)
         [
             game_board.Position(y=1, x=1),
             game_board.Position(y=0, x=1),
-            moves.Move(value=0, y=-1, x=0, sign=-1)
+            moves.backward
+        ],
+        [
+            game_board.Position(y=1, x=1),
+            game_board.Position(y=2, x=1),
+            moves.forward
         ],
         [
             game_board.Position(y=1, x=1),
             game_board.Position(y=1, x=0),
-            moves.Move(value=0, y=0, x=-1, sign=-1)
+            moves.left
         ],
         [
             game_board.Position(y=1, x=1),
             game_board.Position(y=1, x=2),
-            moves.Move(value=0, y=0, x=1, sign=1)
+            moves.right
+        ],
+
+        # starting position (y=1, x=2)
+        [
+            game_board.Position(y=1, x=2),
+            game_board.Position(y=0, x=2),
+            moves.backward
         ],
         [
+            game_board.Position(y=1, x=2),
+            game_board.Position(y=2, x=2),
+            moves.forward
+        ],
+        [
+            game_board.Position(y=1, x=2),
             game_board.Position(y=1, x=1),
+            moves.left
+        ],
+
+        # starting position (y=2, x=0)
+        [
+            game_board.Position(y=2, x=0),
+            game_board.Position(y=1, x=0),
+            moves.backward
+        ],
+        [
+            game_board.Position(y=2, x=0),
             game_board.Position(y=2, x=1),
-            moves.Move(value=0, y=1, x=0, sign=1)
+            moves.right
+        ],
+
+        # starting position (y=2, x=1)
+        [
+            game_board.Position(y=2, x=1),
+            game_board.Position(y=1, x=1),
+            moves.backward
         ],
         [
             game_board.Position(y=2, x=1),
             game_board.Position(y=2, x=0),
-            moves.Move(value=0, y=0, x=-1, sign=-1)
-        ],
-        [
-            game_board.Position(y=2, x=1),
-            game_board.Position(y=1, x=1),
-            moves.Move(value=0, y=-1, x=0, sign=-1)
+            moves.left
         ],
         [
             game_board.Position(y=2, x=1),
             game_board.Position(y=2, x=2),
-            moves.Move(value=0, y=0, x=1, sign=1)
+            moves.right
         ],
 
-        [
-            game_board.Position(y=0, x=2),
-            game_board.Position(y=0, x=1),
-            moves.Move(value=0, y=0, x=-1, sign=1)
-        ],
-        [
-            game_board.Position(y=0, x=2),
-            game_board.Position(y=1, x=2),
-            moves.Move(value=0, y=1, x=0, sign=1)
-        ],
-        [
-            game_board.Position(y=1, x=2),
-            game_board.Position(y=0, x=2),
-            moves.Move(value=0, y=-1, x=0, sign=1)
-        ],
-        [
-            game_board.Position(y=1, x=2),
-            game_board.Position(y=1, x=1),
-            moves.Move(value=0, y=0, x=-1, sign=1)
-        ],
-        [
-            game_board.Position(y=1, x=2),
-            game_board.Position(y=2, x=2),
-            moves.Move(value=0, y=1, x=0, sign=1)
-        ],
+        # starting position (y=2, x=2)
         [
             game_board.Position(y=2, x=2),
             game_board.Position(y=1, x=2),
-            moves.Move(value=0, y=-1, x=0, sign=1)
+            moves.backward
         ],
         [
             game_board.Position(y=2, x=2),
             game_board.Position(y=2, x=1),
-            moves.Move(value=0, y=0, x=-1, sign=1)
+            moves.left
         ],
     ])
     @pytest.mark.parametrize("unit", [
@@ -489,6 +628,8 @@ class TestMove:
         board_array[unit_position.y][unit_position.x] = Cell(unit)
         old_board = game_board.Board(board_array)
         old_board.white_move = unit.white
+        print(old_board.moves)
+        print(move)
 
         new_board = game_board.Board.move(old_board, unit_position, move)
 

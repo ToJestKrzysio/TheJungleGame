@@ -67,12 +67,13 @@ class Board(np.ndarray):
         return positions
 
     def get_moves_for_all_units(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
-        """ Collects moves every unit can make into a dictionary. """
+        """ Collects moves of all units and places them into a dictionary. """
         return {current_unit: self.get_single_unit_moves(position)
                 for current_unit, position in self.positions.items()}
 
     def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
-        """ Collects all_moves unit can make and returns only valid ones. """
+        """ Using base_moves determines valid ones and returns a set of valid moves for a unit. """
+        # TODO _find_move_position replaced by process_move -> should return move not position
         all_moves = [self._find_move_position(position, move) for move in unit_moves.base_moves]
         return {position for is_valid, position in all_moves if is_valid}
 
@@ -86,9 +87,9 @@ class Board(np.ndarray):
         return Position(y=position.y + move.y, x=position.x + move.x)
 
     def _find_move_position(self, position: Position, move: unit_moves.Move
-                            ) -> Tuple[bool, Position]:
+                            ) -> Tuple[bool, unit_moves.Move]:
         """ Checks if move in the given direction is valid. """
-        INVALID_POSITION = (False, Position(-1, -1))
+        INVALID_POSITION = (False, unit_moves.invalid_move)
         old_cell = self[position]
         new_position = self._get_new_position(position, move)
 
@@ -97,14 +98,14 @@ class Board(np.ndarray):
 
         new_cell = self[new_position.y, new_position.x]
         if new_cell.water and old_cell.occupant.jumps:
-            jump_move = unit_moves.get_jump_move(move)
-            if not self.validate_jump_move(new_position, jump_move):
+            move = unit_moves.get_jump_move(move)
+            if not self.validate_jump_move(new_position, move):
                 return INVALID_POSITION
-            new_position = self._get_new_position(position, jump_move)
+            new_position = self._get_new_position(position, move)
             new_cell = self[new_position[0], new_position[1]]
 
         if old_cell.can_capture(new_cell):
-            return True, new_position
+            return True, move
 
         return INVALID_POSITION
 
@@ -177,11 +178,22 @@ class Board(np.ndarray):
         :param selected_move: Position to move unit to, tuple (x_position, y_position).
 
         :return: New instance of the board with unit moved to new position.
+
+        board = [
+            [Cell(Unit1), Cell(Empty)],
+            [Cell(Empty), Cell(Empty)]
+        ]
+        board.move(Position(y=0, x=0), Move(y=0, x=1))
+        board = [
+            [Cell(Empty), Cell(Unit1)],
+            [Cell(Empty), Cell(Empty)]
+        ]
         """
         new_position = self._get_new_position(unit_position, selected_move)
-        if new_position not in self.moves[self[unit_position].occupant]:
+        selected_unit = self[unit_position].occupant
+        if selected_move not in self.moves[selected_unit]:
             raise exceptions.MoveNotPossibleError("Selected move is not valid.")
-        if self[unit_position].occupant.white is not self.white_move:
+        if selected_unit.white != self.white_move:
             raise exceptions.MoveNotPossibleError(
                 "Wrong piece selected, it's {} player turn.".format(
                     "white" if self.white_move else "black"
