@@ -73,8 +73,11 @@ class Board(np.ndarray):
 
     def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
         """ Using base_moves determines valid ones and returns a set of valid moves for a unit. """
+        unit = self[position].occupant
+        # TODO undo changes
         all_moves = [self._process_move(position, move) for move in unit_moves.base_moves]
-        return {position for is_valid, position in all_moves if is_valid}
+        valid_moves = {position for is_valid, position in all_moves if is_valid}
+        return valid_moves
 
     def _is_position_valid(self, position: Position) -> bool:
         """ Checks if position is inside the board space. """
@@ -219,7 +222,6 @@ class Board(np.ndarray):
         new_board[unit_position].occupant = unit.EMPTY
 
         new_board.positions[moved_unit] = new_position
-        #TODO validate why this returns incorrect moves for elephant
         new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
 
         current_player_moves, next_player_moves = self.last_moves.copy()

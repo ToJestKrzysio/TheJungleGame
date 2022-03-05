@@ -26,7 +26,7 @@ class BasePolicy(Policy):
 
     def __call__(self, node: "mcts_node.Node"):
         if not node.visits:
-            node.get_value()
+            node.value = node.get_value()
             node.expand_node()
         else:
             best_child_node = self.select_child(node)
@@ -51,6 +51,7 @@ class NetworkPolicy(Policy):
     C = 1.5
 
     def __call__(self, node: "mcts_node.Node"):
+        t = 1
         if not node.visits:
             node.get_value()
             node.expand_node()

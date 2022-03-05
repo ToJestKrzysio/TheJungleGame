@@ -158,9 +158,9 @@ class GameDataGenerator:
         unit, move = child.move
         visits = child.visits
         plane = move.value
-        current_y, current_x = child.board.positions[unit]
-        y = current_y + move.y
-        x = current_x + move.x
+        y, x = child.board.positions[unit]
+        # y = current_y + move.y
+        # x = current_x + move.x
         planes[plane, y, x] = visits
         return planes
 
