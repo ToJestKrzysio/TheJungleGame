@@ -62,7 +62,7 @@ class TestBoard:
     ])
     def test_get_single_unit_moves(self, position: game_board.Position):
         board_mock = Mock()
-        board_mock._find_move_position.return_value = (True, game_board.Position(y=1, x=1))
+        board_mock._process_move.return_value = (True, moves.invalid_move)
 
         result = game_board.Board.get_single_unit_moves(board_mock, position)
 
@@ -109,7 +109,7 @@ class TestBoard:
         result = game_board.Board._get_new_position(position, move)
         assert result == expected
 
-    def test_find_move_position_invalid_position(self):
+    def test_process_move_invalid_position(self):
         move = moves.Move(value=0, y=1, x=0, sign=1)
         position = game_board.Position(y=3, x=1)
         board_mock = MagicMock(spec=game_board.Board)
@@ -119,7 +119,7 @@ class TestBoard:
         board_mock._get_new_position.side_effect = (game_board.Position(y=4, x=1),)
         board_mock._is_position_valid.return_value = False
 
-        result = game_board.Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._process_move(board_mock, position, move)
 
         board_mock._get_new_position.assest_called_once_with(
             (1, 1), (1, 0)
@@ -145,7 +145,7 @@ class TestBoard:
                 moves.Move(value=0, y=0, x=-1, sign=1),
                 game_board.Position(y=2, x=1)),
     ])
-    def test_find_move_position_jumps_no_water(
+    def test_process_move_jumps_no_water(
             self,
             position,
             move,
@@ -161,7 +161,7 @@ class TestBoard:
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
         board_mock._get_new_position.return_value = new_position
 
-        result = game_board.Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._process_move(board_mock, position, move)
 
         board_mock._get_new_position.assert_called_once_with(
             position, move
@@ -193,7 +193,7 @@ class TestBoard:
                 game_board.Position(y=6, x=5)
         ),
     ])
-    def test_find_move_position_cant_jump_over_water(
+    def test_process_move_cant_jump_over_water(
             self,
             position,
             move,
@@ -210,7 +210,7 @@ class TestBoard:
         board_mock._get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
-        result = game_board.Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._process_move(board_mock, position, move)
 
         board_mock._get_new_position.assert_called_once_with(position,
                                                              move)
@@ -219,7 +219,7 @@ class TestBoard:
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (False, moves.invalid_move)
 
-    def test_find_move_position_can_capture_other_on_land(self):
+    def test_process_move_can_capture_other_on_land(self):
         """
         Tests if given unit can capture other one occupying land cell.
         """
@@ -237,7 +237,7 @@ class TestBoard:
         board_mock._get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
-        result = game_board.Board._find_move_position(board_mock, position, move)
+        result = game_board.Board._process_move(board_mock, position, move)
 
         board_mock._get_new_position.assert_called_once_with(position, move)
         board_mock._is_position_valid.assert_called_once_with(next_position)

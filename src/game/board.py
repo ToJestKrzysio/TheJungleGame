@@ -73,8 +73,7 @@ class Board(np.ndarray):
 
     def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
         """ Using base_moves determines valid ones and returns a set of valid moves for a unit. """
-        # TODO _find_move_position replaced by process_move -> should return move not position
-        all_moves = [self._find_move_position(position, move) for move in unit_moves.base_moves]
+        all_moves = [self._process_move(position, move) for move in unit_moves.base_moves]
         return {position for is_valid, position in all_moves if is_valid}
 
     def _is_position_valid(self, position: Position) -> bool:
@@ -86,9 +85,12 @@ class Board(np.ndarray):
         """ Returns new position as a tuple. """
         return Position(y=position.y + move.y, x=position.x + move.x)
 
-    def _find_move_position(self, position: Position, move: unit_moves.Move
-                            ) -> Tuple[bool, unit_moves.Move]:
-        """ Checks if move in the given direction is valid. """
+    def _process_move(self, position: Position, move: unit_moves.Move
+                      ) -> Tuple[bool, unit_moves.Move]:
+        """
+        Checks if move in the given direction is valid.
+        In case move is invalid and animal can jump, checks also a jump move.
+        """
         INVALID_POSITION = (False, unit_moves.invalid_move)
         old_cell = self[position]
         new_position = self._get_new_position(position, move)
@@ -217,9 +219,8 @@ class Board(np.ndarray):
         new_board[unit_position].occupant = unit.EMPTY
 
         new_board.positions[moved_unit] = new_position
-
-        new_board.moves[moved_unit] = new_board.get_single_unit_moves(
-            new_position)
+        #TODO validate why this returns incorrect moves for elephant
+        new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
 
         current_player_moves, next_player_moves = self.last_moves.copy()
         current_player_moves.pop(0)

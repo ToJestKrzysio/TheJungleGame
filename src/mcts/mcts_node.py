@@ -54,10 +54,7 @@ class Node(object):
             for move in unit_moves:
                 current_position = self.board.positions[unit]
 
-                try:
-                    new_board = self.board.move(unit_position=current_position, selected_move=move)
-                except Exception:
-                    t = 2
+                new_board = self.board.move(unit_position=current_position, selected_move=move)
                 new_node = Node(board=new_board, parent=self, move=(unit, move))
                 self.child_nodes.append(new_node)
 

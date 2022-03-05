@@ -45,7 +45,6 @@ class GameDataGenerator:
                 mcts_engine = mcts.Root(env, **self.mcts_kwargs)
                 # TODO add support for passing NN to generate value and policy data
                 best_node, best_move = mcts_engine.evaluate()
-                print(best_node, best_move)
                 unit, selected_move = best_move
                 current_position = env.positions[unit]
                 new_env = env.move(current_position, selected_move)
@@ -136,7 +135,7 @@ class GameDataGenerator:
 
         :return: Probability planes represented as ndarray.
         """
-        planes = GameDataGenerator._generate_empty_probability_planes
+        planes = GameDataGenerator._generate_empty_probability_planes()
         children = mcts.node.child_nodes
         for child in children:
             planes = GameDataGenerator._update_plane_for_child(planes, child)
