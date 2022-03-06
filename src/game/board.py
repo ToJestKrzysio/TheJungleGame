@@ -401,6 +401,15 @@ class BoardMove:
             player, piece = ("white", "black") if self.board.white_move else ("black", "white")
             raise MoveNotPossibleError(f"Selected {piece} piece during {player} player's turn.")
 
+    def copy_board(self, unit_position: Position, new_position: Position) -> Board:
+        new_board = copy.copy(self.board)
+        new_board[unit_position] = copy.copy(new_board[unit_position])
+        new_board[new_position] = copy.copy(new_board[new_position])
+        moved_unit = new_board[unit_position].occupant
+        captured_unit = new_board[new_position].occupant
+
+        new_board.positions = self.board.positions.copy()
+        new_board.moves = self.board.moves.copy()
 
 if __name__ == '__main__':
     board = Board.initialize()
