@@ -30,11 +30,12 @@ class GameDataGenerator:
     def generate(self):
         memory = []
         np.random.seed(42)
-        env = Board.initialize()
+
 
         for game_id in range(self.num_games):
             print(f"Starting game {game_id + 1} of {self.num_games}")
 
+            env = Board.initialize()
             incomplete_experiences = []
             game_over = env.game_over
             outcome = None
@@ -73,6 +74,7 @@ class GameDataGenerator:
                     incomplete_experiences.append(new_incomplete_experience)
                     _, outcome = new_env.find_outcome()
                 else:
+                    game_over = new_env.game_over
                     env = new_env
 
             if not outcome:

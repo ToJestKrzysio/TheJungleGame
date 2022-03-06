@@ -45,8 +45,8 @@ class Board(np.ndarray):
         self.moves = self.get_moves_for_all_units()
         self.previous_board = None
         self.last_moves = [
-            [None] * (type(self).MAX_REPETITIONS - 1),
-            [None] * (type(self).MAX_REPETITIONS - 1),
+            [None] * (type(self).MAX_REPETITIONS * 2 - 1),
+            [None] * (type(self).MAX_REPETITIONS * 2 - 1),
         ]
         self.white_move = True
         self.move_count = 0
@@ -73,11 +73,8 @@ class Board(np.ndarray):
 
     def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
         """ Using base_moves determines valid ones and returns a set of valid moves for a unit. """
-        unit = self[position].occupant
-        # TODO undo changes
         all_moves = [self._process_move(position, move) for move in unit_moves.base_moves]
-        valid_moves = {position for is_valid, position in all_moves if is_valid}
-        return valid_moves
+        return {position for is_valid, position in all_moves if is_valid}
 
     def _is_position_valid(self, position: Position) -> bool:
         """ Checks if position is inside the board space. """
@@ -138,9 +135,7 @@ class Board(np.ndarray):
 
     @staticmethod
     def _get_repetition(moves: List) -> int:
-        """
-        Calculates maximum number of repetitions within the given list of moves.
-        """
+        """ Calculates maximum number of repetitions within the given list of moves. """
         counter = collections.Counter(moves)
         del counter[None]
         most_common = counter.most_common(1)
@@ -223,8 +218,9 @@ class Board(np.ndarray):
 
         new_board.positions[moved_unit] = new_position
         new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
+        # TODO update moves for neighbour cells also
 
-        current_player_moves, next_player_moves = self.last_moves.copy()
+        current_player_moves, next_player_moves = copy.deepcopy(self.last_moves)
         current_player_moves.pop(0)
         current_player_moves.append((unit_position, new_position))
         new_board.last_moves = [next_player_moves, current_player_moves]
@@ -251,7 +247,7 @@ class Board(np.ndarray):
     @staticmethod
     def no_valid_moves(moves: Iterable) -> bool:
         """ Returns True if given collection of moves contains no valid moves else False. """
-        return any(bool(move) for move in moves)
+        return not any(bool(move) for move in moves)
 
     def find_outcome(self) -> Tuple[bool, int]:
         """
