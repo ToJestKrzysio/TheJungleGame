@@ -4,11 +4,18 @@ import pytest
 import numpy as np
 
 from src.game import moves
-from src.game.board import Board, Position
+from src.game.board import Position, Board, BoardMove
 from src.game.cell import Cell
 from src.game.exceptions import MoveNotPossibleError
 from src.game.unit import Empty, Tiger
 from src.game.unit import *
+
+WHITE_UNITS = [WHITE_DEN, WHITE_MOUSE, WHITE_CAT, WHITE_DOG, WHITE_WOLF, WHITE_LEOPARD,
+               WHITE_TIGER, WHITE_LION, WHITE_ELEPHANT]
+BLACK_UNITS = [BLACK_DEN, BLACK_MOUSE, BLACK_CAT, BLACK_DOG, BLACK_WOLF, BLACK_LEOPARD,
+               BLACK_TIGER, BLACK_LION, BLACK_ELEPHANT, ]
+ALL_UNITS = [*WHITE_UNITS, *BLACK_UNITS]
+ALL_MOVES = {*moves.base_moves, *moves.jump_moves}
 
 
 class TestBoard:
@@ -22,10 +29,7 @@ class TestBoard:
         assert not board.positions
 
     @pytest.mark.parametrize("position", [(9, 7), (2, 3), (0, 0)])
-    @pytest.mark.parametrize("unit", [
-        unit(white) for unit in Unit.__subclasses__()
-        for white in (True, False) if not issubclass(unit, Empty)
-    ])
+    @pytest.mark.parametrize("unit", ALL_UNITS)
     def test_get_positions(self, empty_cells_array, position, unit):
         empty_cells_array[position].occupant = unit
         board = Board(empty_cells_array)
@@ -104,7 +108,7 @@ class TestBoard:
         )
     ])
     def test_get_new_position(self, position, move, expected):
-        result = Board._get_new_position(position, move)
+        result = Board.get_new_position(position, move)
         assert result == expected
 
     def test_process_move_invalid_position(self):
@@ -114,12 +118,12 @@ class TestBoard:
         board_mock.__getitem__.side_effect = [
             Mock(water=False, occupant=Tiger(False)),
         ]
-        board_mock._get_new_position.side_effect = (Position(y=4, x=1),)
+        board_mock.get_new_position.side_effect = (Position(y=4, x=1),)
         board_mock._is_position_valid.return_value = False
 
         result = Board._process_move(board_mock, position, move)
 
-        board_mock._get_new_position.assest_called_once_with(
+        board_mock.get_new_position.assest_called_once_with(
             (1, 1), (1, 0)
         )
         board_mock._is_position_valid.assest_called_once_with(Position(y=4, x=1))
@@ -143,12 +147,7 @@ class TestBoard:
                 moves.Move(value=0, y=0, x=-1, sign=1),
                 Position(y=2, x=1)),
     ])
-    def test_process_move_jumps_no_water(
-            self,
-            position,
-            move,
-            new_position
-    ):
+    def test_process_move_jumps_no_water(self, position, move, new_position):
         old_cell = Mock(
             water=False,
             occupant=Mock(jumps=True),
@@ -157,11 +156,11 @@ class TestBoard:
         new_cell = Mock(water=False)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position.return_value = new_position
+        board_mock.get_new_position.return_value = new_position
 
         result = Board._process_move(board_mock, position, move)
 
-        board_mock._get_new_position.assert_called_once_with(
+        board_mock.get_new_position.assert_called_once_with(
             position, move
         ),
         board_mock._is_position_valid.assert_called_once_with(new_position)
@@ -191,12 +190,7 @@ class TestBoard:
                 Position(y=6, x=5)
         ),
     ])
-    def test_process_move_cant_jump_over_water(
-            self,
-            position,
-            move,
-            next_position
-    ):
+    def test_process_move_cant_jump_over_water(self, position, move, next_position):
         old_cell = Mock(
             water=False,
             occupant=Mock(jumps=False),
@@ -205,13 +199,13 @@ class TestBoard:
         new_cell = Mock(water=True)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position.return_value = next_position
+        board_mock.get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
         result = Board._process_move(board_mock, position, move)
 
-        board_mock._get_new_position.assert_called_once_with(position,
-                                                             move)
+        board_mock.get_new_position.assert_called_once_with(position,
+                                                            move)
         board_mock._is_position_valid.assest_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
@@ -232,12 +226,12 @@ class TestBoard:
         new_cell = Mock(water=False)
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
-        board_mock._get_new_position.return_value = next_position
+        board_mock.get_new_position.return_value = next_position
         board_mock._is_position_valid.return_value = True
 
         result = Board._process_move(board_mock, position, move)
 
-        board_mock._get_new_position.assert_called_once_with(position, move)
+        board_mock.get_new_position.assert_called_once_with(position, move)
         board_mock._is_position_valid.assert_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
@@ -334,7 +328,7 @@ class TestMove:
         board_state.__getitem__.return_value = Mock(occupant=occupant_mock)
         board_state.moves = {occupant_mock: moves}
 
-        with pytest.raises(MoveNotPossibleError):
+        with pytest.raises(Exception, match="Selected move is not valid."):
             Board.move(board_state, unit_position, new_position)
 
     @pytest.mark.parametrize("unit_position, new_position, move", [
@@ -527,3 +521,80 @@ class TestMove:
     def test_no_valid_moves(self, moves, expected):
         result = Board.no_valid_moves(moves=moves)
         assert result == expected
+
+
+class TestBoardMove:
+
+    def test__call__(self):
+        selected_unit_mock = Mock()
+        cell_mock = Mock(occupant=selected_unit_mock)
+
+        board_mock = MagicMock()
+        board_mock.get_new_position = Mock(return_value=None)
+        board_mock.__getitem__.return_value = cell_mock
+
+        board_move_mock = Mock(board=board_mock)
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.validate_move.assert_called_once_with(
+            selected_unit=selected_unit_mock, selected_move=selected_move)
+        board_move_mock.validate_player_piece.assert_called_once_with(
+            selected_unit=selected_unit_mock)
+
+    @pytest.mark.parametrize("selected_move", ALL_MOVES)
+    @pytest.mark.parametrize("selected_unit", ALL_UNITS)
+    def test_validate_move_selected_invalid_move(self, selected_unit, selected_move):
+        board_mock = Mock()
+        other_moves = ALL_MOVES.copy()
+        other_moves.remove(selected_move)
+        board_mock.moves = {selected_unit: other_moves}
+        board_move_mock = Mock(board=board_mock)
+
+        with pytest.raises(Exception, match="Selected move is not valid."):
+            BoardMove.validate_move(board_move_mock, selected_unit, selected_move)
+
+    @pytest.mark.parametrize("selected_move", ALL_MOVES)
+    @pytest.mark.parametrize("selected_unit", ALL_UNITS)
+    def test_validate_move_selected_valid(self, selected_unit, selected_move):
+        board_mock = Mock()
+        board_mock.moves = {selected_unit: ALL_MOVES}
+        board_move_mock = Mock(board=board_mock)
+
+        BoardMove.validate_move(board_move_mock, selected_unit, selected_move)
+
+    @pytest.mark.parametrize("selected_unit", BLACK_UNITS)
+    def test_validate_player_piece_white_turn_selected_black_piece(self, selected_unit):
+        board_mock = Mock()
+        board_mock.white_move = True
+        board_move_mock = Mock(board=board_mock)
+
+        with pytest.raises(Exception, match="Selected black piece during white player's turn."):
+            BoardMove.validate_player_piece(board_move_mock, selected_unit)
+
+    @pytest.mark.parametrize("selected_unit", WHITE_UNITS)
+    def test_validate_player_piece_white_turn_selected_white_piece(self, selected_unit):
+        board_mock = Mock()
+        board_mock.white_move = True
+        board_move_mock = Mock(board=board_mock)
+
+        BoardMove.validate_player_piece(board_move_mock, selected_unit)
+
+    @pytest.mark.parametrize("selected_unit", WHITE_UNITS)
+    def test_validate_player_piece_black_turn_selected_white_piece(self, selected_unit):
+        board_mock = Mock()
+        board_mock.white_move = False
+        board_move_mock = Mock(board=board_mock)
+
+        with pytest.raises(Exception, match="Selected white piece during black player's turn."):
+            BoardMove.validate_player_piece(board_move_mock, selected_unit)
+
+    @pytest.mark.parametrize("selected_unit", BLACK_UNITS)
+    def test_validate_player_piece_black_turn_selected_black_piece(self, selected_unit):
+        board_mock = Mock()
+        board_mock.white_move = False
+        board_move_mock = Mock(board=board_mock)
+
+        BoardMove.validate_player_piece(board_move_mock, selected_unit)

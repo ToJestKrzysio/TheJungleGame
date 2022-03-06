@@ -3,13 +3,14 @@ from __future__ import annotations
 import collections
 import copy
 import itertools
+from typing import Dict, List, Set, Tuple, Iterable
 
 import numpy as np
 
-from src.game import cell, exceptions, unit
+from game.exceptions import MoveNotPossibleError
+from src.game import cell, unit
 from src.game import moves as unit_moves
 
-from typing import Dict, List, Set, Tuple, Iterable
 
 Position = collections.namedtuple("Position", ["y", "x"])
 
@@ -81,7 +82,7 @@ class Board(np.ndarray):
         return position.y in range(self.shape[0]) and position.x in range(self.shape[1])
 
     @staticmethod
-    def _get_new_position(position: Position, move: unit_moves.Move) -> Position:
+    def get_new_position(position: Position, move: unit_moves.Move) -> Position:
         """ Returns new position as a tuple. """
         return Position(y=position.y + move.y, x=position.x + move.x)
 
@@ -93,7 +94,7 @@ class Board(np.ndarray):
         """
         INVALID_POSITION = (False, unit_moves.invalid_move)
         old_cell = self[position]
-        new_position = self._get_new_position(position, move)
+        new_position = self.get_new_position(position, move)
 
         if not self._is_position_valid(new_position):
             return INVALID_POSITION
@@ -103,7 +104,7 @@ class Board(np.ndarray):
             move = unit_moves.get_jump_move(move)
             if not self.validate_jump_move(new_position, move):
                 return INVALID_POSITION
-            new_position = self._get_new_position(position, move)
+            new_position = self.get_new_position(position, move)
             new_cell = self[new_position[0], new_position[1]]
 
         if old_cell.can_capture(new_cell):
@@ -170,6 +171,7 @@ class Board(np.ndarray):
         ]
         return Board(cells)
 
+    # TODO move -  refactor into separate class and attach it to this class method
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
         """
         Creates new instance of a board and moves selected unit to new location on that board.
@@ -189,17 +191,20 @@ class Board(np.ndarray):
             [Cell(Empty), Cell(Empty)]
         ]
         """
-        new_position = self._get_new_position(unit_position, selected_move)
+        new_position = self.get_new_position(unit_position, selected_move)
         selected_unit = self[unit_position].occupant
+
+        # TODO move -  refactor into two individual procedures
         if selected_move not in self.moves[selected_unit]:
-            raise exceptions.MoveNotPossibleError("Selected move is not valid.")
+            raise MoveNotPossibleError("Selected move is not valid.")
         if selected_unit.white != self.white_move:
-            raise exceptions.MoveNotPossibleError(
+            raise MoveNotPossibleError(
                 "Wrong piece selected, it's {} player turn.".format(
                     "white" if self.white_move else "black"
                 )
             )
 
+        # TODO move -  refactor into ex. 'copy_board' method
         new_board = copy.copy(self)
         new_board[unit_position] = copy.copy(new_board[unit_position])
         new_board[new_position] = copy.copy(new_board[new_position])
@@ -209,22 +214,27 @@ class Board(np.ndarray):
         new_board.positions = self.positions.copy()
         new_board.moves = self.moves.copy()
 
+        # TODO move -  refactor into ex 'capture_unit' method
         if new_board[new_position]:
             del new_board.positions[captured_unit]
             del new_board.moves[captured_unit]
 
+        # TODO move -  refactor into move unit method
         new_board[new_position].occupant = moved_unit
         new_board[unit_position].occupant = unit.EMPTY
 
         new_board.positions[moved_unit] = new_position
         new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
-        # TODO update moves for neighbour cells also
+        # TODO move -  get neighbours
+        # TODO move -  update moves for neighbour cells also
 
+        # TODO move - Refactor into update moves method
         current_player_moves, next_player_moves = copy.deepcopy(self.last_moves)
         current_player_moves.pop(0)
         current_player_moves.append((unit_position, new_position))
         new_board.last_moves = [next_player_moves, current_player_moves]
 
+        # TODO move - refactor to ex. 'finalize_board' method
         new_board.white_move = not self.white_move
         new_board.move_count = self.move_count + 1
         new_board.previous_board = self
@@ -353,6 +363,43 @@ class BoardTensor(np.ndarray):
         array[8, 4] = 1
         array[7, 3] = 1
         return array
+
+
+class BoardMove:
+
+    def __init__(self, board: Board):
+        self.board = board
+
+    def __call__(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+        """
+        Executes move for a selected unit by executing following steps.
+
+        1. Validates if selected move is valid.
+        """
+        new_position = self.board.get_new_position(unit_position, selected_move)
+        selected_unit = self.board[unit_position].occupant
+
+        self.validate_move(selected_unit=selected_unit, selected_move=selected_move)
+        self.validate_player_piece(selected_unit=selected_unit)
+
+        return self.board  # TODO - fix returned value
+
+    def validate_move(self, selected_unit: unit.Unit, selected_move: unit_moves.Move) -> None:
+        """ Raises MoveNotPossibleError in case selected unit cannot execute selected move. """
+        unit_moves = self.board.moves[selected_unit]
+        if selected_move not in unit_moves:
+            unit_moves_str = "\n".join(f"\t{unit_move}" for unit_move in unit_moves)
+            raise MoveNotPossibleError(
+                f"Selected move is not valid.\n"
+                f"Selected {selected_move} for unit '{selected_unit}' with moves:\n"
+                f"{unit_moves_str}"
+            )
+
+    def validate_player_piece(self, selected_unit: unit.Unit) -> None:
+        """ Raises MoveNotPossibleError in case selected unit cannot move during current turn. """
+        if selected_unit.white != self.board.white_move:
+            player, piece = ("white", "black") if self.board.white_move else ("black", "white")
+            raise MoveNotPossibleError(f"Selected {piece} piece during {player} player's turn.")
 
 
 if __name__ == '__main__':

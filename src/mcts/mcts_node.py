@@ -48,18 +48,15 @@ class Node(object):
     def get_value(self) -> float:
         """ Calculates value for the current node. """
         self.value = self.value_strategy(self)
-        return self.value_strategy(self)
+        return self.value
 
     def expand_node(self) -> None:
         """ Generate nodes for each of possible moves. """
         valid_moves = {unit: unit_moves for unit, unit_moves in self.board.moves.items()
                        if unit.white is self.board.white_move}
-        i = 0
         for unit, unit_moves in valid_moves.items():
             for move in unit_moves:
                 current_position = self.board.positions[unit]
-                np = (current_position.y + move.y, current_position.x + move.x)  # TODO REMOVE
-                i += 1
                 new_board = self.board.move(unit_position=current_position, selected_move=move)
                 new_node = Node(board=new_board, parent=self, move=(unit, move))
                 self.child_nodes.append(new_node)

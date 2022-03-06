@@ -44,7 +44,7 @@ class TestRoot:
 
     @pytest.mark.parametrize("value, index", [
         [(1, 2, 3, 4), 3],
-        [(0, 0, 0, 0), 3],
+        [(0, 0, 0, 0), 0],
         [(7, 3, 9, 2), 2],
         [(91, 0, 3, -2), 0],
     ])

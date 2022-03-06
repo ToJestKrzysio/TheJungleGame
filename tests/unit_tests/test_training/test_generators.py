@@ -1,4 +1,3 @@
-from pprint import pprint
 from unittest import mock
 
 import numpy as np
@@ -28,15 +27,15 @@ class TestGameDataGenerator:
         expected = planes.copy()
 
         unit_mock = mock.Mock()
-        positions = {unit_mock: src.game.board.Position(x=in_x, y=in_y)}
+        positions = {unit_mock: src.game.board.Position(x=out_x, y=out_y)}
         board_mock = mock.Mock(positions=positions)
         child_mock = mock.Mock()
         child_mock.move = (unit_mock, move)
         child_mock.board = board_mock
         child_mock.visits = visits
 
-        result = src.training.generators.GameDataGenerator._update_plane_for_child(planes,
-                                                                                   child_mock)
+        result = src.training.generators.GameDataGenerator._update_plane_for_child(
+            planes, child_mock)
 
         expected[move.value, out_y, out_x] = visits
         assert np.array_equal(result, expected)
@@ -75,7 +74,8 @@ class TestGameDataGenerator:
                                    training_data_output="")
         memory_mock = mock.Mock()
 
-        result = src.training.generators.GameDataGenerator._save_memory_file(generator_mock, memory_mock, 42)
+        result = src.training.generators.GameDataGenerator._save_memory_file(generator_mock,
+                                                                             memory_mock, 42)
 
         assert result == "training_data_42_24-02-2022_10:51:17.pickle"
         open_patch.assert_called_once_with("training_data_42_24-02-2022_10:51:17.pickle", "wb")
