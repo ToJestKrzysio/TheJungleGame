@@ -233,6 +233,7 @@ class Board(np.ndarray):
         new_board.move_count = self.move_count + 1
         new_board.previous_board = self
 
+        new_board.find_outcome()
         return new_board
 
     @property

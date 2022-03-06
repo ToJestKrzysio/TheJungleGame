@@ -38,6 +38,7 @@ class GameDataGenerator:
             incomplete_experiences = []
             game_over = env.game_over
             outcome = None
+            cycles = 0  # TODO remove cycles
             while not game_over:
                 current_game_state = env.to_tensor()
                 current_player_value = int(env.white_move) * 2 - 1
@@ -58,6 +59,7 @@ class GameDataGenerator:
                 )
                 incomplete_experiences.append(incomplete_experience)
 
+                cycles += 1  # TODO remove cycles
                 if not new_env.game_over and new_env.move_count >= self.terminate_count:
                     game_over = True
                     new_game_state = new_env.to_tensor()
@@ -70,6 +72,8 @@ class GameDataGenerator:
                     )
                     incomplete_experiences.append(new_incomplete_experience)
                     _, outcome = new_env.find_outcome()
+                else:
+                    env = new_env
 
             if not outcome:
                 _, outcome = env.find_outcome()
@@ -77,7 +81,7 @@ class GameDataGenerator:
             memory.extend(experiences)
             print(f"Game finished with result {outcome} after {env.move_count} moves.")
 
-            return self._save_memory_file(memory, self.training_iteration)
+        return self._save_memory_file(memory, self.training_iteration)
 
     def _save_memory_file(self, memory,
                           training_iteration: int) -> str:
@@ -159,8 +163,6 @@ class GameDataGenerator:
         visits = child.visits
         plane = move.value
         y, x = child.board.positions[unit]
-        # y = current_y + move.y
-        # x = current_x + move.x
         planes[plane, y, x] = visits
         return planes
 
@@ -212,12 +214,12 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 1,
-        "TRAINING_ITERATION": 2,
-        "TERMINATE_COUNTER": 50,
+        "NUMBER_OF_GAMES": 3,
+        "TRAINING_ITERATION": 5,
+        "TERMINATE_COUNTER": 10,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 10,
+        "MAX_EVALUATIONS": 5,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()
