@@ -525,7 +525,7 @@ class TestMove:
 
 class TestBoardMove:
 
-    def test__call__(self):
+    def test__call__validation(self):
         selected_unit_mock = Mock()
         cell_mock = Mock(occupant=selected_unit_mock)
 
@@ -543,6 +543,21 @@ class TestBoardMove:
             selected_unit=selected_unit_mock, selected_move=selected_move)
         board_move_mock.validate_player_piece.assert_called_once_with(
             selected_unit=selected_unit_mock)
+
+    def test__call__copying(self):
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position = Mock(return_value=new_position_mock)
+
+        board_move_mock = Mock(board=board_mock)
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.copy_board.assert_called_once_with(
+            unit_position=unit_position, new_position=new_position_mock
+        )
 
     @pytest.mark.parametrize("selected_move", ALL_MOVES)
     @pytest.mark.parametrize("selected_unit", ALL_UNITS)
@@ -598,3 +613,39 @@ class TestBoardMove:
         board_move_mock = Mock(board=board_mock)
 
         BoardMove.validate_player_piece(board_move_mock, selected_unit)
+
+    def test_remove_captured_unit(self):
+        occupant_mock = Mock()
+        cell_mock = Mock(occupant=occupant_mock)
+        positions_mock = MagicMock()
+        moves_mock = MagicMock()
+        board_mock = MagicMock(spec=Board, positions=positions_mock, moves=moves_mock)
+        board_mock.__getitem__.return_value = cell_mock
+
+        BoardMove.remove_captured_unit(board_mock, Position(0, 0))
+
+        assert cell_mock.occupant is EMPTY
+        positions_mock.__delitem__.assert_called_once_with(occupant_mock)
+        moves_mock.__delitem__.assert_called_once_with(occupant_mock)
+
+    def test_move_unit(self):
+        start_position = Position(0, 0)
+        start_occupant_mock = Mock()
+        start_cell_mock = Mock(occupant=start_occupant_mock)
+
+        end_position = Position(1, 0)
+        end_occupant_mock = Mock()
+        end_cell_mock = Mock(occupant=end_occupant_mock)
+        board_mock = MagicMock(spec=Board)
+        cell_dict = {
+            start_position: start_cell_mock,
+            end_position: end_cell_mock
+        }
+        board_mock.__getitem__.side_effect = cell_dict.__getitem__
+
+        BoardMove.move_unit(
+            board=board_mock, start_position=start_position, end_position=end_position
+        )
+
+        assert start_cell_mock.occupant is EMPTY
+        assert end_cell_mock.occupant is start_occupant_mock

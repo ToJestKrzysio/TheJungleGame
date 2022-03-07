@@ -11,7 +11,6 @@ from game.exceptions import MoveNotPossibleError
 from src.game import cell, unit
 from src.game import moves as unit_moves
 
-
 Position = collections.namedtuple("Position", ["y", "x"])
 
 
@@ -194,7 +193,6 @@ class Board(np.ndarray):
         new_position = self.get_new_position(unit_position, selected_move)
         selected_unit = self[unit_position].occupant
 
-        # TODO move -  refactor into two individual procedures
         if selected_move not in self.moves[selected_unit]:
             raise MoveNotPossibleError("Selected move is not valid.")
         if selected_unit.white != self.white_move:
@@ -204,7 +202,6 @@ class Board(np.ndarray):
                 )
             )
 
-        # TODO move -  refactor into ex. 'copy_board' method
         new_board = copy.copy(self)
         new_board[unit_position] = copy.copy(new_board[unit_position])
         new_board[new_position] = copy.copy(new_board[new_position])
@@ -214,12 +211,10 @@ class Board(np.ndarray):
         new_board.positions = self.positions.copy()
         new_board.moves = self.moves.copy()
 
-        # TODO move -  refactor into ex 'capture_unit' method
         if new_board[new_position]:
             del new_board.positions[captured_unit]
             del new_board.moves[captured_unit]
 
-        # TODO move -  refactor into move unit method
         new_board[new_position].occupant = moved_unit
         new_board[unit_position].occupant = unit.EMPTY
 
@@ -375,6 +370,7 @@ class BoardMove:
         Executes move for a selected unit by executing following steps.
 
         1. Validates if selected move is valid.
+        2. Copy current board state into a new board instance.
         """
         new_position = self.board.get_new_position(unit_position, selected_move)
         selected_unit = self.board[unit_position].occupant
@@ -382,7 +378,9 @@ class BoardMove:
         self.validate_move(selected_unit=selected_unit, selected_move=selected_move)
         self.validate_player_piece(selected_unit=selected_unit)
 
-        return self.board  # TODO - fix returned value
+        new_board = self.copy_board(unit_position=unit_position, new_position=new_position)
+
+        return new_board
 
     def validate_move(self, selected_unit: unit.Unit, selected_move: unit_moves.Move) -> None:
         """ Raises MoveNotPossibleError in case selected unit cannot execute selected move. """
@@ -402,14 +400,77 @@ class BoardMove:
             raise MoveNotPossibleError(f"Selected {piece} piece during {player} player's turn.")
 
     def copy_board(self, unit_position: Position, new_position: Position) -> Board:
-        new_board = copy.copy(self.board)
-        new_board[unit_position] = copy.copy(new_board[unit_position])
-        new_board[new_position] = copy.copy(new_board[new_position])
-        moved_unit = new_board[unit_position].occupant
-        captured_unit = new_board[new_position].occupant
+        """
+        Creates a new instance of Board based on self instance.
 
-        new_board.positions = self.board.positions.copy()
-        new_board.moves = self.board.moves.copy()
+        :param unit_position: Tuple representing moved unit initial position.
+        :param new_position: Tuple representing moved unit destination.
+
+        :return: New instance of the Board with copied fields.
+        """
+        new_board = self.setup_new_board(unit_position, new_position)
+
+        if new_board[new_position]:
+            self.remove_captured_unit(new_board, new_position)
+
+        self.move_unit(new_board, unit_position, new_position)
+        # TODO self.update_moved_unit
+        # TODO self.update_neighbours
+        # TODO self.update_repetitions
+        # TODO self.finalize_move
+
+        return new_board
+
+    @staticmethod
+    def remove_captured_unit(board: Board, position: Position) -> None:
+        """
+        Removes all data associated to captured unit from board instance.
+
+        :param board: Instance of the board from which data will be removed.
+        :param position: Position used to identify removed unit.
+
+        :return: None.
+        """
+        captured_unit = board[position].occupant
+        board[position].occupant = unit.EMPTY
+
+        del board.positions[captured_unit]
+        del board.moves[captured_unit]
+
+    @staticmethod
+    def move_unit(board: Board, start_position: Position, end_position: Position) -> None:
+        """
+        Moves unit from start to end, and sets start to Empty state.
+
+        :param board: Instance of the board which will be modified.
+        :param start_position: Position form unit will be moved.
+        :param end_position: Position to which unit will be moved.
+
+        :return: None.
+        """
+        moved_unit = board[start_position].occupant
+
+        board[end_position].occupant = moved_unit
+        board[start_position].occupant = unit.EMPTY
+
+    def setup_new_board(self, start_position: Position, end_position: Position) -> Board:
+        """
+        Creates a copy of board attribute and copies fields that will be affected during moves.
+
+        :param start_position: Position by which moved unit is located.
+        :param end_position: Position by which captured unit is located.
+
+        :return: New instance of board with copied important fields of numpy array.
+        """
+        board = copy.copy(self.board)
+
+        board[start_position] = copy.copy(board[start_position])
+        board[end_position] = copy.copy(board[end_position])
+
+        board.positions = self.board.positions.copy()
+        board.moves = self.board.moves.copy()
+
+        return board
 
 if __name__ == '__main__':
     board = Board.initialize()
