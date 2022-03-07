@@ -1,3 +1,4 @@
+from collections import deque
 from unittest.mock import Mock, call, MagicMock
 
 import pytest
@@ -658,6 +659,7 @@ class TestBoardMove:
             assert result[position].occupant is board[position].occupant
         assert result.positions == board.positions
         assert result.moves == board.moves
+        assert result.last_moves == board.last_moves
 
     @pytest.mark.parametrize("selected_unit, position", ALL_UNIT_POSITIONS_DICT.items())
     def test_remove_captured_unit(self, selected_unit, position):
@@ -698,3 +700,52 @@ class TestBoardMove:
         assert board.positions[unit] == position
         board.get_single_unit_moves.assert_called_once_with(position)
         assert board.moves[unit] == get_single_unit_moves_return
+
+    POS_1 = Position(0, 0)
+    POS_2 = Position(1, 0)
+    POS_3 = Position(1, 1)
+
+    @pytest.mark.parametrize("repetitions, start_position, end_position, expected", [
+        (
+                [deque([None, None, None, None, None]),
+                 deque([None, None, None, None, None])],
+                POS_1, POS_2,
+                [deque([None, None, None, None, None]),
+                 deque([None, None, None, None, (POS_1, POS_2)])]
+        ),
+        (
+                [deque([(POS_2, POS_3), None, None, None, None]),
+                 deque([(POS_1, POS_2), None, None, None, None])],
+                POS_2, POS_1,
+                [deque([(POS_1, POS_2), None, None, None, None]),
+                 deque([None, None, None, None, (POS_2, POS_1)])]
+        ),
+        (
+                [deque([(POS_1, POS_3), (POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3),
+                        (POS_2, POS_3)]),
+                 deque([None, None, None, None, None])],
+                POS_3, POS_1,
+                [deque([None, None, None, None, None]),
+                 deque([(POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3),
+                        (POS_3, POS_1)])]
+        ),
+        (
+                [deque([(POS_1, POS_3), (POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3),
+                        (POS_2, POS_3)]),
+                 deque([(POS_3, POS_3), (POS_3, POS_3), (POS_3, POS_3), (POS_3, POS_3),
+                        (POS_3, POS_3)])],
+                POS_3, POS_2,
+                [deque([(POS_3, POS_3), (POS_3, POS_3), (POS_3, POS_3), (POS_3, POS_3),
+                        (POS_3, POS_3)]),
+                 deque([(POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3), (POS_2, POS_3),
+                        (POS_3, POS_2)])]
+        ),
+    ])
+    def test_update_repetitions(self, repetitions, start_position, end_position, expected):
+        board = Board.initialize()
+        board.last_moves = repetitions
+
+        BoardMove.update_repetitions(board=board, start_position=start_position,
+                                     end_position=end_position)
+
+        assert board.last_moves == expected

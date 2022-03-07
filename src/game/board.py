@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import collections
 import copy
 import itertools
+from collections import Counter, deque, namedtuple
 from typing import Dict, List, Set, Tuple, Iterable
 
 import numpy as np
@@ -11,7 +11,7 @@ from game.exceptions import MoveNotPossibleError
 from src.game import cell, unit
 from src.game import moves as unit_moves
 
-Position = collections.namedtuple("Position", ["y", "x"])
+Position = namedtuple("Position", ["y", "x"])
 
 
 class Board(np.ndarray):
@@ -27,7 +27,7 @@ class Board(np.ndarray):
     positions: Dict[unit.Unit, Position]
     moves: Dict[unit.Unit, Set[unit_moves.Move]]
     previous_board: Board | None
-    last_moves: List[List, List]
+    last_moves: List[deque, deque]
     move_count: int
     white_move: bool
     MAX_REPETITIONS: int = 3
@@ -45,8 +45,8 @@ class Board(np.ndarray):
         self.moves = self.get_moves_for_all_units()
         self.previous_board = None
         self.last_moves = [
-            [None] * (type(self).MAX_REPETITIONS * 2 - 1),
-            [None] * (type(self).MAX_REPETITIONS * 2 - 1),
+            deque([[None] * (type(self).MAX_REPETITIONS * 2 - 1)]),
+            deque([[None] * (type(self).MAX_REPETITIONS * 2 - 1)]),
         ]
         self.white_move = True
         self.move_count = 0
@@ -136,7 +136,7 @@ class Board(np.ndarray):
     @staticmethod
     def _get_repetition(moves: List) -> int:
         """ Calculates maximum number of repetitions within the given list of moves. """
-        counter = collections.Counter(moves)
+        counter = Counter(moves)
         del counter[None]
         most_common = counter.most_common(1)
         return most_common[0][1] if most_common else 0
@@ -387,7 +387,7 @@ class BoardMove:
         self.update_unit(new_board, selected_unit, new_position)
 
         # TODO self.update_neighbours
-        # TODO self.update_repetitions
+        self.update_repetitions(new_board, unit_position, new_position)
         # TODO self.finalize_move
 
         return new_board
@@ -424,6 +424,7 @@ class BoardMove:
 
         board.positions = self.board.positions.copy()
         board.moves = self.board.moves.copy()
+        board.last_moves = copy.deepcopy(self.board.last_moves)
 
         return board
 
@@ -449,7 +450,7 @@ class BoardMove:
         Moves unit from start to end, and sets start to Empty state.
 
         :param board: Instance of the board which will be modified.
-        :param start_position: Position form unit will be moved.
+        :param start_position: Position form which unit will be moved.
         :param end_position: Position to which unit will be moved.
 
         :return: None.
@@ -472,6 +473,22 @@ class BoardMove:
         """
         board.positions[unit] = position
         board.moves[unit] = board.get_single_unit_moves(position)
+
+    @staticmethod
+    def update_repetitions(board: Board, start_position: Position, end_position: Position) -> None:
+        """
+        Updates board repetitions trackers.
+
+        :param board: Instance of the board which repetitions trackers will be updated.
+        :param start_position: Position form which unit was moved.
+        :param end_position: Position to which unit was moved.
+
+        :return: None.
+        """
+        current_player_moves, next_player_moves = board.last_moves
+        current_player_moves.popleft()
+        current_player_moves.append((start_position, end_position))
+        board.last_moves = [next_player_moves, current_player_moves]
 
 
 if __name__ == '__main__':
