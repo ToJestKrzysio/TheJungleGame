@@ -671,11 +671,9 @@ class TestBoardMove:
         selected_move = Mock()
         BoardMove.__call__(board_move_mock, unit_position, selected_move)
 
-        new_board_mock.update_neighbours.assert_called_once_with(
+        board_move_mock.update_neighbours.assert_called_once_with(
             board=new_board_mock, position=new_position_mock
         )
-
-
 
     def test__call__update_repetitions(self):
         new_board_mock = MagicMock()
