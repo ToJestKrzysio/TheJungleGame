@@ -378,7 +378,17 @@ class BoardMove:
         self.validate_move(selected_unit=selected_unit, selected_move=selected_move)
         self.validate_player_piece(selected_unit=selected_unit)
 
-        new_board = self.copy_board(unit_position=unit_position, new_position=new_position)
+        new_board = self.copy_board(positions=(unit_position, new_position))
+
+        if new_board[new_position]:
+            self.remove_captured_unit(new_board, new_position)
+
+        self.move_unit(new_board, unit_position, new_position)
+        self.update_unit(new_board, selected_unit, new_position)
+
+        # TODO self.update_neighbours
+        # TODO self.update_repetitions
+        # TODO self.finalize_move
 
         return new_board
 
@@ -399,27 +409,23 @@ class BoardMove:
             player, piece = ("white", "black") if self.board.white_move else ("black", "white")
             raise MoveNotPossibleError(f"Selected {piece} piece during {player} player's turn.")
 
-    def copy_board(self, unit_position: Position, new_position: Position) -> Board:
+    def copy_board(self, positions: Tuple[Position, ...]) -> Board:
         """
-        Creates a new instance of Board based on self instance.
+        Creates a copy of board attribute and copies fields that will be affected during moves.
 
-        :param unit_position: Tuple representing moved unit initial position.
-        :param new_position: Tuple representing moved unit destination.
+        :param positions: Iterable of Position, each cell defined by position will be copied.
 
-        :return: New instance of the Board with copied fields.
+        :return: New instance of board with copied important fields of numpy array.
         """
-        new_board = self.setup_new_board(unit_position, new_position)
+        board = copy.copy(self.board)
 
-        if new_board[new_position]:
-            self.remove_captured_unit(new_board, new_position)
+        for position in positions:
+            board[position] = copy.copy(board[position])
 
-        self.move_unit(new_board, unit_position, new_position)
-        # TODO self.update_moved_unit
-        # TODO self.update_neighbours
-        # TODO self.update_repetitions
-        # TODO self.finalize_move
+        board.positions = self.board.positions.copy()
+        board.moves = self.board.moves.copy()
 
-        return new_board
+        return board
 
     @staticmethod
     def remove_captured_unit(board: Board, position: Position) -> None:
@@ -453,24 +459,20 @@ class BoardMove:
         board[end_position].occupant = moved_unit
         board[start_position].occupant = unit.EMPTY
 
-    def setup_new_board(self, start_position: Position, end_position: Position) -> Board:
+    @staticmethod
+    def update_unit(board: Board, unit: unit.Unit, position: Position) -> None:
         """
-        Creates a copy of board attribute and copies fields that will be affected during moves.
+        Updates unit data by setting assigning it new position and moves.
 
-        :param start_position: Position by which moved unit is located.
-        :param end_position: Position by which captured unit is located.
+        :param board: Instance of the board which will be updated.
+        :param unit: Unit for which board attributes will be updated.
+        :param position: Position which will be used for updating board data.
 
-        :return: New instance of board with copied important fields of numpy array.
+        :return: None.
         """
-        board = copy.copy(self.board)
+        board.positions[unit] = position
+        board.moves[unit] = board.get_single_unit_moves(position)
 
-        board[start_position] = copy.copy(board[start_position])
-        board[end_position] = copy.copy(board[end_position])
-
-        board.positions = self.board.positions.copy()
-        board.moves = self.board.moves.copy()
-
-        return board
 
 if __name__ == '__main__':
     board = Board.initialize()

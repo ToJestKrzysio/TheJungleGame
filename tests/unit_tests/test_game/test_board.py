@@ -17,6 +17,31 @@ BLACK_UNITS = [BLACK_DEN, BLACK_MOUSE, BLACK_CAT, BLACK_DOG, BLACK_WOLF, BLACK_L
 ALL_UNITS = [*WHITE_UNITS, *BLACK_UNITS]
 ALL_MOVES = {*moves.base_moves, *moves.jump_moves}
 
+ALL_UNIT_POSITIONS_DICT = {
+    BLACK_DEN: Position(0, 3),
+    BLACK_MOUSE: Position(2, 0),
+    BLACK_CAT: Position(1, 5),
+    BLACK_DOG: Position(1, 1),
+    BLACK_WOLF: Position(2, 4),
+    BLACK_LEOPARD: Position(2, 2),
+    BLACK_TIGER: Position(0, 6),
+    BLACK_LION: Position(0, 0),
+    BLACK_ELEPHANT: Position(2, 6),
+    WHITE_DEN: Position(8, 3),
+    WHITE_MOUSE: Position(6, 6),
+    WHITE_CAT: Position(7, 1),
+    WHITE_DOG: Position(7, 5),
+    WHITE_WOLF: Position(6, 2),
+    WHITE_LEOPARD: Position(6, 4),
+    WHITE_TIGER: Position(8, 0),
+    WHITE_LION: Position(8, 6),
+    WHITE_ELEPHANT: Position(6, 0),
+}
+EDGE_POSITIONS = [
+    Position(0, 0), Position(0, 6), Position(8, 0), Position(8, 6), Position(4, 0), Position(4, 3),
+    Position(4, 6)
+]
+
 
 class TestBoard:
 
@@ -614,38 +639,62 @@ class TestBoardMove:
 
         BoardMove.validate_player_piece(board_move_mock, selected_unit)
 
-    def test_remove_captured_unit(self):
-        occupant_mock = Mock()
-        cell_mock = Mock(occupant=occupant_mock)
-        positions_mock = MagicMock()
-        moves_mock = MagicMock()
-        board_mock = MagicMock(spec=Board, positions=positions_mock, moves=moves_mock)
-        board_mock.__getitem__.return_value = cell_mock
+    @pytest.mark.parametrize("positions", [
+        [Position(0, 0), Position(0, 6)],
+        [Position(0, 6), Position(8, 0)],
+        [Position(8, 0), Position(0, 0)],
+        [Position(8, 6), Position(4, 3)],
+        [Position(4, 3), Position(8, 0)],
+    ])
+    def test_copy_board(self, positions):
+        board = Board.initialize()
+        board_move_mock = Mock(board=board)
 
-        BoardMove.remove_captured_unit(board_mock, Position(0, 0))
+        result = BoardMove.copy_board(self=board_move_mock, positions=positions)
 
-        assert cell_mock.occupant is EMPTY
-        positions_mock.__delitem__.assert_called_once_with(occupant_mock)
-        moves_mock.__delitem__.assert_called_once_with(occupant_mock)
+        assert isinstance(result, Board)
+        for position in positions:
+            assert result[position] is not board[position]
+            assert result[position].occupant is board[position].occupant
+        assert result.positions == board.positions
+        assert result.moves == board.moves
 
-    def test_move_unit(self):
-        start_position = Position(0, 0)
-        start_occupant_mock = Mock()
-        start_cell_mock = Mock(occupant=start_occupant_mock)
+    @pytest.mark.parametrize("selected_unit, position", ALL_UNIT_POSITIONS_DICT.items())
+    def test_remove_captured_unit(self, selected_unit, position):
+        board = Board.initialize()
 
-        end_position = Position(1, 0)
-        end_occupant_mock = Mock()
-        end_cell_mock = Mock(occupant=end_occupant_mock)
-        board_mock = MagicMock(spec=Board)
-        cell_dict = {
-            start_position: start_cell_mock,
-            end_position: end_cell_mock
-        }
-        board_mock.__getitem__.side_effect = cell_dict.__getitem__
+        BoardMove.remove_captured_unit(board, position)
 
-        BoardMove.move_unit(
-            board=board_mock, start_position=start_position, end_position=end_position
-        )
+        assert board[position].occupant is EMPTY
+        assert board.moves.get(selected_unit) is None
+        assert board.positions.get(selected_unit) is None
 
-        assert start_cell_mock.occupant is EMPTY
-        assert end_cell_mock.occupant is start_occupant_mock
+    @pytest.mark.parametrize("selected_unit, start_position", {
+        BLACK_MOUSE: Position(2, 0), BLACK_CAT: Position(1, 5), BLACK_DOG: Position(1, 1),
+        BLACK_WOLF: Position(2, 4), BLACK_LEOPARD: Position(2, 2), BLACK_ELEPHANT: Position(2, 6),
+        WHITE_DEN: Position(8, 3), WHITE_MOUSE: Position(6, 6), WHITE_CAT: Position(7, 1),
+        WHITE_DOG: Position(7, 5), WHITE_WOLF: Position(6, 2), WHITE_LEOPARD: Position(6, 4),
+        WHITE_ELEPHANT: Position(6, 0)
+    }.items())
+    @pytest.mark.parametrize("end_position", EDGE_POSITIONS)
+    def test_move_unit(self, selected_unit: Unit, start_position: Position,
+                       end_position: Position):
+        board = Board.initialize()
+
+        BoardMove.move_unit(board=board, start_position=start_position, end_position=end_position)
+
+        assert board[start_position].occupant is EMPTY
+        assert board[end_position].occupant is selected_unit
+
+    @pytest.mark.parametrize("unit", ALL_UNITS)
+    @pytest.mark.parametrize("position", EDGE_POSITIONS)
+    def test_update_unit(self, unit: Unit, position: Position):
+        board = Board.initialize()
+        get_single_unit_moves_return = Mock()
+        board.get_single_unit_moves = Mock(return_value=get_single_unit_moves_return)
+
+        BoardMove.update_unit(board=board, unit=unit, position=position)
+
+        assert board.positions[unit] == position
+        board.get_single_unit_moves.assert_called_once_with(position)
+        assert board.moves[unit] == get_single_unit_moves_return
