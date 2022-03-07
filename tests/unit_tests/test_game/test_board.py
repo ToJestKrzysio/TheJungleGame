@@ -1,5 +1,6 @@
 from collections import deque
-from unittest.mock import Mock, call, MagicMock
+from copy import deepcopy
+from unittest.mock import Mock, call, MagicMock, patch
 
 import pytest
 import numpy as np
@@ -42,6 +43,12 @@ EDGE_POSITIONS = [
     Position(0, 0), Position(0, 6), Position(8, 0), Position(8, 6), Position(4, 0), Position(4, 3),
     Position(4, 6)
 ]
+
+POS_1 = Position(0, 0)
+POS_2 = Position(1, 0)
+POS_3 = Position(1, 1)
+
+PATH = "src.game.board"
 
 
 class TestBoard:
@@ -109,10 +116,10 @@ class TestBoard:
         (Position(y=0, x=6), True),
         (Position(y=0, x=8), False)
     ])
-    def test_is_position_valid(self, position, expected):
+    def testis_position_valid(self, position, expected):
         double = Mock(shape=(9, 7))
 
-        result = Board._is_position_valid(double, position)
+        result = Board.is_position_valid(double, position)
 
         assert result == expected
 
@@ -145,14 +152,14 @@ class TestBoard:
             Mock(water=False, occupant=Tiger(False)),
         ]
         board_mock.get_new_position.side_effect = (Position(y=4, x=1),)
-        board_mock._is_position_valid.return_value = False
+        board_mock.is_position_valid.return_value = False
 
         result = Board._process_move(board_mock, position, move)
 
         board_mock.get_new_position.assest_called_once_with(
             (1, 1), (1, 0)
         )
-        board_mock._is_position_valid.assest_called_once_with(Position(y=4, x=1))
+        board_mock.is_position_valid.assest_called_once_with(Position(y=4, x=1))
         assert result == (False, moves.invalid_move)
 
     @pytest.mark.parametrize("position, move, new_position", [
@@ -189,7 +196,7 @@ class TestBoard:
         board_mock.get_new_position.assert_called_once_with(
             position, move
         ),
-        board_mock._is_position_valid.assert_called_once_with(new_position)
+        board_mock.is_position_valid.assert_called_once_with(new_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (True, move)
@@ -226,13 +233,13 @@ class TestBoard:
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
         board_mock.get_new_position.return_value = next_position
-        board_mock._is_position_valid.return_value = True
+        board_mock.is_position_valid.return_value = True
 
         result = Board._process_move(board_mock, position, move)
 
         board_mock.get_new_position.assert_called_once_with(position,
                                                             move)
-        board_mock._is_position_valid.assest_called_once_with(next_position)
+        board_mock.is_position_valid.assest_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (False, moves.invalid_move)
@@ -253,12 +260,12 @@ class TestBoard:
         board_mock = MagicMock()
         board_mock.__getitem__.side_effect = [old_cell, new_cell]
         board_mock.get_new_position.return_value = next_position
-        board_mock._is_position_valid.return_value = True
+        board_mock.is_position_valid.return_value = True
 
         result = Board._process_move(board_mock, position, move)
 
         board_mock.get_new_position.assert_called_once_with(position, move)
-        board_mock._is_position_valid.assert_called_once_with(next_position)
+        board_mock.is_position_valid.assert_called_once_with(next_position)
         assert not board_mock._get_land_position_across_the_water.called
         old_cell.can_capture.assert_called_once_with(new_cell)
         assert result == (True, move)
@@ -357,6 +364,7 @@ class TestMove:
         with pytest.raises(Exception, match="Selected move is not valid."):
             Board.move(board_state, unit_position, new_position)
 
+    @pytest.mark.skip
     @pytest.mark.parametrize("unit_position, new_position, move", [
         # starting position (y=0, x=0)
         [
@@ -559,7 +567,10 @@ class TestBoardMove:
         board_mock.get_new_position = Mock(return_value=None)
         board_mock.__getitem__.return_value = cell_mock
 
-        board_move_mock = Mock(board=board_mock)
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
 
         unit_position = Mock()
         selected_move = Mock()
@@ -571,19 +582,134 @@ class TestBoardMove:
             selected_unit=selected_unit_mock)
 
     def test__call__copying(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
         board_mock = MagicMock()
         new_position_mock = Mock()
-        board_mock.get_new_position = Mock(return_value=new_position_mock)
+        board_mock.get_new_position.return_value = new_position_mock
 
-        board_move_mock = Mock(board=board_mock)
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
 
         unit_position = Mock()
         selected_move = Mock()
         BoardMove.__call__(board_move_mock, unit_position, selected_move)
 
         board_move_mock.copy_board.assert_called_once_with(
-            unit_position=unit_position, new_position=new_position_mock
+            positions=(unit_position, new_position_mock)
         )
+
+    def test__call__remove_captured(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = True
+
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position.return_value = new_position_mock
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.remove_captured_unit.assert_called_once_with(
+            board=new_board_mock, position=new_position_mock
+        )
+
+    def test__call__move(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position.return_value = new_position_mock
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.move_unit.assert_called_once_with(
+            board=new_board_mock, start_position=unit_position, end_position=new_position_mock
+        )
+
+    def test__call__update_unit(self):
+        new_position_mock = Mock()
+        selected_unit_mock = Mock()
+        cell_mock = Mock(occupant=selected_unit_mock)
+
+        board_mock = MagicMock()
+        board_mock.get_new_position.return_value = new_position_mock
+        board_mock.__getitem__.return_value = cell_mock
+
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.update_unit.assert_called_once_with(
+            board=new_board_mock, unit=selected_unit_mock, position=new_position_mock
+        )
+
+    def test__call__update_neighbours(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position.return_value = new_position_mock
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        new_board_mock.update_neighbours.assert_called_once_with(
+            board=new_board_mock, position=new_position_mock
+        )
+
+
+
+    def test__call__update_repetitions(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position.return_value = new_position_mock
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        board_move_mock.update_repetitions.assert_called_once_with(
+            board=new_board_mock, start_position=unit_position, end_position=new_position_mock
+        )
+
+    def test__call__check_outcome(self):
+        new_board_mock = MagicMock()
+        new_board_mock.__getitem__.return_value = False
+
+        board_mock = MagicMock()
+        new_position_mock = Mock()
+        board_mock.get_new_position.return_value = new_position_mock
+
+        board_move_mock = Mock(board=board_mock, copy_board=Mock(return_value=new_board_mock))
+
+        unit_position = Mock()
+        selected_move = Mock()
+        BoardMove.__call__(board_move_mock, unit_position, selected_move)
+
+        new_board_mock.find_outcome.assert_called_once()
 
     @pytest.mark.parametrize("selected_move", ALL_MOVES)
     @pytest.mark.parametrize("selected_unit", ALL_UNITS)
@@ -660,6 +786,9 @@ class TestBoardMove:
         assert result.positions == board.positions
         assert result.moves == board.moves
         assert result.last_moves == board.last_moves
+        assert result.white_move is not board.last_moves
+        assert result.move_count == board.move_count + 1
+        assert result.previous_board is board
 
     @pytest.mark.parametrize("selected_unit, position", ALL_UNIT_POSITIONS_DICT.items())
     def test_remove_captured_unit(self, selected_unit, position):
@@ -700,10 +829,6 @@ class TestBoardMove:
         assert board.positions[unit] == position
         board.get_single_unit_moves.assert_called_once_with(position)
         assert board.moves[unit] == get_single_unit_moves_return
-
-    POS_1 = Position(0, 0)
-    POS_2 = Position(1, 0)
-    POS_3 = Position(1, 1)
 
     @pytest.mark.parametrize("repetitions, start_position, end_position, expected", [
         (
@@ -749,3 +874,76 @@ class TestBoardMove:
                                      end_position=end_position)
 
         assert board.last_moves == expected
+
+    def test_get_neighbour_position_invalid(self):
+        board = MagicMock()
+        board.get_new_position.return_value = Mock()
+        board.is_position_valid.return_value = False
+
+        position = Mock()
+        move = Mock()
+        with pytest.raises(ValueError, match="Position outside of the board."):
+            BoardMove.get_neighbour_position(board=board, position=position, move=move)
+
+    @pytest.mark.parametrize("water", [True, False])
+    def test_get_neighbour_position_valid_base_move(self, water):
+        new_position_mock = Mock()
+
+        cell_mock = MagicMock()
+        cell_mock.__bool__.return_value = True
+        cell_mock.water = water
+
+        board_mock = MagicMock()
+        board_mock.get_new_position.return_value = new_position_mock
+        board_mock.is_position_valid.return_value = True
+        board_mock.__getitem__.return_value = cell_mock
+
+        position = Mock()
+        move = Mock()
+        result = BoardMove.get_neighbour_position(board=board_mock, position=position, move=move)
+
+        assert result == new_position_mock
+        board_mock.get_new_position.assert_called_once_with(position, move)
+
+    @patch(f"{PATH}.unit_moves.get_jump_move")
+    def test_get_neighbour_position_valid_jump_move(self, get_jump_move_patch):
+        new_position_mock = Mock()
+
+        cell_mock = MagicMock()
+        cell_mock.__bool__.return_value = False
+        cell_mock.water = True
+
+        board = MagicMock()
+        board.get_new_position.return_value = new_position_mock
+        board.is_position_valid.return_value = True
+        board.__getitem__.return_value = cell_mock
+
+        jump_move = Mock()
+        get_jump_move_patch.return_value = jump_move
+
+        position = Mock()
+        move = Mock()
+        result = BoardMove.get_neighbour_position(board=board, position=position, move=move)
+
+        assert result == new_position_mock
+        assert board.get_new_position(
+            call(position, move),
+            call(position, jump_move),
+        )
+
+    @pytest.mark.parametrize("position", EDGE_POSITIONS)
+    @pytest.mark.parametrize("move", ALL_MOVES)
+    def test_update_neighbours(self, position: Position, move: moves.Move):
+        board = Board.initialize()
+        board[position].occupant = WHITE_MOUSE
+        initial_moves = deepcopy(board.moves)
+
+        BoardMove.update_neighbours(board=board, position=position)
+
+        assert initial_moves != board.moves
+        for unit in board.positions:
+            position = board.positions[unit]
+            moves = board.moves[unit]
+            for move in moves:
+                new_position = (position.y + move.y, position.x + move.x)
+                assert position != new_position

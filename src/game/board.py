@@ -76,7 +76,7 @@ class Board(np.ndarray):
         all_moves = [self._process_move(position, move) for move in unit_moves.base_moves]
         return {position for is_valid, position in all_moves if is_valid}
 
-    def _is_position_valid(self, position: Position) -> bool:
+    def is_position_valid(self, position: Position) -> bool:
         """ Checks if position is inside the board space. """
         return position.y in range(self.shape[0]) and position.x in range(self.shape[1])
 
@@ -95,7 +95,7 @@ class Board(np.ndarray):
         old_cell = self[position]
         new_position = self.get_new_position(position, move)
 
-        if not self._is_position_valid(new_position):
+        if not self.is_position_valid(new_position):
             return INVALID_POSITION
 
         new_cell = self[new_position.y, new_position.x]
@@ -220,16 +220,12 @@ class Board(np.ndarray):
 
         new_board.positions[moved_unit] = new_position
         new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
-        # TODO move -  get neighbours
-        # TODO move -  update moves for neighbour cells also
 
-        # TODO move - Refactor into update moves method
         current_player_moves, next_player_moves = copy.deepcopy(self.last_moves)
         current_player_moves.pop(0)
         current_player_moves.append((unit_position, new_position))
         new_board.last_moves = [next_player_moves, current_player_moves]
 
-        # TODO move - refactor to ex. 'finalize_board' method
         new_board.white_move = not self.white_move
         new_board.move_count = self.move_count + 1
         new_board.previous_board = self
@@ -369,8 +365,20 @@ class BoardMove:
         """
         Executes move for a selected unit by executing following steps.
 
+        0. Calculate new position and select corresponding unit.
         1. Validates if selected move is valid.
-        2. Copy current board state into a new board instance.
+        2. Copy current board state into a new board instance, and update trackers.
+        3. Remove captured unit if there is any.
+        4. Move unit to new position
+        5. Update moved unit board data.
+        6. Update moved unit neighbours data, units which could capture selected field.
+        7. Update repetition trackers for the board.
+        9. Check game outcome.
+
+        :param unit_position: Initial position of unit that will be moved.
+        :param selected_move: Move which will be executed by a unit.
+
+        :return: New instance of board which was created by following move algorithm shown above.
         """
         new_position = self.board.get_new_position(unit_position, selected_move)
         selected_unit = self.board[unit_position].occupant
@@ -381,14 +389,16 @@ class BoardMove:
         new_board = self.copy_board(positions=(unit_position, new_position))
 
         if new_board[new_position]:
-            self.remove_captured_unit(new_board, new_position)
+            self.remove_captured_unit(board=new_board, position=new_position)
 
-        self.move_unit(new_board, unit_position, new_position)
-        self.update_unit(new_board, selected_unit, new_position)
+        self.move_unit(board=new_board, start_position=unit_position, end_position=new_position)
+        self.update_unit(board=new_board, unit=selected_unit, position=new_position)
 
-        # TODO self.update_neighbours
-        self.update_repetitions(new_board, unit_position, new_position)
-        # TODO self.finalize_move
+        self.update_neighbours(board=new_board, position=new_position)
+        self.update_repetitions(board=new_board, start_position=unit_position,
+                                end_position=new_position)
+
+        new_board.find_outcome()
 
         return new_board
 
@@ -425,6 +435,10 @@ class BoardMove:
         board.positions = self.board.positions.copy()
         board.moves = self.board.moves.copy()
         board.last_moves = copy.deepcopy(self.board.last_moves)
+
+        board.white_move = not self.board.white_move
+        board.move_count = self.board.move_count + 1
+        board.previous_board = self.board
 
         return board
 
@@ -489,6 +503,48 @@ class BoardMove:
         current_player_moves.popleft()
         current_player_moves.append((start_position, end_position))
         board.last_moves = [next_player_moves, current_player_moves]
+
+    @staticmethod
+    def get_neighbour_position(board: Board, position: Position,
+                               move: unit_moves.Move) -> Position:
+        """
+        Selects neighbour by given move, including jump move possibility.
+
+        :param board: Instance of the board to find neighbour based on.
+        :param position: Initial position used to calculate new one by moving.
+        :param move: Move used to find neighbour.
+
+        :return: Position of the neighbour.
+        """
+        new_position = board.get_new_position(position, move)
+        if not board.is_position_valid(new_position):
+            raise ValueError("Position outside of the board.")
+
+        neighbour_cell = board[new_position]
+        if not neighbour_cell and neighbour_cell.water:
+            move = unit_moves.get_jump_move(move)
+            new_position = board.get_new_position(position, move)
+
+        return new_position
+
+    @staticmethod
+    def update_neighbours(board: Board, position: Position):
+        """
+        Updates move data for all neighbours.
+
+        :param board: Instance of the board which data will be updated.
+        :param position: Position for which neighbours will be updated.
+
+        :return: None.
+        """
+        for move in unit_moves.base_moves:
+            try:
+                new_position = BoardMove.get_neighbour_position(board, position, move)
+            except ValueError:
+                continue
+            neighbour = board[new_position]
+            neighbour_moves = board.get_single_unit_moves(new_position)
+            board.moves[neighbour] = neighbour_moves
 
 
 if __name__ == '__main__':
