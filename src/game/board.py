@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import copy
-from collections import Counter
+import itertools
+from collections import Counter, deque, namedtuple
+from typing import Dict, List, Set, Tuple, Iterable
 
 import numpy as np
 
-from src.game.cell import Cell
-from src.game.exceptions import MoveNotPossibleError
-from src.game.unit import *
-from typing import Dict, List, Set, Tuple, Iterable
+from game.exceptions import MoveNotPossibleError
+from src.game import cell, unit
+from src.game import moves as unit_moves
+
+Position = namedtuple("Position", ["y", "x"])
 
 
 class Board(np.ndarray):
@@ -21,16 +24,17 @@ class Board(np.ndarray):
         does not exist equals None.
     last_moves: List
     """
-    positions: Dict[Unit, Tuple[int, int]]
-    moves: Dict[Unit, Set[Tuple[int, int]]]
+    positions: Dict[unit.Unit, Position]
+    moves: Dict[unit.Unit, Set[unit_moves.Move]]
     previous_board: Board | None
-    last_moves: List[List, List]
+    last_moves: List[deque, deque]
     move_count: int
     white_move: bool
     MAX_REPETITIONS: int = 3
+    game_over: bool
 
-    def __new__(cls, cells: np.ndarray | List[List[Cell]]):
-        obj = np.asarray(cells, dtype=Cell).view(cls)
+    def __new__(cls, cells: np.ndarray | List[List[cell.Cell]]):
+        obj = np.asarray(cells, dtype=cell.Cell).view(cls)
         return obj
 
     def __array_finalize__(self, obj):
@@ -41,98 +45,88 @@ class Board(np.ndarray):
         self.moves = self.get_moves_for_all_units()
         self.previous_board = None
         self.last_moves = [
-            [None] * (type(self).MAX_REPETITIONS - 1),
-            [None] * (type(self).MAX_REPETITIONS - 1),
+            deque([None] * (type(self).MAX_REPETITIONS * 2 - 1)),
+            deque([None] * (type(self).MAX_REPETITIONS * 2 - 1)),
         ]
         self.white_move = True
         self.move_count = 0
+        self.game_over = False
 
-    def get_positions(self) -> dict[Unit, tuple[int, int]]:
+    def get_positions(self) -> dict[unit.Unit, Position]:
         """
         Generates dictionary of units on the board.
 
-        :return: dict[unit_value] = tuple(row_id, column_id)
+        :return: dict[unit_value] = Position(row_id, column_id)
         """
         positions = dict()
         for row_id in range(self.shape[0]):
             for column_id in range(self.shape[1]):
-                cell = self[row_id, column_id]
-                if cell:
-                    positions[cell.occupant] = (row_id, column_id)
+                current_cell = self[row_id, column_id]
+                if current_cell:
+                    positions[current_cell.occupant] = Position(y=row_id, x=column_id)
         return positions
 
-    def get_moves_for_all_units(self) -> Dict[Unit, Set[Tuple[int, int]]]:
-        """ Collects moves every unit can make into a dictionary. """
-        return {unit: self.get_single_unit_moves(position)
-                for unit, position in self.positions.items()}
+    def get_moves_for_all_units(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
+        """ Collects moves of all units and places them into a dictionary. """
+        return {current_unit: self.get_single_unit_moves(position)
+                for current_unit, position in self.positions.items()}
 
-    def get_single_unit_moves(
-            self,
-            position: Tuple[int, int]
-    ) -> set[Tuple[int, int]]:
-        """ Collects all_moves unit can make and returns only valid ones. """
-        all_moves = [self._find_move_position(position, move)
-                     for move in ((-1, 0), (1, 0), (0, -1), (0, 1))]
-        return {tuple(move) for valid, *move in all_moves if valid}
+    def get_single_unit_moves(self, position: Position) -> Set[unit_moves.Move]:
+        """ Using base_moves determines valid ones and returns a set of valid moves for a unit. """
+        all_moves = [self._process_move(position, move) for move in unit_moves.base_moves]
+        return {position for is_valid, position in all_moves if is_valid}
 
-    def _is_position_valid(self, position: Tuple[int, int]) -> bool:
+    def is_position_valid(self, position: Position) -> bool:
         """ Checks if position is inside the board space. """
-        y, x = position
-        return y in range(self.shape[0]) and x in range(self.shape[1])
+        return position.y in range(self.shape[0]) and position.x in range(self.shape[1])
 
     @staticmethod
-    def _get_new_position_tuple(
-            position: Tuple[int, int],
-            move: Tuple[int, int],
-    ) -> Tuple[int, int]:
+    def get_new_position(position: Position, move: unit_moves.Move) -> Position:
         """ Returns new position as a tuple. """
-        y, x = position
-        move_y, move_x = move
-        return y + move_y, x + move_x
+        return Position(y=position.y + move.y, x=position.x + move.x)
 
-    def _get_land_position_across_the_water(
-            self,
-            new_position: Tuple[int, int],
-            move: Tuple[int, int]
-    ) -> Tuple[bool, int, int]:
-        """ Moves across the water and returns the position across it. """
-        new_cell = self[new_position]
-        while new_cell.water:
-            if new_cell.occupant is not EMPTY:
-                return False, -1, -1
-
-            new_position = self._get_new_position_tuple(new_position, move)
-            if not self._is_position_valid(new_position):
-                return False, -1, -1
-            new_cell = self[new_position]
-        return True, new_position[0], new_position[1]
-
-    def _find_move_position(
-            self,
-            position: Tuple[int, int],
-            move: Tuple[int, int]
-    ) -> Tuple[bool, int, int]:
-        """ Checks if move in the given direction is valid. """
-        INVALID_POSITION = (False, -1, -1)
+    def _process_move(self, position: Position, move: unit_moves.Move
+                      ) -> Tuple[bool, unit_moves.Move]:
+        """
+        Checks if move in the given direction is valid.
+        In case move is invalid and animal can jump, checks also a jump move.
+        """
+        INVALID_POSITION = (False, unit_moves.invalid_move)
         old_cell = self[position]
-        new_position = self._get_new_position_tuple(position, move)
+        new_position = self.get_new_position(position, move)
 
-        if not self._is_position_valid(new_position):
+        if not self.is_position_valid(new_position):
             return INVALID_POSITION
 
-        new_cell = self[new_position[0], new_position[1]]
+        new_cell = self[new_position.y, new_position.x]
         if new_cell.water and old_cell.occupant.jumps:
-            valid, *new_position = (
-                self._get_land_position_across_the_water(new_position, move)
-            )
-            if not valid:
+            move = unit_moves.get_jump_move(move)
+            if not self.validate_jump_move(new_position, move):
                 return INVALID_POSITION
+            new_position = self.get_new_position(position, move)
             new_cell = self[new_position[0], new_position[1]]
 
         if old_cell.can_capture(new_cell):
-            return True, new_position[0], new_position[1]
+            return True, move
 
         return INVALID_POSITION
+
+    def validate_jump_move(self, position: Position, move: unit_moves.Move) -> bool:
+        """
+        Checks if jump is considered valid.
+        Jump is valid if all water cells along its path are empty and land position across the
+        water can be captured by the animal.
+
+        :param position: Position of first water cell as tuple [x_position, y_position].
+        :param move: Move instance.
+
+        :return: True if move is valid False otherwise.
+        """
+        xs = tuple(range(position.x, position.x + move.x - move.sign, move.sign)) or (position.x,)
+        ys = tuple(range(position.y, position.y + move.y - move.sign, move.sign)) or (position.y,)
+        water_positions = itertools.product(xs, ys)
+        water_cells = [self[position] for position in water_positions]
+        return not any(water_cells)
 
     def get_repetitions(self) -> Tuple[int, int]:
         """ Get number of repetitions for player and the opponent. """
@@ -141,104 +135,27 @@ class Board(np.ndarray):
 
     @staticmethod
     def _get_repetition(moves: List) -> int:
-        """
-        Calculates maximum number of repetitions within the given list of
-        moves.
-        """
+        """ Calculates maximum number of repetitions within the given list of moves. """
         counter = Counter(moves)
         del counter[None]
         most_common = counter.most_common(1)
         return most_common[0][1] if most_common else 0
 
-    @classmethod
-    def initialize(cls) -> Board:
-        """ Initializes board according to game rules. """
-        cells = [
-            [Cell(BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
-             Cell(BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
-             Cell(BLACK_LEOPARD)],
-            [Cell(), Cell(BLACK_DOG), Cell(), Cell(trap=True, white_trap=False),
-             Cell(), Cell(BLACK_CAT), Cell()],
-            [Cell(BLACK_MOUSE), Cell(), Cell(BLACK_LEOPARD), Cell(),
-             Cell(BLACK_WOLF), Cell(), Cell(BLACK_ELEPHANT)],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
-             Cell(water=True), Cell()],
-            [Cell(WHITE_ELEPHANT), Cell(), Cell(WHITE_WOLF), Cell(),
-             Cell(WHITE_LEOPARD), Cell(), Cell(WHITE_MOUSE)],
-            [Cell(), Cell(WHITE_CAT), Cell(), Cell(trap=True, white_trap=True),
-             Cell(), Cell(WHITE_DOG), Cell()],
-            [Cell(WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
-             Cell(WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
-             Cell(WHITE_LION)],
-        ]
-        return Board(cells)
-
-    def move(self, unit_position: Tuple[int, int],
-             new_position: Tuple[int, int]) -> Board:
-        """
-        Creates new instance of a board and moves selected unit to new location on that board.
-        """
-
-        if (new_position not in
-                self.moves[self[unit_position].occupant]):
-            raise MoveNotPossibleError("Selected move is not valid.")
-        if self[unit_position].occupant.white is not self.white_move:
-            raise MoveNotPossibleError(
-                "Wrong piece selected, it's {} player turn.".format(
-                    "white" if self.white_move else "black"
-                )
-            )
-
-        new_board = copy.copy(self)
-        new_board[unit_position] = copy.copy(new_board[unit_position])
-        new_board[new_position] = copy.copy(new_board[new_position])
-        moved_unit = new_board[unit_position].occupant
-        captured_unit = new_board[new_position].occupant
-
-        new_board.positions = self.positions.copy()
-        new_board.moves = self.moves.copy()
-
-        if new_board[new_position]:
-            del new_board.positions[captured_unit]
-            del new_board.moves[captured_unit]
-
-        new_board[new_position].occupant = moved_unit
-        new_board[unit_position].occupant = EMPTY
-
-        new_board.positions[moved_unit] = new_position
-
-        new_board.moves[moved_unit] = new_board.get_single_unit_moves(
-            new_position)
-
-        current_player_moves, next_player_moves = self.last_moves.copy()
-        current_player_moves.pop(0)
-        current_player_moves.append((unit_position, new_position))
-        new_board.last_moves = [next_player_moves, current_player_moves]
-
-        new_board.white_move = not self.white_move
-        new_board.move_count = self.move_count + 1
-        new_board.previous_board = self
-
-        return new_board
-
     @property
-    def white_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+    def white_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of white player. """
-        return {unit: moves for unit, moves in self.moves.items() if unit.white}
+        return {current_unit: moves for current_unit, moves in self.moves.items()
+                if current_unit.white}
 
     @property
-    def black_moves(self) -> Dict[Unit, Set[Tuple[int, int]]]:
+    def black_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of black player. """
-        return {unit: moves for unit, moves in self.moves.items() if not unit.white}
+        return {unit_: moves for unit_, moves in self.moves.items() if not unit_.white}
 
     @staticmethod
-    def no_valid_modes(moves: Iterable) -> bool:
+    def no_valid_moves(moves: Iterable) -> bool:
         """ Returns True if given collection of moves contains no valid moves else False. """
-        return any(bool(move) for move in moves)
+        return not any(bool(move) for move in moves)
 
     def find_outcome(self) -> Tuple[bool, int]:
         """
@@ -250,13 +167,67 @@ class Board(np.ndarray):
          1 - White player won.
         """
         alive_pieces = set(self.positions.keys())
-        if BLACK_DEN not in alive_pieces or self.no_valid_modes(self.black_moves.values()):
+        if unit.BLACK_DEN not in alive_pieces or self.no_valid_moves(self.black_moves.values()):
+            self.game_over = True
             return True, 1
-        if WHITE_DEN not in alive_pieces or self.no_valid_modes(self.white_moves.values()):
+        if unit.WHITE_DEN not in alive_pieces or self.no_valid_moves(self.white_moves.values()):
+            self.game_over = True
             return True, -1
         if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
+            self.game_over = True
             return True, 0
         return False, 0
+
+    @classmethod
+    def initialize(cls) -> Board:
+        """ Initializes board according to game rules. """
+        cells = [
+            [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
+             cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
+             cell.Cell(unit.BLACK_TIGER)],
+            [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
+             cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
+             cell.Cell()],
+            [cell.Cell(unit.BLACK_MOUSE), cell.Cell(), cell.Cell(unit.BLACK_LEOPARD), cell.Cell(),
+             cell.Cell(unit.BLACK_WOLF), cell.Cell(), cell.Cell(unit.BLACK_ELEPHANT)],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(unit.WHITE_ELEPHANT), cell.Cell(), cell.Cell(unit.WHITE_WOLF), cell.Cell(),
+             cell.Cell(unit.WHITE_LEOPARD), cell.Cell(), cell.Cell(unit.WHITE_MOUSE)],
+            [cell.Cell(), cell.Cell(unit.WHITE_CAT), cell.Cell(),
+             cell.Cell(trap=True, white_trap=True),
+             cell.Cell(), cell.Cell(unit.WHITE_DOG), cell.Cell()],
+            [cell.Cell(unit.WHITE_TIGER), cell.Cell(), cell.Cell(trap=True, white_trap=True),
+             cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
+             cell.Cell(unit.WHITE_LION)],
+        ]
+        return Board(cells)
+
+    def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+        """
+        Executes move using move_board instance.
+
+        :param unit_position: Current unit position, tuple (x_position, y_position).
+        :param selected_move: Position to move unit to, tuple (x_position, y_position).
+
+        :return: New instance of the board with unit moved to new position.
+
+        board = [
+            [Cell(Unit1), Cell(Empty)],
+            [Cell(Empty), Cell(Empty)]
+        ]
+        board.move(Position(y=0, x=0), Move(y=0, x=1))
+        board = [
+            [Cell(Empty), Cell(Unit1)],
+            [Cell(Empty), Cell(Empty)]
+        ]
+        """
+        board_move = BoardMove(self)
+        return board_move(unit_position=unit_position, selected_move=selected_move)
 
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """
@@ -269,31 +240,24 @@ class BoardTensor(np.ndarray):
         STEP_BOARDS = 22
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
-        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2))
 
-        obj[:, :, -1] = board.white_move
-        obj[:, :, -2] = board.move_count
-
-        current_board = board
-        for step in range(8):
-            start = step * STEP_BOARDS
-            stop = (step + 1) * STEP_BOARDS
-            if current_board is None:
-                break
-            obj[:, :, start:stop] = BoardTensor.get_step_tensor(current_board, board.white_move)
-            current_board = current_board.previous_board
-        return obj.view(cls)
+        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2)).view(cls)
+        obj.current_board = board
+        return obj
 
     def __array_finalize__(self, obj):
         if obj is None:
             return
+        current_board = getattr(obj, "current_board", None)
+        if not current_board:
+            return
+
         STEP_BOARDS = 22
-        current_board = obj.current_board
         current_white = current_board.white_move
         for step in range(8):
             start = step * STEP_BOARDS
             stop = (step + 1) * STEP_BOARDS
-            if self.current_board is None:
+            if current_board is None:
                 self[:, :, start:stop] = self.get_empty_step_tensor()
             else:
                 self[:, :, start:stop] = self.get_step_tensor(current_board,
@@ -350,11 +314,205 @@ class BoardTensor(np.ndarray):
         return array
 
 
-if __name__ == '__main__':
-    import numpy as np
+class BoardMove:
 
+    def __init__(self, board: Board):
+        self.board = board
+
+    def __call__(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+        """
+        Executes move for a selected unit by executing following steps.
+
+        0. Calculate new position and select corresponding unit.
+        1. Validates if selected move is valid.
+        2. Copy current board state into a new board instance, and update trackers.
+        3. Remove captured unit if there is any.
+        4. Move unit to new position
+        5. Update moved unit board data.
+        6. Update moved unit neighbours data, units which could capture selected field.
+        7. Update repetition trackers for the board.
+        9. Check game outcome.
+
+        :param unit_position: Initial position of unit that will be moved.
+        :param selected_move: Move which will be executed by a unit.
+
+        :return: New instance of board which was created by following move algorithm shown above.
+        """
+        new_position = self.board.get_new_position(unit_position, selected_move)
+        selected_unit = self.board[unit_position].occupant
+
+        self.validate_move(selected_unit=selected_unit, selected_move=selected_move)
+        self.validate_player_piece(selected_unit=selected_unit)
+
+        new_board = self.copy_board(positions=(unit_position, new_position))
+
+        if new_board[new_position]:
+            self.remove_captured_unit(board=new_board, position=new_position)
+
+        self.move_unit(board=new_board, start_position=unit_position, end_position=new_position)
+        self.update_unit(board=new_board, unit=selected_unit, position=new_position)
+
+        self.update_neighbours(board=new_board, position=new_position)
+        self.update_repetitions(board=new_board, start_position=unit_position,
+                                end_position=new_position)
+
+        new_board.find_outcome()
+
+        return new_board
+
+    def validate_move(self, selected_unit: unit.Unit, selected_move: unit_moves.Move) -> None:
+        """ Raises MoveNotPossibleError in case selected unit cannot execute selected move. """
+        unit_moves = self.board.moves[selected_unit]
+        if selected_move not in unit_moves:
+            unit_moves_str = "\n".join(f"\t{unit_move}" for unit_move in unit_moves)
+            raise MoveNotPossibleError(
+                f"Selected move is not valid.\n"
+                f"Selected {selected_move} for unit '{selected_unit}' with moves:\n"
+                f"{unit_moves_str}"
+            )
+
+    def validate_player_piece(self, selected_unit: unit.Unit) -> None:
+        """ Raises MoveNotPossibleError in case selected unit cannot move during current turn. """
+        if selected_unit.white != self.board.white_move:
+            player, piece = ("white", "black") if self.board.white_move else ("black", "white")
+            raise MoveNotPossibleError(f"Selected {piece} piece during {player} player's turn.")
+
+    def copy_board(self, positions: Tuple[Position, ...]) -> Board:
+        """
+        Creates a copy of board attribute and copies fields that will be affected during moves.
+
+        :param positions: Iterable of Position, each cell defined by position will be copied.
+
+        :return: New instance of board with copied important fields of numpy array.
+        """
+        board = copy.copy(self.board)
+
+        for position in positions:
+            board[position] = copy.copy(board[position])
+
+        board.positions = self.board.positions.copy()
+        board.moves = self.board.moves.copy()
+        board.last_moves = copy.deepcopy(self.board.last_moves)
+
+        board.white_move = not self.board.white_move
+        board.move_count = self.board.move_count + 1
+        board.previous_board = self.board
+
+        return board
+
+    @staticmethod
+    def remove_captured_unit(board: Board, position: Position) -> None:
+        """
+        Removes all data associated to captured unit from board instance.
+
+        :param board: Instance of the board from which data will be removed.
+        :param position: Position used to identify removed unit.
+
+        :return: None.
+        """
+        captured_unit = board[position].occupant
+        board[position].occupant = unit.EMPTY
+
+        del board.positions[captured_unit]
+        del board.moves[captured_unit]
+
+    @staticmethod
+    def move_unit(board: Board, start_position: Position, end_position: Position) -> None:
+        """
+        Moves unit from start to end, and sets start to Empty state.
+
+        :param board: Instance of the board which will be modified.
+        :param start_position: Position form which unit will be moved.
+        :param end_position: Position to which unit will be moved.
+
+        :return: None.
+        """
+        moved_unit = board[start_position].occupant
+
+        board[end_position].occupant = moved_unit
+        board[start_position].occupant = unit.EMPTY
+
+    @staticmethod
+    def update_unit(board: Board, unit: unit.Unit, position: Position) -> None:
+        """
+        Updates unit data by setting assigning it new position and moves.
+
+        :param board: Instance of the board which will be updated.
+        :param unit: Unit for which board attributes will be updated.
+        :param position: Position which will be used for updating board data.
+
+        :return: None.
+        """
+        board.positions[unit] = position
+        board.moves[unit] = board.get_single_unit_moves(position)
+
+    @staticmethod
+    def update_repetitions(board: Board, start_position: Position, end_position: Position) -> None:
+        """
+        Updates board repetitions trackers.
+
+        :param board: Instance of the board which repetitions trackers will be updated.
+        :param start_position: Position form which unit was moved.
+        :param end_position: Position to which unit was moved.
+
+        :return: None.
+        """
+        current_player_moves, next_player_moves = board.last_moves
+        current_player_moves.popleft()
+        current_player_moves.append((start_position, end_position))
+        board.last_moves = [next_player_moves, current_player_moves]
+
+    @staticmethod
+    def get_neighbour_position(board: Board, position: Position,
+                               move: unit_moves.Move) -> Position:
+        """
+        Selects neighbour by given move, including jump move possibility.
+
+        :param board: Instance of the board to find neighbour based on.
+        :param position: Initial position used to calculate new one by moving.
+        :param move: Move used to find neighbour.
+
+        :return: Position of the neighbour.
+        """
+        new_position = board.get_new_position(position, move)
+        if not board.is_position_valid(new_position):
+            raise ValueError("Position outside of the board.")
+
+        neighbour_cell = board[new_position]
+
+        if not neighbour_cell and neighbour_cell.water:
+            move = unit_moves.get_jump_move(move)
+            new_position = board.get_new_position(position, move)
+            if not board.is_position_valid(new_position):
+                raise ValueError("Position outside of the board.")
+            neighbour_cell = board[new_position]
+
+        if neighbour_cell:
+            return new_position
+
+        raise ValueError("Position is Empty.")
+
+    @staticmethod
+    def update_neighbours(board: Board, position: Position):
+        """
+        Updates move data for all neighbours.
+
+        :param board: Instance of the board which data will be updated.
+        :param position: Position for which neighbours will be updated.
+
+        :return: None.
+        """
+        for move in unit_moves.base_moves:
+            try:
+                new_position = BoardMove.get_neighbour_position(board, position, move)
+            except ValueError:
+                continue
+            neighbour = board[new_position].occupant
+            neighbour_moves = board.get_single_unit_moves(new_position)
+            board.moves[neighbour] = neighbour_moves
+
+
+if __name__ == '__main__':
     board = Board.initialize()
-    print(board)
-    # board_tensor = board.to_tensor()
-    # print(board_tensor.shape)
-    # np.save("../tensor.npy", board_tensor)
+    tensor = board.to_tensor()
+    print(tensor.shape)

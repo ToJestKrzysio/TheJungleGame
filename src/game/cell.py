@@ -67,7 +67,10 @@ class Cell:
         return f"Cell({repr(self.occupant)}),"
 
     def __repr__(self):
-        sign = "+" if self.occupant.white else "-"
+        if self.occupant is EMPTY:
+            sign = " "
+        else:
+            sign = "+" if self.occupant.white else "-"
         return f"{sign}{repr(self.occupant.value)}"
 
     def __bool__(self):
@@ -81,16 +84,17 @@ class Cell:
 
         :return: True if cell can be captured otherwise False
         """
+        if other and other.occupant.white == self.occupant.white:
+            return False
         if self.water:
             if other.water:
                 return other.occupant.value in self.occupant.captures_water
             return other.occupant.value in self.occupant.captures_mixed
         if other.trap:
-            if (isinstance(self.occupant, Den) or (
-                    other.white_trap == other.occupant.white and
-                    other.occupant is not EMPTY)):
-                return False
-            return True
+            return not (
+                    isinstance(self.occupant, Den) or
+                    (other.white_trap == other.occupant.white and other.occupant is not EMPTY)
+            )
         if other.water:
             return other.occupant.value in self.occupant.captures_mixed
         return other.occupant.value in self.occupant.captures_land

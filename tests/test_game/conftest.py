@@ -2,8 +2,8 @@ import numpy as np
 
 from pytest import fixture
 
-from src.game_engine.cell import Cell
-from src.game_engine.unit import Empty
+from src.game.cell import Cell
+from src.game.unit import Empty
 
 
 @fixture

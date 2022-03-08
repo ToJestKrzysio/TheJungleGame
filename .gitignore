@@ -7,3 +7,5 @@ Images
 .coverage
 .pytest_cache
 githubAlexM
+
+**/data/training/training_data_*

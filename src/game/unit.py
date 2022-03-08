@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from src.game.properties import Units
 
-
 __all__ = [
     "Unit", "Den",
     "EMPTY", "WHITE_DEN", "BLACK_DEN",
