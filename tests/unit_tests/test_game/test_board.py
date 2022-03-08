@@ -667,13 +667,12 @@ class TestBoardMove:
         with pytest.raises(ValueError, match="Position outside of the board."):
             BoardMove.get_neighbour_position(board=board, position=position, move=move)
 
-    @pytest.mark.parametrize("water", [True, False])
-    def test_get_neighbour_position_valid_base_move(self, water):
+    def test_get_neighbour_position_valid_base_move(self):
         new_position_mock = Mock()
 
         cell_mock = MagicMock()
         cell_mock.__bool__.return_value = True
-        cell_mock.water = water
+        cell_mock.water = False
 
         board_mock = MagicMock()
         board_mock.get_new_position.return_value = new_position_mock
@@ -687,12 +686,33 @@ class TestBoardMove:
         assert result == new_position_mock
         board_mock.get_new_position.assert_called_once_with(position, move)
 
+    def test_get_neighbour_position_invalid_base_move_empty_cell(self):
+        new_position_mock = Mock()
+
+        cell_mock = MagicMock()
+        cell_mock.__bool__.return_value = False
+        cell_mock.water = False
+
+        board_mock = MagicMock()
+        board_mock.get_new_position.return_value = new_position_mock
+        board_mock.is_position_valid.return_value = True
+        board_mock.__getitem__.return_value = cell_mock
+
+        position = Mock()
+        move = Mock()
+        with pytest.raises(ValueError, match="Position is Empty."):
+            BoardMove.get_neighbour_position(
+                board=board_mock, position=position, move=move
+            )
+
+        board_mock.get_new_position.assert_called_once_with(position, move)
+
     @patch(f"{PATH}.unit_moves.get_jump_move")
     def test_get_neighbour_position_valid_jump_move(self, get_jump_move_patch):
         new_position_mock = Mock()
 
         cell_mock = MagicMock()
-        cell_mock.__bool__.return_value = False
+        cell_mock.__bool__.side_effect = [False, True]
         cell_mock.water = True
 
         board = MagicMock()
@@ -708,6 +728,32 @@ class TestBoardMove:
         result = BoardMove.get_neighbour_position(board=board, position=position, move=move)
 
         assert result == new_position_mock
+        assert board.get_new_position(
+            call(position, move),
+            call(position, jump_move),
+        )
+
+    @patch(f"{PATH}.unit_moves.get_jump_move")
+    def test_get_neighbour_position_invalid_jump_move_empty_cell(self, get_jump_move_patch):
+        new_position_mock = Mock()
+
+        cell_mock = MagicMock()
+        cell_mock.__bool__.side_effect = [False, False]
+        cell_mock.water = True
+
+        board = MagicMock()
+        board.get_new_position.return_value = new_position_mock
+        board.is_position_valid.return_value = True
+        board.__getitem__.return_value = cell_mock
+
+        jump_move = Mock()
+        get_jump_move_patch.return_value = jump_move
+
+        position = Mock()
+        move = Mock()
+        with pytest.raises(ValueError, match="Position is Empty."):
+            BoardMove.get_neighbour_position(board=board, position=position, move=move)
+
         assert board.get_new_position(
             call(position, move),
             call(position, jump_move),
@@ -729,3 +775,9 @@ class TestBoardMove:
             for move in moves:
                 new_position = (position.y + move.y, position.x + move.x)
                 assert position != new_position
+
+        for unit in board.positions:
+            assert isinstance(unit, Unit)
+
+        for unit in board.moves:
+            assert isinstance(unit, Unit)

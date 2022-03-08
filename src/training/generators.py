@@ -31,7 +31,6 @@ class GameDataGenerator:
         memory = []
         np.random.seed(42)
 
-
         for game_id in range(self.num_games):
             print(f"Starting game {game_id + 1} of {self.num_games}")
 
@@ -41,6 +40,9 @@ class GameDataGenerator:
             outcome = None
             cycles = 0  # TODO remove cycles
             while not game_over:
+                print("*" * 100, "\n") # TODO REMOVE
+                print(env)
+                print("\n")
                 current_game_state = env.to_tensor()
                 current_player_value = int(env.white_move) * 2 - 1
 

@@ -45,8 +45,8 @@ class Board(np.ndarray):
         self.moves = self.get_moves_for_all_units()
         self.previous_board = None
         self.last_moves = [
-            deque([[None] * (type(self).MAX_REPETITIONS * 2 - 1)]),
-            deque([[None] * (type(self).MAX_REPETITIONS * 2 - 1)]),
+            deque([None] * (type(self).MAX_REPETITIONS * 2 - 1)),
+            deque([None] * (type(self).MAX_REPETITIONS * 2 - 1)),
         ]
         self.white_move = True
         self.move_count = 0
@@ -150,8 +150,7 @@ class Board(np.ndarray):
     @property
     def black_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of black player. """
-        return {current_unit: moves for current_unit, moves in self.moves.items()
-                if not current_unit.white}
+        return {unit_: moves for unit_, moves in self.moves.items() if not unit_.white}
 
     @staticmethod
     def no_valid_moves(moves: Iterable) -> bool:
@@ -185,7 +184,7 @@ class Board(np.ndarray):
         cells = [
             [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
              cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
-             cell.Cell(unit.BLACK_LEOPARD)],
+             cell.Cell(unit.BLACK_TIGER)],
             [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
              cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
              cell.Cell()],
@@ -480,11 +479,16 @@ class BoardMove:
             raise ValueError("Position outside of the board.")
 
         neighbour_cell = board[new_position]
+
         if not neighbour_cell and neighbour_cell.water:
             move = unit_moves.get_jump_move(move)
             new_position = board.get_new_position(position, move)
+            neighbour_cell = board[new_position]
 
-        return new_position
+        if neighbour_cell:
+            return new_position
+
+        raise ValueError("Position is Empty.")
 
     @staticmethod
     def update_neighbours(board: Board, position: Position):
@@ -501,7 +505,7 @@ class BoardMove:
                 new_position = BoardMove.get_neighbour_position(board, position, move)
             except ValueError:
                 continue
-            neighbour = board[new_position]
+            neighbour = board[new_position].occupant
             neighbour_moves = board.get_single_unit_moves(new_position)
             board.moves[neighbour] = neighbour_moves
 
