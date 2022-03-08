@@ -141,98 +141,6 @@ class Board(np.ndarray):
         most_common = counter.most_common(1)
         return most_common[0][1] if most_common else 0
 
-    @classmethod
-    def initialize(cls) -> Board:
-        """ Initializes board according to game rules. """
-        cells = [
-            [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
-             cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
-             cell.Cell(unit.BLACK_LEOPARD)],
-            [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
-             cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
-             cell.Cell()],
-            [cell.Cell(unit.BLACK_MOUSE), cell.Cell(), cell.Cell(unit.BLACK_LEOPARD), cell.Cell(),
-             cell.Cell(unit.BLACK_WOLF), cell.Cell(), cell.Cell(unit.BLACK_ELEPHANT)],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(unit.WHITE_ELEPHANT), cell.Cell(), cell.Cell(unit.WHITE_WOLF), cell.Cell(),
-             cell.Cell(unit.WHITE_LEOPARD), cell.Cell(), cell.Cell(unit.WHITE_MOUSE)],
-            [cell.Cell(), cell.Cell(unit.WHITE_CAT), cell.Cell(),
-             cell.Cell(trap=True, white_trap=True),
-             cell.Cell(), cell.Cell(unit.WHITE_DOG), cell.Cell()],
-            [cell.Cell(unit.WHITE_TIGER), cell.Cell(), cell.Cell(trap=True, white_trap=True),
-             cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
-             cell.Cell(unit.WHITE_LION)],
-        ]
-        return Board(cells)
-
-    # TODO move -  refactor into separate class and attach it to this class method
-    def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
-        """
-        Creates new instance of a board and moves selected unit to new location on that board.
-
-        :param unit_position: Current unit position, tuple (x_position, y_position).
-        :param selected_move: Position to move unit to, tuple (x_position, y_position).
-
-        :return: New instance of the board with unit moved to new position.
-
-        board = [
-            [Cell(Unit1), Cell(Empty)],
-            [Cell(Empty), Cell(Empty)]
-        ]
-        board.move(Position(y=0, x=0), Move(y=0, x=1))
-        board = [
-            [Cell(Empty), Cell(Unit1)],
-            [Cell(Empty), Cell(Empty)]
-        ]
-        """
-        new_position = self.get_new_position(unit_position, selected_move)
-        selected_unit = self[unit_position].occupant
-
-        if selected_move not in self.moves[selected_unit]:
-            raise MoveNotPossibleError("Selected move is not valid.")
-        if selected_unit.white != self.white_move:
-            raise MoveNotPossibleError(
-                "Wrong piece selected, it's {} player turn.".format(
-                    "white" if self.white_move else "black"
-                )
-            )
-
-        new_board = copy.copy(self)
-        new_board[unit_position] = copy.copy(new_board[unit_position])
-        new_board[new_position] = copy.copy(new_board[new_position])
-        moved_unit = new_board[unit_position].occupant
-        captured_unit = new_board[new_position].occupant
-
-        new_board.positions = self.positions.copy()
-        new_board.moves = self.moves.copy()
-
-        if new_board[new_position]:
-            del new_board.positions[captured_unit]
-            del new_board.moves[captured_unit]
-
-        new_board[new_position].occupant = moved_unit
-        new_board[unit_position].occupant = unit.EMPTY
-
-        new_board.positions[moved_unit] = new_position
-        new_board.moves[moved_unit] = new_board.get_single_unit_moves(new_position)
-
-        current_player_moves, next_player_moves = copy.deepcopy(self.last_moves)
-        current_player_moves.pop(0)
-        current_player_moves.append((unit_position, new_position))
-        new_board.last_moves = [next_player_moves, current_player_moves]
-
-        new_board.white_move = not self.white_move
-        new_board.move_count = self.move_count + 1
-        new_board.previous_board = self
-
-        new_board.find_outcome()
-        return new_board
-
     @property
     def white_moves(self) -> Dict[unit.Unit, Set[unit_moves.Move]]:
         """ Returns all valid moves of white player. """
@@ -270,6 +178,57 @@ class Board(np.ndarray):
             self.game_over = True
             return True, 0
         return False, 0
+
+    @classmethod
+    def initialize(cls) -> Board:
+        """ Initializes board according to game rules. """
+        cells = [
+            [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
+             cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
+             cell.Cell(unit.BLACK_LEOPARD)],
+            [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
+             cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
+             cell.Cell()],
+            [cell.Cell(unit.BLACK_MOUSE), cell.Cell(), cell.Cell(unit.BLACK_LEOPARD), cell.Cell(),
+             cell.Cell(unit.BLACK_WOLF), cell.Cell(), cell.Cell(unit.BLACK_ELEPHANT)],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
+             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
+            [cell.Cell(unit.WHITE_ELEPHANT), cell.Cell(), cell.Cell(unit.WHITE_WOLF), cell.Cell(),
+             cell.Cell(unit.WHITE_LEOPARD), cell.Cell(), cell.Cell(unit.WHITE_MOUSE)],
+            [cell.Cell(), cell.Cell(unit.WHITE_CAT), cell.Cell(),
+             cell.Cell(trap=True, white_trap=True),
+             cell.Cell(), cell.Cell(unit.WHITE_DOG), cell.Cell()],
+            [cell.Cell(unit.WHITE_TIGER), cell.Cell(), cell.Cell(trap=True, white_trap=True),
+             cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
+             cell.Cell(unit.WHITE_LION)],
+        ]
+        return Board(cells)
+
+    def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+        """
+        Executes move using move_board instance.
+
+        :param unit_position: Current unit position, tuple (x_position, y_position).
+        :param selected_move: Position to move unit to, tuple (x_position, y_position).
+
+        :return: New instance of the board with unit moved to new position.
+
+        board = [
+            [Cell(Unit1), Cell(Empty)],
+            [Cell(Empty), Cell(Empty)]
+        ]
+        board.move(Position(y=0, x=0), Move(y=0, x=1))
+        board = [
+            [Cell(Empty), Cell(Unit1)],
+            [Cell(Empty), Cell(Empty)]
+        ]
+        """
+        board_move = BoardMove(self)
+        return board_move(unit_position=unit_position, selected_move=selected_move)
 
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """
