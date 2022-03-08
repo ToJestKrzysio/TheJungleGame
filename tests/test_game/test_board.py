@@ -764,11 +764,9 @@ class TestBoardMove:
     def test_update_neighbours(self, position: Position, move: moves.Move):
         board = Board.initialize()
         board[position].occupant = WHITE_MOUSE
-        initial_moves = deepcopy(board.moves)
 
         BoardMove.update_neighbours(board=board, position=position)
 
-        assert initial_moves != board.moves
         for unit in board.positions:
             position = board.positions[unit]
             moves = board.moves[unit]
@@ -778,6 +776,8 @@ class TestBoardMove:
 
         for unit in board.positions:
             assert isinstance(unit, Unit)
+        assert EMPTY not in board.positions.keys()
 
         for unit in board.moves:
             assert isinstance(unit, Unit)
+        assert EMPTY not in board.moves.keys()

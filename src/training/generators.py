@@ -40,7 +40,9 @@ class GameDataGenerator:
             outcome = None
             cycles = 0  # TODO remove cycles
             while not game_over:
+                player_ = "white" if env.white_move else "black"
                 print("*" * 100, "\n") # TODO REMOVE
+                print(f"Turn {cycles} moving: {player_}")
                 print(env)
                 print("\n")
                 current_game_state = env.to_tensor()
@@ -218,12 +220,12 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 3,
-        "TRAINING_ITERATION": 5,
-        "TERMINATE_COUNTER": 10,
+        "NUMBER_OF_GAMES": 1,
+        "TRAINING_ITERATION": 1,
+        "TERMINATE_COUNTER": 50,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 5,
+        "MAX_EVALUATIONS": 1000,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

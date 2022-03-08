@@ -483,6 +483,8 @@ class BoardMove:
         if not neighbour_cell and neighbour_cell.water:
             move = unit_moves.get_jump_move(move)
             new_position = board.get_new_position(position, move)
+            if not board.is_position_valid(new_position):
+                raise ValueError("Position outside of the board.")
             neighbour_cell = board[new_position]
 
         if neighbour_cell:
