@@ -51,14 +51,23 @@ class NetworkPolicy(Policy):
     C = 1.5
 
     def __call__(self, node: "mcts_node.Node"):
-        t = 1
-        if not node.visits:
-            node.get_value()
-            node.expand_node()
+        if not node.child_nodes:
+            probability_vector, q_value = predict(node)
+
+            self.set_child_probabilities(node, probability_vector)
+            node.backpropagation()
         else:
-            best_child_node = self.select_child(node)
-            best_child_node.evaluate()
-            node.value = sum(child_node.value for child_node in node.child_nodes)
+            child_node = self.select_child(node)
+            # Is Game over? -> back propagete results
+            # If game is not over run selection again -> call to policy
+
+        # if not node.visits:
+        #     node.get_value()
+        #     node.expand_node()
+        # else:
+        #     best_child_node = self.select_child(node)
+        #     best_child_node.evaluate()
+        #     node.value = sum(child_node.value for child_node in node.child_nodes)
         node.visits += 1
 
     def select_child(self, node: "mcts_node.Node") -> "mcts_node.Node":
