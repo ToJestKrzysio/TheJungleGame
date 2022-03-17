@@ -101,3 +101,6 @@ class ValuePolicyNetwork:
             1, activation="tanh", use_bias=True, kernel_regularizer=self.dense_kernel_reg,
             bias_regularizer=self.dense_bias_reg, name="Value Head")(batch_norm_2)
         return output_layer
+
+
+value_policy_model = ValuePolicyNetwork()

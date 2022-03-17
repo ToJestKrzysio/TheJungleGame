@@ -5,11 +5,13 @@ import itertools
 from collections import Counter, deque, namedtuple
 from typing import Dict, List, Set, Tuple, Iterable
 
+from tensorflow import keras
 import numpy as np
 
 from game.exceptions import MoveNotPossibleError
 from src.game import cell, unit
 from src.game import moves as unit_moves
+from src.game.network import value_policy_model
 
 Position = namedtuple("Position", ["y", "x"])
 
@@ -51,6 +53,7 @@ class Board(np.ndarray):
         self.white_move = True
         self.move_count = 0
         self.game_over = False
+        self.model = None
 
     def get_positions(self) -> dict[unit.Unit, Position]:
         """
@@ -179,7 +182,7 @@ class Board(np.ndarray):
         return False, 0
 
     @classmethod
-    def initialize(cls) -> Board:
+    def initialize(cls, model = None) -> Board:
         """ Initializes board according to game rules. """
         cells = [
             [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
@@ -205,7 +208,9 @@ class Board(np.ndarray):
              cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
              cell.Cell(unit.WHITE_LION)],
         ]
-        return Board(cells)
+        new_board = Board(cells)
+        new_board.model = model or value_policy_model
+        return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
         """
@@ -232,6 +237,11 @@ class Board(np.ndarray):
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """
         return BoardTensor(self)
+
+    def predict(self):
+        if not isinstance(self.model, keras.Model):
+            raise ValueError("No model assigned!")
+        return self.model.predict(self.to_tensor())
 
 
 class BoardTensor(np.ndarray):

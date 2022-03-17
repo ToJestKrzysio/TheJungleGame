@@ -50,9 +50,12 @@ class NetworkPolicy(Policy):
     ALPHA = 0.5
     C = 1.5
 
+    def __init__(self):
+        self.network = lambda _: 42
+
     def __call__(self, node: "mcts_node.Node"):
         if not node.child_nodes:
-            probability_vector, q_value = predict(node)
+            probability_vector, q_value = self.predict(node)
 
             self.set_child_probabilities(node, probability_vector)
             node.backpropagation()
@@ -69,6 +72,13 @@ class NetworkPolicy(Policy):
         #     best_child_node.evaluate()
         #     node.value = sum(child_node.value for child_node in node.child_nodes)
         node.visits += 1
+
+    def predict(self, node):
+        board_tensor = node.board.to_tensor()
+
+        return [], []
+
+
 
     def select_child(self, node: "mcts_node.Node") -> "mcts_node.Node":
         prior_probabilities = np.array(child.prior_probability for child in node.child_nodes)

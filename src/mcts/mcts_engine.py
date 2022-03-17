@@ -35,6 +35,7 @@ class Root:
                 best_node = child_node
         return best_node
 
+
 if __name__ == '__main__':
     board = Board.initialize()
     mcts_engine = Root(board)
