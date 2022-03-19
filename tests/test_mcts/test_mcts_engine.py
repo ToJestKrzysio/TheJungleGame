@@ -29,7 +29,7 @@ class TestRoot:
         counter_responses = [False, False, True]
         node_mock = mock.Mock(spec=mcts.Node)
         move_mock = mock.Mock()
-        best_node_mock = mock.Mock(spec=mcts.Node, move=move_mock)
+        best_node_mock = mock.Mock(spec=mcts.Node, unit_move=move_mock)
         counter_patch.over.side_effect = counter_responses
         counter_patch.__iadd__ = lambda x, y: x
         root_mock = mock.Mock(spec=mcts.Root, counter=counter_patch, node=node_mock)

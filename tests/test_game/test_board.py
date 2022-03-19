@@ -327,7 +327,12 @@ class TestBoard:
 
     @patch(f"{PATH}.BoardMove")
     def test_move(self, board_move_patch):
+        new_board = MagicMock()
+        new_board.find_outcome.return_value = [False, 0]
+
         board_move_instance = MagicMock()
+        board_move_instance.return_value = new_board
+
         board_move_patch.return_value = board_move_instance
         board_mock = Mock(spec=Board)
 

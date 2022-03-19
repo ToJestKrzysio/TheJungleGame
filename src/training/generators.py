@@ -8,7 +8,7 @@ from typing import List, Tuple
 import keras
 import numpy as np
 
-from src.game import Board
+from src.game.board import Board
 from src import networks, mcts
 from tensorflow.keras import models
 
@@ -53,7 +53,7 @@ class GameDataGenerator:
                 best_node, best_move = mcts_engine.evaluate()
                 unit, selected_move = best_move
                 current_position = env.positions[unit]
-                new_env = env.move(current_position, selected_move)
+                new_env = env.unit_move(current_position, selected_move)
 
                 q_value = mcts_engine.node.q * current_player_value
                 probability_planes = self._generate_probability_planes(mcts_engine)
@@ -165,7 +165,7 @@ class GameDataGenerator:
         :return: 3D numpy array representing moves, with updated position equal to child move
             position.
         """
-        unit, move = child.move
+        unit, move = child.unit_move
         visits = child.visits
         plane = move.value
         y, x = child.board.positions[unit]
@@ -210,7 +210,7 @@ class TournamentDataGenerator:
             best_node, best_move = mcts_engine.evaluate()
             unit, selected_move = best_move
             current_position = env.positions[unit]
-            env = env.move(current_position, selected_move)
+            env = env.unit_move(current_position, selected_move)
 
         _, outcome = env.find_outcome()
         print(f"Game finished with result {outcome} after {env.move_count} moves.")

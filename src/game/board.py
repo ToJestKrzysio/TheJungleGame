@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+from abc import ABC, abstractmethod
 from collections import Counter, deque, namedtuple
 from typing import Dict, List, Set, Tuple, Iterable
 
@@ -34,6 +35,8 @@ class Board(np.ndarray):
     white_move: bool
     MAX_REPETITIONS: int = 3
     game_over: bool
+    value: float = 0
+    outcome: float = 0
 
     def __new__(cls, cells: np.ndarray | List[List[cell.Cell]]):
         obj = np.asarray(cells, dtype=cell.Cell).view(cls)
@@ -160,7 +163,7 @@ class Board(np.ndarray):
         """ Returns True if given collection of moves contains no valid moves else False. """
         return not any(bool(move) for move in moves)
 
-    def find_outcome(self) -> Tuple[bool, int]:
+    def find_outcome(self) -> Tuple[bool, float]:
         """
         Returns outcome of the current game state.
         Boolean value defines if game reached terminal state.
@@ -172,17 +175,19 @@ class Board(np.ndarray):
         alive_pieces = set(self.positions.keys())
         if unit.BLACK_DEN not in alive_pieces or self.no_valid_moves(self.black_moves.values()):
             self.game_over = True
-            return True, 1
-        if unit.WHITE_DEN not in alive_pieces or self.no_valid_moves(self.white_moves.values()):
+            self.outcome = 1
+        elif unit.WHITE_DEN not in alive_pieces or self.no_valid_moves(self.white_moves.values()):
             self.game_over = True
-            return True, -1
-        if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
+            self.outcome = -1
+        elif max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
             self.game_over = True
-            return True, 0
-        return False, 0
+            self.outcome = 0
+        else:
+            self.outcome = self.value
+        return self.game_over, self.outcome
 
     @classmethod
-    def initialize(cls, model = None) -> Board:
+    def initialize(cls, model=None) -> Board:
         """ Initializes board according to game rules. """
         cells = [
             [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
@@ -232,16 +237,20 @@ class Board(np.ndarray):
         ]
         """
         board_move = BoardMove(self)
-        return board_move(unit_position=unit_position, selected_move=selected_move)
+        new_board = board_move(unit_position=unit_position, selected_move=selected_move)
+        _, new_board.outcome = new_board.find_outcome()
+        return new_board
 
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """
         return BoardTensor(self)
 
-    def predict(self):
+    def predict(self) -> Tuple[float, np.ndarray]:
         if not isinstance(self.model, keras.Model):
             raise ValueError("No model assigned!")
-        return self.model.predict(self.to_tensor())
+        policy, self.value = self.model.predict(self.to_tensor())
+        # TODO - assigning value and policy to current board instead of generating every time?
+        return self.value, policy
 
 
 class BoardTensor(np.ndarray):
@@ -259,7 +268,7 @@ class BoardTensor(np.ndarray):
         if obj is None:
             return
         current_board = getattr(obj, "current_board", None)
-        if not current_board:
+        if current_board is None:
             return
 
         STEP_BOARDS = 22
@@ -306,7 +315,7 @@ class BoardTensor(np.ndarray):
         return np.concatenate([unit_tensor, repetition_tensor], axis=2)
 
     @staticmethod
-    def black_trap_array():
+    def black_trap_array() -> np.ndarray:
         """ Creates 2D array representing black player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[0, 2] = 1
@@ -315,7 +324,7 @@ class BoardTensor(np.ndarray):
         return array
 
     @staticmethod
-    def white_trap_array():
+    def white_trap_array() -> np.ndarray:
         """ Creates 2D array representing white player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[8, 2] = 1

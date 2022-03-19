@@ -26,7 +26,7 @@ class Root:
             self.node.evaluate()
             self.counter += 1
         best_node = self.find_best_node()
-        return best_node, best_node.move
+        return best_node, best_node.unit_move
 
     def find_best_node(self) -> Node:
         best_node = self.node.child_nodes[0]

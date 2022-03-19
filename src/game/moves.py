@@ -1,7 +1,12 @@
-__all__ = ["Move", "forward", "backward", "left", "right", "forward_jump", "backward_jump",
-           "left_jump", "right_jump", "base_moves", "get_jump_move"]
+from __future__ import annotations
+
+__all__ = ["Move", "UnitMove", "forward", "backward", "left", "right", "forward_jump",
+           "backward_jump", "left_jump", "right_jump", "base_moves", "jump_moves", "get_jump_move"]
 
 from collections import namedtuple
+from typing import NamedTuple
+
+from game.unit import Unit
 
 Move = namedtuple("Move", ["value", "x", "y", "sign"], defaults=[None, None, None, 1])
 forward = Move(value=0, x=0, y=1, sign=1)
@@ -26,3 +31,8 @@ def get_jump_move(move: Move) -> Move:
         right: right_jump
     }
     return jump_mapping[move]
+
+
+class UnitMove(NamedTuple):
+    unit: Unit
+    move: Move

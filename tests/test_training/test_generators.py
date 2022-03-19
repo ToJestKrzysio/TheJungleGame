@@ -3,23 +3,24 @@ from unittest import mock
 import numpy as np
 import pytest
 
-import src.game.moves
+from src.game.moves import *
 import src.training.generators
+from src.game.board import Position
 
 
 class TestGameDataGenerator:
     PATH = "src.training.generators"
 
     @pytest.mark.parametrize("move, in_x, in_y, out_x, out_y", [
-        (src.game.moves.forward, 3, 2, 3, 3),
-        (src.game.moves.backward, 0, 1, 0, 0),
-        (src.game.moves.left, 6, 3, 5, 3),
-        (src.game.moves.right, 3, 6, 4, 6),
+        (forward, 3, 2, 3, 3),
+        (backward, 0, 1, 0, 0),
+        (left, 6, 3, 5, 3),
+        (right, 3, 6, 4, 6),
 
-        (src.game.moves.forward_jump, 3, 2, 3, 6),
-        (src.game.moves.backward_jump, 0, 7, 0, 3),
-        (src.game.moves.left_jump, 3, 6, 0, 6),
-        (src.game.moves.right_jump, 3, 4, 6, 4),
+        (forward_jump, 3, 2, 3, 6),
+        (backward_jump, 0, 7, 0, 3),
+        (left_jump, 3, 6, 0, 6),
+        (right_jump, 3, 4, 6, 4),
     ])
     @pytest.mark.parametrize("visits", [42, 11])
     def test_update_plane_for_child(self, move, in_x, in_y, out_x, out_y, visits):
@@ -27,10 +28,10 @@ class TestGameDataGenerator:
         expected = planes.copy()
 
         unit_mock = mock.Mock()
-        positions = {unit_mock: src.game.board.Position(x=out_x, y=out_y)}
+        positions = {unit_mock: Position(x=out_x, y=out_y)}
         board_mock = mock.Mock(positions=positions)
         child_mock = mock.Mock()
-        child_mock.move = (unit_mock, move)
+        child_mock.unit_move = UnitMove(unit_mock, move)
         child_mock.board = board_mock
         child_mock.visits = visits
 

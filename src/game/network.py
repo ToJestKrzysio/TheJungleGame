@@ -1,4 +1,10 @@
+from typing import Tuple, TYPE_CHECKING
+
+import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
+
+if TYPE_CHECKING:
+    from game.board import BoardTensor
 
 
 class ValuePolicyNetwork:
@@ -7,24 +13,20 @@ class ValuePolicyNetwork:
         self.conv_kernel_reg = regularizers.l2(
             kwargs.get("CONVOLUTIONAL_KERNEL_REGULARIZATION", 0.01))
         self.conv_bias_reg = regularizers.l2(
-            kwargs.get("CONVOLUTIONAL_BIAS_REGULARIZATION", self.conv_kernel_reg))
+            kwargs.get("CONVOLUTIONAL_BIAS_REGULARIZATION", 0.01))
 
         self.dense_kernel_reg = regularizers.l2(
             kwargs.get("DENSE_KERNEL_REGULARIZATION", 0.01))
         self.dense_bias_reg = regularizers.l2(
-            kwargs.get("DENSE_BIAS_REGULARIZATION", self.dense_kernel_reg))
+            kwargs.get("DENSE_BIAS_REGULARIZATION", 0.01))
 
         self.num_filters = kwargs.get("NUMBER_OF_FILTERS", 12)
         self.policy_loss_weight = kwargs.get("POLICY_LOSS_WEIGHT", 0.01)
         self.value_loss_weight = kwargs.get("VALUE_LOSS_WEIGHT", 0.01)
-        self.input_shape = kwargs.get("INPUT_SHAPE", (9, 7, 178))
+        self.input_shape = (9, 7, 178)
+        self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
-        self._model = None
-
-    @classmethod
-    def get_model(cls, **kwargs):
-        network = ValuePolicyNetwork(**kwargs)
-        return network.model
+        self.model = self.create_model()
 
     def create_model(self):
         model_input = layers.Input(shape=self.input_shape)
@@ -49,58 +51,76 @@ class ValuePolicyNetwork:
         )
         return model
 
-    @property
-    def model(self):
-        if self._model is None:
-            self._model = self.create_model()
-        return self._model
-
     def get_conv_block(self, input_layer: layers.Layer, layer_id: int) -> layers.Layer:
         conv_layer = layers.Conv2D(filters=self.num_filters, kernel_size=(3, 3), padding="same",
                                    activation="relu", use_bias=True, data_format="channels_last",
                                    kernel_regularizer=self.conv_kernel_reg,
                                    bias_regularizer=self.conv_bias_reg,
-                                   name=f"Convolutional Layer {layer_id}")(input_layer)
+                                   name=f"Convolutional_Layer_{layer_id}")(input_layer)
         batch_norm = layers.BatchNormalization(
-            axis=-1, name=f"Batch Normalization {layer_id}")(conv_layer)
+            axis=-1, name=f"Batch_Normalization_{layer_id}")(conv_layer)
         return batch_norm
 
     def get_policy_head(self, input_layer: layers.Layer):
         conv_layer_1 = layers.Conv2D(
             filters=self.num_filters, kernel_size=(3, 3), padding="same", activation="relu",
-            use_bias=True, data_format="channel_last", kernel_regularizer=self.conv_kernel_reg,
-            bias_regularizer=self.conv_bias_reg, name="Policy Convolutional Layer 1")(input_layer)
+            use_bias=True, data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
+            bias_regularizer=self.conv_bias_reg, name="Policy_Convolutional_Layer_1")(input_layer)
         batch_norm_1 = layers.BatchNormalization(
-            axis=-1, name="Policy Batch Normalization 1")(conv_layer_1)
+            axis=-1, name="Policy_Batch_Normalization_1")(conv_layer_1)
+        print(self.input_shape)
         conv_layer_2 = layers.Conv2D(
-            filters=self.input_shape[0:2], kernel_size=(1, 1), padding="same", activation="relu",
-            use_bias=True, data_format="channel_last", kernel_regularizer=self.conv_kernel_reg,
-            bias_regularizer=self.conv_bias_reg, name="Policy Convolutional Layer 2")(batch_norm_1)
+            filters=1, kernel_size=(1, 1), padding="same", activation="relu",
+            use_bias=True, data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
+            bias_regularizer=self.conv_bias_reg, name="Policy_Convolutional_Layer_2")(batch_norm_1)
         batch_norm_2 = layers.BatchNormalization(
-            axis=-1, name="Policy Batch Normalization 1")(conv_layer_2)
-        flatten_layer = layers.Flatten(name="Policy Flatten Layer")(batch_norm_2)
+            axis=-1, name="Policy_Batch_Normalization_2")(conv_layer_2)
+        flatten_layer = layers.Flatten(name="Policy_Flatten_Layer")(batch_norm_2)
         output_layer = layers.Dense(
-            512, activation='softmax', use_bias=True, kernel_regularizer=self.dense_kernel_reg,
-            bias_regularizer=self.dense_kernel_reg, name='Policy Head')(flatten_layer)
+            np.product(self.output_shape), activation='softmax', use_bias=True,
+            kernel_regularizer=self.dense_kernel_reg, bias_regularizer=self.dense_kernel_reg,
+            name='Policy_Head')(flatten_layer)
         return output_layer
 
     def get_value_head(self, input_layer: layers.Layer):
         conv_layer = layers.Conv2D(
             filters=1, kernel_size=(1, 1), padding="same", activation="relu", use_bias=True,
             data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
-            bias_regularizer=self.conv_bias_reg, name="Value Convolutional Layer")(input_layer)
+            bias_regularizer=self.conv_bias_reg, name="Value_Convolutional_Layer")(input_layer)
         batch_norm_1 = layers.BatchNormalization(
-            axis=-1, name="Value Batch Normalization 1")(conv_layer)
-        flatten_layer = layers.Flatten(name="Value Flatten Layer")(batch_norm_1)
+            axis=-1, name="Value_Batch_Normalization_1")(conv_layer)
+        flatten_layer = layers.Flatten(name="Value_Flatten_Layer")(batch_norm_1)
         dense_layer = layers.Dense(
             64, activation="relu", use_bias=True, kernel_regularizer=self.dense_kernel_reg,
-            bias_regularizer=self.dense_bias_reg, name="Value Dense Layer")(flatten_layer)
+            bias_regularizer=self.dense_bias_reg, name="Value_Dense_Layer")(flatten_layer)
         batch_norm_2 = layers.BatchNormalization(
-            axis=-1, name="Value Batch Normalization 2")(dense_layer)
+            axis=-1, name="Value_Batch_Normalization_2")(dense_layer)
         output_layer = layers.Dense(
             1, activation="tanh", use_bias=True, kernel_regularizer=self.dense_kernel_reg,
-            bias_regularizer=self.dense_bias_reg, name="Value Head")(batch_norm_2)
+            bias_regularizer=self.dense_bias_reg, name="Value_Head")(batch_norm_2)
         return output_layer
+
+    def predict(self, tensor: "BoardTensor", mask: np.array) -> Tuple[float, np.ndarray]:
+        """
+        Given tensor and mask executes following algorithm.
+        1. Predict value (float) and policy (array 9x7x8) using NN provided with tensor.
+        2. Applies mask to remove invalid policies.
+        3. Normalizes masked array.
+
+        :param tensor: Array representing current and previous board states.
+        :param mask: Boolean array, 1's indicate valid moves and 0's invalid.
+
+        :return: Tuple
+        """
+        value, policy = self.model.predict(tensor)
+
+        value = value[0][0]
+
+        policy = policy.reshape(self.output_shape)
+        policy *= mask
+        policy = policy / np.sum(policy)
+
+        return value, policy
 
 
 value_policy_model = ValuePolicyNetwork()
