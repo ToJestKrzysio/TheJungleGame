@@ -38,7 +38,7 @@ class TestGameDataGenerator:
         result = src.training.generators.GameDataGenerator._update_plane_for_child(
             planes, child_mock)
 
-        expected[move.value, out_y, out_x] = visits
+        expected[move.total_value, out_y, out_x] = visits
         assert np.array_equal(result, expected)
 
     @mock.patch(f"{PATH}.np.isclose", mock.Mock(return_value=True))

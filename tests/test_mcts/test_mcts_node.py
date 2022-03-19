@@ -58,7 +58,7 @@ class TestNode:
     ])
     def test_q(self, value, visits, expected):
         node = Node(mock.Mock())
-        node.value = value
+        node.total_value = value
         node.visits = visits
 
         assert node.q == expected

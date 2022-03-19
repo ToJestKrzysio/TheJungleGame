@@ -53,7 +53,7 @@ class GameDataGenerator:
                 best_node, best_move = mcts_engine.evaluate()
                 unit, selected_move = best_move
                 current_position = env.positions[unit]
-                new_env = env.unit_move(current_position, selected_move)
+                new_env = env.move(current_position, selected_move)
 
                 q_value = mcts_engine.node.q * current_player_value
                 probability_planes = self._generate_probability_planes(mcts_engine)
@@ -225,7 +225,7 @@ if __name__ == '__main__':
         "TERMINATE_COUNTER": 50,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 1000,
+        "MAX_EVALUATIONS": 500,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

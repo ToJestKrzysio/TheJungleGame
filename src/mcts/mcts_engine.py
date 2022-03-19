@@ -31,7 +31,7 @@ class Root:
     def find_best_node(self) -> Node:
         best_node = self.node.child_nodes[0]
         for child_node in self.node.child_nodes[1:]:
-            if child_node.value > best_node.value:
+            if child_node.total_value > best_node.total_value:
                 best_node = child_node
         return best_node
 

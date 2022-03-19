@@ -29,12 +29,12 @@ class BasePolicy(AbstractPolicy):
 
     def __call__(self, node: "Node"):
         if not node.visits:
-            node.value = node.get_value()
+            node.total_value = node.get_value()
             node.expand_node()
         else:
             best_child_node = self.select_child(node)
             best_child_node.evaluate()
-            node.value = sum(child_node.value for child_node in node.child_nodes)
+            node.total_value = sum(child_node.total_value for child_node in node.child_nodes)
         node.visits += 1
 
     def get_node_value(self, node: "Node") -> float:
@@ -53,19 +53,14 @@ class NetworkPolicy(AbstractPolicy):
     ALPHA = 0.5
     C = 1.5
 
-    def __init__(self):
-        self.network = lambda _: 42
-
     def __call__(self, node: "Node"):
         if not node.child_nodes:
-            value, probability_planes = self.predict(node)
-
-            self._set_child_probabilities(node, probability_planes)
-            node.backpropagation()
+            value, policy_planes = node.board.predict()
+            self._set_child_probabilities(node, policy_planes)
+            node.backpropagation(value)
         else:
             child_node = self.select_child(node)
-            # Is Game over? -> back propagete results
-            # If game is not over run selection again -> call to policy
+            child_node.evaluate()
 
     @staticmethod
     def _set_child_probabilities(node: "Node", probability_planes: np.array):
@@ -74,22 +69,6 @@ class NetworkPolicy(AbstractPolicy):
             y = child_node.unit_move.move.y
             x = child_node.unit_move.move.x
             child_node.prior_probability = probability_planes[y, x, layer]
-
-        # if not node.visits:
-        #     node.get_value()
-        #     node.expand_node()
-        # else:
-        #     best_child_node = self.select_child(node)
-        #     best_child_node.evaluate()
-        #     node.value = sum(child_node.value for child_node in node.child_nodes)
-        # node.visits += 1
-
-    def predict(self, node):
-        board_tensor = node.board.to_tensor()
-
-        return [], []
-
-
 
     def select_child(self, node: "Node") -> "Node":
         prior_probabilities = np.array(child.prior_probability for child in node.child_nodes)
@@ -101,4 +80,4 @@ class NetworkPolicy(AbstractPolicy):
 
 
 base_policy = BasePolicy()
-network_policy = BasePolicy()
+network_policy = NetworkPolicy()

@@ -5,15 +5,20 @@ from typing import List, Optional
 from game.moves import UnitMove
 from src.game.board import Board
 from src.mcts import value, policy
+from src.mcts.counter import _EvaluationsCounter, evaluations_counter
 
 
 class Node(object):
     board: Board
-    value: float
+    parent: Optional[Node]
+    unit_move: Optional[UnitMove]
+    total_value: float
     visits: int
-    nodes: List
-    unit_move: UnitMove
     child_nodes: List[Node]
+    policy_strategy: policy.AbstractPolicy
+    value_strategy: value.AbstractValue
+    prior_probability: float
+    counter: _EvaluationsCounter
 
     def __init__(
             self,
@@ -21,15 +26,16 @@ class Node(object):
             parent: Optional[Node] = None,
             unit_move: Optional[UnitMove] = None
     ):
-        self.board: Board = board
-        self.parent: Optional[Node] = parent
-        self.unit_move: Optional[UnitMove] = unit_move
-        self.value: int = 0
-        self.visits: int = 0
-        self.child_nodes: List[Node] = []
+        self.board = board
+        self.parent = parent
+        self.unit_move = unit_move
+        self.total_value = 0.0
+        self.visits = 0
+        self.child_nodes = []
         self.policy_strategy = policy.base_policy
         self.value_strategy = value.base_value
-        self.prior_probability = 0
+        self.prior_probability = 0.0
+        self.counter = evaluations_counter
 
         if parent is None:
             self.depth = 1
@@ -45,8 +51,8 @@ class Node(object):
 
     def get_value(self) -> float:
         """ Calculates value for the current node. """
-        self.value = self.value_strategy(self)
-        return self.value
+        self.total_value = self.value_strategy(self)
+        return self.total_value
 
     def expand_node(self) -> None:
         """ Generate nodes for each of possible moves. """
@@ -62,11 +68,14 @@ class Node(object):
     @property
     def q(self) -> float:
         try:
-            return self.value / self.visits
+            return self.total_value / self.visits
         except ZeroDivisionError:
             return 0
 
-    def backpropagation(self):
-        white_player = self.board.white_move
-        node.visits += 1
-        pass
+    def backpropagation(self, reward):
+        self.total_value += reward
+        if self.parent is not None:
+            self.visits += 1
+            self.parent.backpropagation(reward)
+        else:
+            self.counter += 1
