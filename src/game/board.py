@@ -10,7 +10,6 @@ import numpy as np
 from src.game import AbstractModel, Cell, MoveNotPossibleError, unit, value_policy_model
 from src.game import moves as unit_moves
 
-
 Position = namedtuple("Position", ["y", "x"])
 
 
@@ -184,27 +183,26 @@ class Board(np.ndarray):
         return self.game_over, self.outcome
 
     @classmethod
-    def initialize(cls, model=None) -> Board:
+    def initialize(cls, model: AbstractModel = None) -> Board:
         """ Initializes board according to game rules. """
         cells = [
             [Cell(unit.BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
-             Cell(unit.BLACK_DEN), Cell(trap=True, white_trap=False), Cell(), Cell(unit.BLACK_TIGER)],
-            [Cell(), Cell(unit.BLACK_DOG), Cell(),
-             Cell(trap=True, white_trap=False), Cell(), Cell(unit.BLACK_CAT),
-             Cell()],
+             Cell(unit.BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
+             Cell(unit.BLACK_TIGER)],
+            [Cell(), Cell(unit.BLACK_DOG), Cell(), Cell(trap=True, white_trap=False), Cell(),
+             Cell(unit.BLACK_CAT), Cell()],
             [Cell(unit.BLACK_MOUSE), Cell(), Cell(unit.BLACK_LEOPARD), Cell(),
              Cell(unit.BLACK_WOLF), Cell(), Cell(unit.BLACK_ELEPHANT)],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(),
-             Cell(water=True), Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(),
-             Cell(water=True), Cell(water=True), Cell()],
-            [Cell(), Cell(water=True), Cell(water=True), Cell(),
-             Cell(water=True), Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
             [Cell(unit.WHITE_ELEPHANT), Cell(), Cell(unit.WHITE_WOLF), Cell(),
              Cell(unit.WHITE_LEOPARD), Cell(), Cell(unit.WHITE_MOUSE)],
-            [Cell(), Cell(unit.WHITE_CAT), Cell(),
-             Cell(trap=True, white_trap=True),
-             Cell(), Cell(unit.WHITE_DOG), Cell()],
+            [Cell(), Cell(unit.WHITE_CAT), Cell(), Cell(trap=True, white_trap=True), Cell(),
+             Cell(unit.WHITE_DOG), Cell()],
             [Cell(unit.WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
              Cell(unit.WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
              Cell(unit.WHITE_LION)],
