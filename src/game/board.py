@@ -249,6 +249,23 @@ class Board(np.ndarray):
         # TODO - assigning value and policy to current board instead of generating every time?
         return self.value, policy
 
+    def get_move_mask(self) -> np.ndarray:
+        """
+        Creates mask tensor which can be used to mask out invalid moves from a final move
+        representation.
+
+        :return: Array with 1's on position which are reachable via a valid move.
+        """
+        mask = np.zeros((9, 7, 8), dtype=bool)
+        for unit, moves in self.moves.items():
+            position = self.positions[unit]
+            for move in moves:
+                x = position.x + move.x
+                y = position.y + move.y
+                plane = move.value
+                mask[y, x, plane] = True
+        return mask
+
 
 class BoardTensor(np.ndarray):
 
