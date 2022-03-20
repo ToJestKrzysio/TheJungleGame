@@ -3,9 +3,9 @@ from unittest import mock
 import numpy as np
 import pytest
 
+from src.game import Position
 from src.game.moves import *
-import src.training.generators
-from src.game.board import Position
+from src.training.generators import GameDataGenerator
 
 
 class TestGameDataGenerator:
@@ -35,8 +35,7 @@ class TestGameDataGenerator:
         child_mock.board = board_mock
         child_mock.visits = visits
 
-        result = src.training.generators.GameDataGenerator._update_plane_for_child(
-            planes, child_mock)
+        result = GameDataGenerator._update_plane_for_child(planes, child_mock)
 
         expected[move.value, out_y, out_x] = visits
         assert np.array_equal(result, expected)
@@ -50,7 +49,7 @@ class TestGameDataGenerator:
         node_mock = mock.Mock(child_nodes=[child_1, child_2, child_3])
         mcts_mock = mock.Mock(node=node_mock)
 
-        src.training.generators.GameDataGenerator._generate_probability_planes(mcts_mock)
+        GameDataGenerator._generate_probability_planes(mcts_mock)
 
         expected_calls = [
             mock.call(mock.ANY, child_1),
@@ -60,7 +59,7 @@ class TestGameDataGenerator:
         update_plane_mock.assert_has_calls(expected_calls)
 
     def test_generate_empty_probability_planes(self):
-        result = src.training.generators.GameDataGenerator._generate_empty_probability_planes()
+        result = GameDataGenerator._generate_empty_probability_planes()
 
         assert np.array_equal(result, np.zeros(shape=(8, 9, 7)))
 
@@ -71,12 +70,11 @@ class TestGameDataGenerator:
         strftime_mock = mock.Mock()
         strftime_mock.strftime.return_value = "24-02-2022_10:51:17"
         datetime_patch.now.return_value = strftime_mock
-        generator_mock = mock.Mock(spec=src.training.generators.GameDataGenerator,
+        generator_mock = mock.Mock(spec=GameDataGenerator,
                                    training_data_output="")
         memory_mock = mock.Mock()
 
-        result = src.training.generators.GameDataGenerator._save_memory_file(generator_mock,
-                                                                             memory_mock, 42)
+        result = GameDataGenerator._save_memory_file(generator_mock, memory_mock, 42)
 
         assert result == "training_data_42_24-02-2022_10:51:17.pickle"
         open_patch.assert_called_once_with("training_data_42_24-02-2022_10:51:17.pickle", "wb")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.mcts.mcts_node import Node
 from src.mcts.counter import evaluations_counter
-from src.game.board import Board
+from src.game import Board
 
 EXPLORATION_COEFFICIENT_C = 2
 

@@ -1,15 +1,11 @@
 from collections import deque
-from copy import deepcopy
 from unittest.mock import Mock, call, MagicMock, patch
 
 import pytest
 import numpy as np
 
-from src.game import moves
-from src.game.board import Position, Board, BoardMove
-from src.game.cell import Cell
-from src.game.exceptions import MoveNotPossibleError
-from src.game.unit import Empty, Tiger
+from src.game import Move, moves, Position, Board
+from src.game.board import BoardMove
 from src.game.unit import *
 
 WHITE_UNITS = [WHITE_DEN, WHITE_MOUSE, WHITE_CAT, WHITE_DOG, WHITE_WOLF, WHITE_LEOPARD,
@@ -149,7 +145,7 @@ class TestBoard:
         position = Position(y=3, x=1)
         board_mock = MagicMock(spec=Board)
         board_mock.__getitem__.side_effect = [
-            Mock(water=False, occupant=Tiger(False)),
+            Mock(water=False, occupant=WHITE_TIGER),
         ]
         board_mock.get_new_position.side_effect = (Position(y=4, x=1),)
         board_mock.is_position_valid.return_value = False
@@ -297,7 +293,7 @@ class TestBoard:
         moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
     ])
     @pytest.mark.parametrize("occupied", [0, 1])
-    def test_validate_jump_moves_cells_occupied(self, new_position, move, occupied):
+    def test_validate_jump_moves_cells_occupied(self, new_position: Position, move: Move, occupied: bool):
         empty_water_cell = MagicMock(water=True)
         empty_water_cell.__bool__.return_value = False
         occupied_water_cell = MagicMock(water=True)

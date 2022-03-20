@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from game.moves import UnitMove
-from src.game.board import Board
+from src.game import Board, UnitMove
 from src.mcts import value, policy
 from src.mcts.counter import _EvaluationsCounter, evaluations_counter
 

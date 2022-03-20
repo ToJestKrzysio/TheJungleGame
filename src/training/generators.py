@@ -8,8 +8,8 @@ from typing import List, Tuple
 import keras
 import numpy as np
 
-from src.game.board import Board
-from src import networks, mcts
+from src.game import Board
+from src import mcts
 from tensorflow.keras import models
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
@@ -110,8 +110,7 @@ class GameDataGenerator:
         return filepath
 
     @staticmethod
-    def create_experiences(incomplete_experiences,
-                           outcome: int):
+    def create_experiences(incomplete_experiences: List[IncompleteExperience], outcome: float):
         """
         Given list of IncompleteExperiences creates list of Experiences by adding to each
         IncompleteExperience a reward.
@@ -196,7 +195,7 @@ class TournamentDataGenerator:
         # self._save_results()
 
     @staticmethod
-    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[int, int]:
+    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[float, int]:
         get_network_model = cycle([network_1, network_2])
 
         env = Board.initialize()
