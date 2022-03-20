@@ -1,9 +1,8 @@
 from unittest import mock
 
 import pytest
-import src.mcts.mcts_node
-import src.game.moves
-import src.game.board
+from src.mcts.mcts_node import Node
+from src.game.moves import *
 
 
 class TestNode:
@@ -17,8 +16,7 @@ class TestNode:
         node_mock = mock.Mock()
         board_mock = mock.Mock()
         move_mock = mock.Mock()
-        src.mcts.mcts_node.Node.__init__(self=node_mock, board=board_mock, move=move_mock,
-                                         parent=None)
+        Node.__init__(self=node_mock, board=board_mock, unit_move=move_mock, parent=None)
 
         assert node_mock.depth == 1
 
@@ -29,26 +27,25 @@ class TestNode:
         move_mock = mock.Mock()
         parent = mock.Mock(depth=depth)
 
-        src.mcts.mcts_node.Node.__init__(self=node_mock, board=board_mock, move=move_mock,
-                                         parent=parent)
+        Node.__init__(self=node_mock, board=board_mock, unit_move=move_mock, parent=parent)
 
         assert node_mock.depth == depth + 1
 
     def test_evaluate(self):
-        node_mock = mock.Mock(spec=src.mcts.mcts_node.Node)
+        node_mock = mock.Mock(spec=Node)
         policy_strategy = mock.Mock()
         node_mock.policy_strategy = policy_strategy
 
-        src.mcts.mcts_node.Node.evaluate(self=node_mock)
+        Node.evaluate(self=node_mock)
 
         policy_strategy.assert_called_once_with(node_mock)
 
     def test_get_value(self):
-        node_mock = mock.Mock(spec=src.mcts.mcts_node.Node)
+        node_mock = mock.Mock(spec=Node)
         value_strategy = mock.Mock()
         node_mock.value_strategy = value_strategy
 
-        src.mcts.mcts_node.Node.get_value(self=node_mock)
+        Node.get_value(self=node_mock)
 
         value_strategy.assert_called_once_with(node_mock)
 
@@ -60,8 +57,8 @@ class TestNode:
         (1, 197434, 1 / 197434),
     ])
     def test_q(self, value, visits, expected):
-        node = src.mcts.mcts_node.Node(mock.Mock())
-        node.value = value
+        node = Node(mock.Mock())
+        node.total_value = value
         node.visits = visits
 
         assert node.q == expected
@@ -69,19 +66,19 @@ class TestNode:
     @pytest.mark.parametrize("moves, positions, new_boards, new_nodes, units, player_moves", [
         [
             {
-                WHITE_UNIT_1: src.game.moves.base_moves,
-                BLACK_UNIT_1: src.game.moves.base_moves,
+                WHITE_UNIT_1: base_moves,
+                BLACK_UNIT_1: base_moves,
             },
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [WHITE_UNIT_1, WHITE_UNIT_1, WHITE_UNIT_1, WHITE_UNIT_1],
-            src.game.moves.base_moves,
+            base_moves,
         ],
         [
             {
-                WHITE_UNIT_1: src.game.moves.base_moves,
-                WHITE_UNIT_2: src.game.moves.base_moves,
+                WHITE_UNIT_1: base_moves,
+                WHITE_UNIT_2: base_moves,
             },
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
@@ -90,23 +87,23 @@ class TestNode:
                 WHITE_UNIT_1, WHITE_UNIT_1, WHITE_UNIT_1, WHITE_UNIT_1,
                 WHITE_UNIT_2, WHITE_UNIT_2, WHITE_UNIT_2, WHITE_UNIT_2
             ],
-            (*src.game.moves.base_moves, *src.game.moves.base_moves)
+            (*base_moves, *base_moves)
         ],
         [
             {
-                BLACK_UNIT_1: src.game.moves.base_moves,
-                WHITE_UNIT_2: src.game.moves.jump_moves,
+                BLACK_UNIT_1: base_moves,
+                WHITE_UNIT_2: jump_moves,
             },
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [WHITE_UNIT_2, WHITE_UNIT_2, WHITE_UNIT_2, WHITE_UNIT_2],
-            src.game.moves.jump_moves
+            jump_moves
         ],
         [
             {
-                BLACK_UNIT_1: src.game.moves.jump_moves,
-                BLACK_UNIT_2: src.game.moves.base_moves,
+                BLACK_UNIT_1: jump_moves,
+                BLACK_UNIT_2: base_moves,
             },
             [],
             [],
@@ -116,14 +113,14 @@ class TestNode:
         ],
         [
             {
-                BLACK_UNIT_1: (*src.game.moves.base_moves, *src.game.moves.jump_moves),
-                WHITE_UNIT_2: (*src.game.moves.base_moves, *src.game.moves.jump_moves),
+                BLACK_UNIT_1: (*base_moves, *jump_moves),
+                WHITE_UNIT_2: (*base_moves, *jump_moves),
             },
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
             [WHITE_UNIT_2] * 8,
-            (*src.game.moves.base_moves, *src.game.moves.jump_moves),
+            (*base_moves, *jump_moves),
         ],
         [
             {
@@ -148,11 +145,14 @@ class TestNode:
         append_mock = mock.Mock()
         node_mock.child_nodes.append = append_mock
 
-        src.mcts.mcts_node.Node.expand_node(self=node_mock)
+        Node.expand_node(self=node_mock)
 
-        node_calls = [mock.call(mock.ANY, board=board, parent=node_mock, move=(unit, move))
-                      for board, unit, move in zip(new_boards, units, player_moves)]
+        node_calls = [mock.call(
+            mock.ANY, board=board, parent=node_mock, unit_move=UnitMove(unit, move))
+            for board, unit, move in zip(new_boards, units, player_moves)]
+
         assert node_patch.mock_calls == node_calls
+
         move_calls = [mock.call(unit_position=position, selected_move=move)
                       for board, position, move in zip(new_boards, positions, player_moves)]
         board_mock.move.assert_has_calls(move_calls)
@@ -162,19 +162,19 @@ class TestNode:
     @pytest.mark.parametrize("moves, positions, new_boards, new_nodes, units, player_moves", [
         [
             {
-                WHITE_UNIT_1: src.game.moves.base_moves,
-                BLACK_UNIT_2: src.game.moves.base_moves,
+                WHITE_UNIT_1: base_moves,
+                BLACK_UNIT_2: base_moves,
             },
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [BLACK_UNIT_2, BLACK_UNIT_2, BLACK_UNIT_2, BLACK_UNIT_2],
-            src.game.moves.base_moves,
+            base_moves,
         ],
         [
             {
-                WHITE_UNIT_1: src.game.moves.base_moves,
-                WHITE_UNIT_2: src.game.moves.base_moves,
+                WHITE_UNIT_1: base_moves,
+                WHITE_UNIT_2: base_moves,
             },
             [],
             [],
@@ -184,19 +184,19 @@ class TestNode:
         ],
         [
             {
-                BLACK_UNIT_1: src.game.moves.jump_moves,
-                WHITE_UNIT_2: src.game.moves.base_moves,
+                BLACK_UNIT_1: jump_moves,
+                WHITE_UNIT_2: base_moves,
             },
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [mock.Mock() for _ in range(4)],
             [BLACK_UNIT_1, BLACK_UNIT_1, BLACK_UNIT_1, BLACK_UNIT_1],
-            src.game.moves.jump_moves
+            jump_moves
         ],
         [
             {
-                BLACK_UNIT_1: src.game.moves.jump_moves,
-                BLACK_UNIT_2: src.game.moves.base_moves,
+                BLACK_UNIT_1: jump_moves,
+                BLACK_UNIT_2: base_moves,
             },
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
@@ -205,18 +205,18 @@ class TestNode:
                 BLACK_UNIT_1, BLACK_UNIT_1, BLACK_UNIT_1, BLACK_UNIT_1,
                 BLACK_UNIT_2, BLACK_UNIT_2, BLACK_UNIT_2, BLACK_UNIT_2
             ],
-            [*src.game.moves.jump_moves, *src.game.moves.base_moves],
+            [*jump_moves, *base_moves],
         ],
         [
             {
-                BLACK_UNIT_1: (*src.game.moves.base_moves, *src.game.moves.jump_moves),
-                WHITE_UNIT_2: (*src.game.moves.base_moves, *src.game.moves.jump_moves),
+                BLACK_UNIT_1: (*base_moves, *jump_moves),
+                WHITE_UNIT_2: (*base_moves, *jump_moves),
             },
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
             [mock.Mock() for _ in range(8)],
             [BLACK_UNIT_1] * 8,
-            (*src.game.moves.base_moves, *src.game.moves.jump_moves),
+            (*base_moves, *jump_moves),
         ],
         [
             {
@@ -241,16 +241,15 @@ class TestNode:
         append_mock = mock.Mock()
         node_mock.child_nodes.append = append_mock
 
-        src.mcts.mcts_node.Node.expand_node(self=node_mock)
+        Node.expand_node(self=node_mock)
 
-        node_calls = [mock.call(mock.ANY, board=board, parent=node_mock, move=(unit, move))
-                      for board, unit, move in zip(new_boards, units, player_moves)]
+        node_calls = [mock.call(
+            mock.ANY, board=board, parent=node_mock, unit_move=UnitMove(unit, move))
+            for board, unit, move in zip(new_boards, units, player_moves)]
+
         assert node_patch.mock_calls == node_calls
         move_calls = [mock.call(unit_position=position, selected_move=move)
                       for board, position, move in zip(new_boards, positions, player_moves)]
         board_mock.move.assert_has_calls(move_calls)
         append_calls = [mock.call(node) for node in new_nodes]
         append_mock.assert_has_calls(append_calls)
-
-
-#

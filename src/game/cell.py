@@ -1,9 +1,15 @@
 from __future__ import annotations
+
+from enum import Enum
 from typing import Tuple
 
-from src.game.properties import GroundStates, Units
-from src.game.exceptions import JumpIntoWaterError
-from src.game.unit import EMPTY, Den, Unit
+from src.game import EMPTY, JumpIntoWaterError, Unit, Units, Den
+
+
+class GroundStates(Enum):
+    LAND = 1
+    WATER = 2
+    TRAP = 3
 
 
 class Cell:

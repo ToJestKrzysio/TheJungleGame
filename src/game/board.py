@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import copy
-import itertools
 from collections import Counter, deque, namedtuple
+from copy import copy, deepcopy
+from itertools import product
 from typing import Dict, List, Set, Tuple, Iterable
 
 import numpy as np
 
-from game.exceptions import MoveNotPossibleError
-from src.game import cell, unit
+from src.game import AbstractModel, Cell, MoveNotPossibleError, unit, value_policy_model
 from src.game import moves as unit_moves
 
 Position = namedtuple("Position", ["y", "x"])
@@ -32,9 +31,11 @@ class Board(np.ndarray):
     white_move: bool
     MAX_REPETITIONS: int = 3
     game_over: bool
+    value: float = 0
+    outcome: float = 0
 
-    def __new__(cls, cells: np.ndarray | List[List[cell.Cell]]):
-        obj = np.asarray(cells, dtype=cell.Cell).view(cls)
+    def __new__(cls, cells: np.ndarray | List[List[Cell]]):
+        obj = np.asarray(cells, dtype=Cell).view(cls)
         return obj
 
     def __array_finalize__(self, obj):
@@ -51,6 +52,7 @@ class Board(np.ndarray):
         self.white_move = True
         self.move_count = 0
         self.game_over = False
+        self.model = None
 
     def get_positions(self) -> dict[unit.Unit, Position]:
         """
@@ -124,7 +126,7 @@ class Board(np.ndarray):
         """
         xs = tuple(range(position.x, position.x + move.x - move.sign, move.sign)) or (position.x,)
         ys = tuple(range(position.y, position.y + move.y - move.sign, move.sign)) or (position.y,)
-        water_positions = itertools.product(xs, ys)
+        water_positions = product(xs, ys)
         water_cells = [self[position] for position in water_positions]
         return not any(water_cells)
 
@@ -157,7 +159,7 @@ class Board(np.ndarray):
         """ Returns True if given collection of moves contains no valid moves else False. """
         return not any(bool(move) for move in moves)
 
-    def find_outcome(self) -> Tuple[bool, int]:
+    def find_outcome(self) -> Tuple[bool, float]:
         """
         Returns outcome of the current game state.
         Boolean value defines if game reached terminal state.
@@ -169,43 +171,45 @@ class Board(np.ndarray):
         alive_pieces = set(self.positions.keys())
         if unit.BLACK_DEN not in alive_pieces or self.no_valid_moves(self.black_moves.values()):
             self.game_over = True
-            return True, 1
-        if unit.WHITE_DEN not in alive_pieces or self.no_valid_moves(self.white_moves.values()):
+            self.outcome = 1
+        elif unit.WHITE_DEN not in alive_pieces or self.no_valid_moves(self.white_moves.values()):
             self.game_over = True
-            return True, -1
-        if max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
+            self.outcome = -1
+        elif max(self.get_repetitions()) >= type(self).MAX_REPETITIONS:
             self.game_over = True
-            return True, 0
-        return False, 0
+            self.outcome = 0
+        else:
+            self.outcome = self.value
+        return self.game_over, self.outcome
 
     @classmethod
-    def initialize(cls) -> Board:
+    def initialize(cls, model: AbstractModel = None) -> Board:
         """ Initializes board according to game rules. """
         cells = [
-            [cell.Cell(unit.BLACK_LION), cell.Cell(), cell.Cell(trap=True, white_trap=False),
-             cell.Cell(unit.BLACK_DEN), cell.Cell(trap=True, white_trap=False), cell.Cell(),
-             cell.Cell(unit.BLACK_TIGER)],
-            [cell.Cell(), cell.Cell(unit.BLACK_DOG), cell.Cell(),
-             cell.Cell(trap=True, white_trap=False), cell.Cell(), cell.Cell(unit.BLACK_CAT),
-             cell.Cell()],
-            [cell.Cell(unit.BLACK_MOUSE), cell.Cell(), cell.Cell(unit.BLACK_LEOPARD), cell.Cell(),
-             cell.Cell(unit.BLACK_WOLF), cell.Cell(), cell.Cell(unit.BLACK_ELEPHANT)],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(), cell.Cell(water=True), cell.Cell(water=True), cell.Cell(),
-             cell.Cell(water=True), cell.Cell(water=True), cell.Cell()],
-            [cell.Cell(unit.WHITE_ELEPHANT), cell.Cell(), cell.Cell(unit.WHITE_WOLF), cell.Cell(),
-             cell.Cell(unit.WHITE_LEOPARD), cell.Cell(), cell.Cell(unit.WHITE_MOUSE)],
-            [cell.Cell(), cell.Cell(unit.WHITE_CAT), cell.Cell(),
-             cell.Cell(trap=True, white_trap=True),
-             cell.Cell(), cell.Cell(unit.WHITE_DOG), cell.Cell()],
-            [cell.Cell(unit.WHITE_TIGER), cell.Cell(), cell.Cell(trap=True, white_trap=True),
-             cell.Cell(unit.WHITE_DEN), cell.Cell(trap=True, white_trap=True), cell.Cell(),
-             cell.Cell(unit.WHITE_LION)],
+            [Cell(unit.BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
+             Cell(unit.BLACK_DEN), Cell(trap=True, white_trap=False), Cell(),
+             Cell(unit.BLACK_TIGER)],
+            [Cell(), Cell(unit.BLACK_DOG), Cell(), Cell(trap=True, white_trap=False), Cell(),
+             Cell(unit.BLACK_CAT), Cell()],
+            [Cell(unit.BLACK_MOUSE), Cell(), Cell(unit.BLACK_LEOPARD), Cell(),
+             Cell(unit.BLACK_WOLF), Cell(), Cell(unit.BLACK_ELEPHANT)],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(), Cell(water=True), Cell(water=True), Cell(), Cell(water=True),
+             Cell(water=True), Cell()],
+            [Cell(unit.WHITE_ELEPHANT), Cell(), Cell(unit.WHITE_WOLF), Cell(),
+             Cell(unit.WHITE_LEOPARD), Cell(), Cell(unit.WHITE_MOUSE)],
+            [Cell(), Cell(unit.WHITE_CAT), Cell(), Cell(trap=True, white_trap=True), Cell(),
+             Cell(unit.WHITE_DOG), Cell()],
+            [Cell(unit.WHITE_TIGER), Cell(), Cell(trap=True, white_trap=True),
+             Cell(unit.WHITE_DEN), Cell(trap=True, white_trap=True), Cell(),
+             Cell(unit.WHITE_LION)],
         ]
-        return Board(cells)
+        new_board = Board(cells)
+        new_board.model = model or value_policy_model
+        return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
         """
@@ -227,11 +231,23 @@ class Board(np.ndarray):
         ]
         """
         board_move = BoardMove(self)
-        return board_move(unit_position=unit_position, selected_move=selected_move)
+        new_board = board_move(unit_position=unit_position, selected_move=selected_move)
+        _, new_board.outcome = new_board.find_outcome()
+        return new_board
 
     def to_tensor(self) -> BoardTensor:
         """ Creates BoardTensor instance using current board instance. """
         return BoardTensor(self)
+
+    def predict(self) -> Tuple[float, np.ndarray]:
+        if not isinstance(self.model, AbstractModel):
+            raise ValueError(
+                f"Provided model '{type(self.model)}' is not of type 'AbstractModel'.")
+        mask = np.array  # TODO implement mask array
+        tensor = self.to_tensor()
+        self.value, policy = self.model.predict(tensor, mask)
+        # TODO - assigning value and policy to current board instead of generating every time?
+        return self.value, policy
 
 
 class BoardTensor(np.ndarray):
@@ -249,7 +265,7 @@ class BoardTensor(np.ndarray):
         if obj is None:
             return
         current_board = getattr(obj, "current_board", None)
-        if not current_board:
+        if current_board is None:
             return
 
         STEP_BOARDS = 22
@@ -296,7 +312,7 @@ class BoardTensor(np.ndarray):
         return np.concatenate([unit_tensor, repetition_tensor], axis=2)
 
     @staticmethod
-    def black_trap_array():
+    def black_trap_array() -> np.ndarray:
         """ Creates 2D array representing black player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[0, 2] = 1
@@ -305,7 +321,7 @@ class BoardTensor(np.ndarray):
         return array
 
     @staticmethod
-    def white_trap_array():
+    def white_trap_array() -> np.ndarray:
         """ Creates 2D array representing white player trap locations. """
         array = np.zeros((9, 7), dtype=bool)
         array[8, 2] = 1
@@ -385,14 +401,14 @@ class BoardMove:
 
         :return: New instance of board with copied important fields of numpy array.
         """
-        board = copy.copy(self.board)
+        board = copy(self.board)
 
         for position in positions:
-            board[position] = copy.copy(board[position])
+            board[position] = copy(board[position])
 
         board.positions = self.board.positions.copy()
         board.moves = self.board.moves.copy()
-        board.last_moves = copy.deepcopy(self.board.last_moves)
+        board.last_moves = deepcopy(self.board.last_moves)
 
         board.white_move = not self.board.white_move
         board.move_count = self.board.move_count + 1

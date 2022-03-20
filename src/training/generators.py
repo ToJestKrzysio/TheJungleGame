@@ -9,7 +9,7 @@ import keras
 import numpy as np
 
 from src.game import Board
-from src import networks, mcts
+from src import mcts
 from tensorflow.keras import models
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
@@ -110,8 +110,7 @@ class GameDataGenerator:
         return filepath
 
     @staticmethod
-    def create_experiences(incomplete_experiences,
-                           outcome: int):
+    def create_experiences(incomplete_experiences: List[IncompleteExperience], outcome: float):
         """
         Given list of IncompleteExperiences creates list of Experiences by adding to each
         IncompleteExperience a reward.
@@ -165,7 +164,7 @@ class GameDataGenerator:
         :return: 3D numpy array representing moves, with updated position equal to child move
             position.
         """
-        unit, move = child.move
+        unit, move = child.unit_move
         visits = child.visits
         plane = move.value
         y, x = child.board.positions[unit]
@@ -196,7 +195,7 @@ class TournamentDataGenerator:
         # self._save_results()
 
     @staticmethod
-    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[int, int]:
+    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[float, int]:
         get_network_model = cycle([network_1, network_2])
 
         env = Board.initialize()
@@ -210,7 +209,7 @@ class TournamentDataGenerator:
             best_node, best_move = mcts_engine.evaluate()
             unit, selected_move = best_move
             current_position = env.positions[unit]
-            env = env.move(current_position, selected_move)
+            env = env.unit_move(current_position, selected_move)
 
         _, outcome = env.find_outcome()
         print(f"Game finished with result {outcome} after {env.move_count} moves.")
@@ -225,7 +224,7 @@ if __name__ == '__main__':
         "TERMINATE_COUNTER": 50,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 1000,
+        "MAX_EVALUATIONS": 500,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

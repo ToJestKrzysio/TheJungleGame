@@ -2,10 +2,7 @@ from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 
-from src.game.cell import Cell
-from src.game.exceptions import JumpIntoWaterError
-from src.game.properties import GroundStates
-from src.game.unit import EMPTY, Unit
+from src.game import Cell, EMPTY, GroundStates, JumpIntoWaterError, Unit
 
 
 class TestCell:

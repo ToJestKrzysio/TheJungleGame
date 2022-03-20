@@ -29,7 +29,7 @@ class TestRoot:
         counter_responses = [False, False, True]
         node_mock = mock.Mock(spec=mcts.Node)
         move_mock = mock.Mock()
-        best_node_mock = mock.Mock(spec=mcts.Node, move=move_mock)
+        best_node_mock = mock.Mock(spec=mcts.Node, unit_move=move_mock)
         counter_patch.over.side_effect = counter_responses
         counter_patch.__iadd__ = lambda x, y: x
         root_mock = mock.Mock(spec=mcts.Root, counter=counter_patch, node=node_mock)
@@ -49,10 +49,10 @@ class TestRoot:
         [(91, 0, 3, -2), 0],
     ])
     def test_find_best_node(self, value, index):
-        child_node_1 = mock.Mock(value=value[0])
-        child_node_2 = mock.Mock(value=value[1])
-        child_node_3 = mock.Mock(value=value[2])
-        child_node_4 = mock.Mock(value=value[3])
+        child_node_1 = mock.Mock(total_value=value[0])
+        child_node_2 = mock.Mock(total_value=value[1])
+        child_node_3 = mock.Mock(total_value=value[2])
+        child_node_4 = mock.Mock(total_value=value[3])
         child_nodes = [child_node_1, child_node_2, child_node_3, child_node_4]
         node = mock.Mock()
         node.child_nodes = child_nodes

@@ -1,14 +1,27 @@
-from dataclasses import dataclass
-from src.game.properties import Units
-
 __all__ = [
-    "Unit", "Den",
+    "Unit", "Units", "Den",
     "EMPTY", "WHITE_DEN", "BLACK_DEN",
-    "WHITE_MOUSE", "WHITE_CAT", "WHITE_DOG", "WHITE_WOLF",
-    "WHITE_LEOPARD", "WHITE_TIGER", "WHITE_LION", "WHITE_ELEPHANT",
-    "BLACK_MOUSE", "BLACK_CAT", "BLACK_DOG", "BLACK_WOLF",
-    "BLACK_LEOPARD", "BLACK_TIGER", "BLACK_LION", "BLACK_ELEPHANT",
+    "WHITE_MOUSE", "WHITE_CAT", "WHITE_DOG", "WHITE_WOLF", "WHITE_LEOPARD", "WHITE_TIGER",
+    "WHITE_LION", "WHITE_ELEPHANT",
+    "BLACK_MOUSE", "BLACK_CAT", "BLACK_DOG", "BLACK_WOLF", "BLACK_LEOPARD", "BLACK_TIGER",
+    "BLACK_LION", "BLACK_ELEPHANT",
 ]
+
+from enum import Enum
+from dataclasses import dataclass
+
+
+class Units(Enum):
+    EMPTY = 0
+    DEN = 1
+    MOUSE = 2
+    CAT = 3
+    DOG = 4
+    WOLF = 5
+    LEOPARD = 6
+    TIGER = 7
+    LION = 8
+    ELEPHANT = 9
 
 
 @dataclass(frozen=True, repr=False)
