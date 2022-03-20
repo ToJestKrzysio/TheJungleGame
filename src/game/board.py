@@ -243,7 +243,7 @@ class Board(np.ndarray):
         if not isinstance(self.model, AbstractModel):
             raise ValueError(
                 f"Provided model '{type(self.model)}' is not of type 'AbstractModel'.")
-        mask = np.array  # TODO implement mask array
+        mask = self.get_move_mask()
         tensor = self.to_tensor()
         self.value, policy = self.model.predict(tensor, mask)
         # TODO - assigning value and policy to current board instead of generating every time?
