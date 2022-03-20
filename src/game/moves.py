@@ -14,10 +14,16 @@ class Move(NamedTuple):
     y: int = None
     sign: int = 1
 
+    def __str__(self):
+        return f"{self.__class__.__name__}(x={self.x}, y={self.y})"
+
 
 class UnitMove(NamedTuple):
     unit: Unit
     move: Move
+
+    def __str__(self):
+        return f"UnitMove(unit={self.unit}, move={self.move})"
 
 
 forward = Move(value=0, x=0, y=1, sign=1)
