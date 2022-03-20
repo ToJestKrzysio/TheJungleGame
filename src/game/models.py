@@ -5,7 +5,7 @@ import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
 
 if TYPE_CHECKING:
-    from game.board import BoardTensor
+    from src.game import BoardTensor
 
 
 class AbstractModel(ABC):

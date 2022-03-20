@@ -4,7 +4,7 @@ import pytest
 
 from src.game.cell import Cell
 from src.game.exceptions import JumpIntoWaterError
-from src.game.properties import GroundStates
+from game import GroundStates
 from src.game.unit import EMPTY, Unit
 
 
