@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -7,7 +8,14 @@ if TYPE_CHECKING:
     from game.board import BoardTensor
 
 
-class ValuePolicyNetwork:
+class AbstractModel(ABC):
+
+    @abstractmethod
+    def predict(self, tensor: "BoardTensor", mask: np.array) -> Tuple[float, np.ndarray]:
+        pass
+
+
+class ValuePolicyModel(AbstractModel):
 
     def __init__(self, **kwargs):
         self.conv_kernel_reg = regularizers.l2(
@@ -123,4 +131,4 @@ class ValuePolicyNetwork:
         return value, policy
 
 
-value_policy_model = ValuePolicyNetwork()
+value_policy_model = ValuePolicyModel()

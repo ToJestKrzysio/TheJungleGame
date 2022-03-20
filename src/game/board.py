@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import itertools
-from abc import ABC, abstractmethod
 from collections import Counter, deque, namedtuple
 from typing import Dict, List, Set, Tuple, Iterable
 
@@ -12,7 +11,7 @@ import numpy as np
 from game.exceptions import MoveNotPossibleError
 from src.game import cell, unit
 from src.game import moves as unit_moves
-from src.game.network import value_policy_model
+from src.game.models import value_policy_model
 
 Position = namedtuple("Position", ["y", "x"])
 

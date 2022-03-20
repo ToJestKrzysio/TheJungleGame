@@ -3,13 +3,13 @@ from unittest.mock import Mock
 import numpy as np
 from keras import regularizers
 
-from game.network import ValuePolicyNetwork
+from game.models import ValuePolicyModel
 
 
 def test_init():
     network_mock = Mock()
 
-    ValuePolicyNetwork.__init__(network_mock)
+    ValuePolicyModel.__init__(network_mock)
 
     assert isinstance(network_mock.conv_kernel_reg, regularizers.Regularizer)
     assert isinstance(network_mock.conv_bias_reg, regularizers.Regularizer)
@@ -43,10 +43,10 @@ def test_predict():
 
     model_mock = Mock()
     model_mock.predict.return_value = (value, policy_tensor)
-    network_mock = Mock(spec=ValuePolicyNetwork, model=model_mock, output_shape=(9, 7, 8))
+    network_mock = Mock(spec=ValuePolicyModel, model=model_mock, output_shape=(9, 7, 8))
 
-    result_value, result_policy = ValuePolicyNetwork.predict(self=network_mock, tensor=tensor_mock,
-                                                             mask=mask)
+    result_value, result_policy = ValuePolicyModel.predict(self=network_mock, tensor=tensor_mock,
+                                                           mask=mask)
 
     model_mock.predict.assert_called_once_with(tensor_mock)
 
