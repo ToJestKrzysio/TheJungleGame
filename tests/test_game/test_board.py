@@ -293,7 +293,8 @@ class TestBoard:
         moves.forward_jump, moves.backward_jump, moves.left_jump, moves.right_jump
     ])
     @pytest.mark.parametrize("occupied", [0, 1])
-    def test_validate_jump_moves_cells_occupied(self, new_position: Position, move: Move, occupied: bool):
+    def test_validate_jump_moves_cells_occupied(self, new_position: Position, move: Move,
+                                                occupied: bool):
         empty_water_cell = MagicMock(water=True)
         empty_water_cell.__bool__.return_value = False
         occupied_water_cell = MagicMock(water=True)
@@ -340,6 +341,18 @@ class TestBoard:
         board_move_instance.assert_called_once_with(
             unit_position=unit_position, selected_move=selected_move
         )
+
+    def test_get_move_mask(self):
+        board = Board.initialize()
+
+        result = board.get_move_mask()
+
+        assert result.shape == (9, 7, 8)
+        for unit, position in board.positions.items():
+            for move in board.moves[unit]:
+                x = position.x + move.x
+                y = position.y + move.y
+                assert result[y, x, move.value] == 1
 
 
 class TestBoardMove:
