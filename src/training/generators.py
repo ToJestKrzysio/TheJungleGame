@@ -1,4 +1,5 @@
 import datetime
+import logging
 from itertools import cycle
 import os
 import pickle
@@ -14,6 +15,8 @@ from tensorflow.keras import models
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
+
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w")
 
 
 class GameDataGenerator:
@@ -32,6 +35,7 @@ class GameDataGenerator:
         np.random.seed(42)
 
         for game_id in range(self.num_games):
+            logging.info(f"Starting game {game_id + 1} of {self.num_games}")
             print(f"Starting game {game_id + 1} of {self.num_games}")
 
             env = Board.initialize()
@@ -41,10 +45,11 @@ class GameDataGenerator:
             cycles = 0  # TODO remove cycles
             while not game_over:
                 player_ = "white" if env.white_move else "black"
-                print("*" * 100, "\n") # TODO REMOVE
+                print("*" * 100, "\n")  # TODO REMOVE
                 print(f"Turn {cycles} moving: {player_}")
                 print(env)
                 print("\n")
+                logging.info(f"Turn {env.move_count} moving: {player_}")
                 current_game_state = env.to_tensor()
                 current_player_value = int(env.white_move) * 2 - 1
 
@@ -224,7 +229,7 @@ if __name__ == '__main__':
         "TERMINATE_COUNTER": 50,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 500,
+        "MAX_EVALUATIONS": 1000,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

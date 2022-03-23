@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from src.mcts.mcts_node import Node
 from src.mcts.counter import evaluations_counter
 from src.game import Board
 
 EXPLORATION_COEFFICIENT_C = 2
+
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
 
 
 class Root:
@@ -23,8 +27,8 @@ class Root:
     def evaluate(self):
         """ Evaluates current tree according to MCTS rules. """
         while not self.counter.over():
+            logging.debug(f"Starting rollout. {self.counter}")
             self.node.evaluate()
-            self.counter += 1
         best_node = self.find_best_node()
         return best_node, best_node.unit_move
 

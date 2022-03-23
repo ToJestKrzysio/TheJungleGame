@@ -76,7 +76,6 @@ class ValuePolicyModel(AbstractModel):
             bias_regularizer=self.conv_bias_reg, name="Policy_Convolutional_Layer_1")(input_layer)
         batch_norm_1 = layers.BatchNormalization(
             axis=-1, name="Policy_Batch_Normalization_1")(conv_layer_1)
-        print(self.input_shape)
         conv_layer_2 = layers.Conv2D(
             filters=1, kernel_size=(1, 1), padding="same", activation="relu",
             use_bias=True, data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
@@ -120,6 +119,8 @@ class ValuePolicyModel(AbstractModel):
 
         :return: Tuple
         """
+        if tensor.shape == self.input_shape:
+            tensor = np.expand_dims(tensor, axis=0)
         value, policy = self.model.predict(tensor)
 
         value = value[0][0]
