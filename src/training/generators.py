@@ -42,11 +42,10 @@ class GameDataGenerator:
             incomplete_experiences = []
             game_over = env.game_over
             outcome = None
-            cycles = 0  # TODO remove cycles
             while not game_over:
                 player_ = "white" if env.white_move else "black"
                 print("*" * 100, "\n")  # TODO REMOVE
-                print(f"Turn {cycles} moving: {player_}")
+                print(f"Turn {env.move_count} moving: {player_}")
                 print(env)
                 print("\n")
                 logging.info(f"Turn {env.move_count} moving: {player_}")
@@ -54,7 +53,7 @@ class GameDataGenerator:
                 current_player_value = int(env.white_move) * 2 - 1
 
                 mcts_engine = mcts.Root(env, **self.mcts_kwargs)
-                # TODO add support for passing NN to generate value and policy data
+                # TODO add support for passing NN to generate value and policy data - obsolete?
                 best_node, best_move = mcts_engine.evaluate()
                 unit, selected_move = best_move
                 current_position = env.positions[unit]
@@ -69,17 +68,18 @@ class GameDataGenerator:
                 )
                 incomplete_experiences.append(incomplete_experience)
 
-                cycles += 1  # TODO remove cycles
                 if not new_env.game_over and new_env.move_count >= self.terminate_count:
                     game_over = True
                     new_game_state = new_env.to_tensor()
                     new_q_value = 0
                     new_probability_planes = self._generate_empty_probability_planes()
+
                     new_incomplete_experience = IncompleteExperience(
                         state=new_game_state,
                         probability=new_probability_planes,
                         q=new_q_value
                     )
+
                     incomplete_experiences.append(new_incomplete_experience)
                     _, outcome = new_env.find_outcome()
                 else:
@@ -88,8 +88,11 @@ class GameDataGenerator:
 
             if not outcome:
                 _, outcome = env.find_outcome()
+
             experiences = self.create_experiences(incomplete_experiences, outcome)
             memory.extend(experiences)
+
+            logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
             print(f"Game finished with result {outcome} after {env.move_count} moves.")
 
         return self._save_memory_file(memory, self.training_iteration)

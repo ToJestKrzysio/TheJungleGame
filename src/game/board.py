@@ -544,6 +544,4 @@ class BoardMove:
 if __name__ == '__main__':
     board = Board.initialize()
     tensor = board.to_tensor()
-    t = 21
-    # print(tensor[:,:,:])
-    # print(np.equal(np.zeros((9,7,178)), tensor))
+    print(tensor.shape)
