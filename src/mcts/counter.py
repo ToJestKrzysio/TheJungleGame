@@ -11,7 +11,7 @@ class _EvaluationsCounter(object):
         return self
 
     def __str__(self):
-        return f'EvaluationsCounter {self.evaluations}/{self.max_evaluations}'
+        return f'EvaluationsCounter {self.evaluations + 1}/{self.max_evaluations}'
 
     def set_max_evaluations(self, max_evaluations: int) -> None:
         """

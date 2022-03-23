@@ -276,28 +276,22 @@ class BoardTensor(np.ndarray):
 
         obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2)).view(cls)
         obj.current_board = board
-        return obj
 
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-        current_board = getattr(obj, "current_board", None)
-        if current_board is None:
-            return
+        current_white = board.white_move
+        obj[:, :, -1] = current_white
+        obj[:, :, -2] = board.move_count
 
-        STEP_BOARDS = 22
-        current_white = current_board.white_move
+        current_board = board
         for step in range(8):
             start = step * STEP_BOARDS
             stop = (step + 1) * STEP_BOARDS
             if current_board is None:
-                self[:, :, start:stop] = self.get_empty_step_tensor()
+                obj[:, :, start:stop] = obj.get_empty_step_tensor()
             else:
-                self[:, :, start:stop] = self.get_step_tensor(current_board,
-                                                              current_white)
-            current_board = current_board.previous_board
-        current_board[:, :, -1] = current_white
-        current_board[:, :, -2] = obj.current_board.move_count
+                obj[:, :, start:stop] = obj.get_step_tensor(current_board, current_white)
+                current_board = current_board.previous_board
+
+        return obj
 
     @staticmethod
     def get_step_tensor(board: Board, current_white: bool) -> np.ndarray:
@@ -430,6 +424,8 @@ class BoardMove:
         board.white_move = not self.board.white_move
         board.move_count = self.board.move_count + 1
         board.previous_board = self.board
+        board.model = self.board.model
+        # TODO switching models between moves
 
         return board
 

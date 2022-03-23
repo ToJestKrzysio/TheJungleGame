@@ -1,6 +1,7 @@
 __all__ = ["base_policy", "network_policy", "AbstractPolicy"]
 
 import math
+import logging
 from abc import ABC, abstractmethod
 from math import inf, sqrt, log
 from typing import TYPE_CHECKING
@@ -11,6 +12,9 @@ from src.mcts.counter import evaluations_counter
 
 if TYPE_CHECKING:
     from src.mcts import Node
+
+
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
 
 
 class AbstractPolicy(ABC):
@@ -54,9 +58,15 @@ class NetworkPolicy(AbstractPolicy):
     C = 1.5
 
     def __call__(self, node: "Node"):
+        logging.debug(f"Executing policy call for Node<{id(node)}>")
+
         if not node.child_nodes:
             value, policy_planes = node.board.predict()
+            if node.visits == 0:
+                node.expand_node()
             self._set_child_probabilities(node, policy_planes)
+            logging.debug(
+                f"Starting backpropagation with reward {value:0.3f} from Node<{id(node)}>")
             node.backpropagation(value)
         else:
             child_node = self.select_child(node)
@@ -71,12 +81,15 @@ class NetworkPolicy(AbstractPolicy):
             child_node.prior_probability = probability_planes[y, x, layer]
 
     def select_child(self, node: "Node") -> "Node":
-        prior_probabilities = np.array(child.prior_probability for child in node.child_nodes)
+        prior_probabilities = np.array([child.prior_probability for child in node.child_nodes])
         psa_probs = ((1 - self.EPSILON) * prior_probabilities
                      + self.EPSILON * np.random.dirichlet([self.ALPHA] * len(node.child_nodes)))
         puct_values = [child.q + self.C * psa * math.sqrt(node.visits) / (1 + child.visits)
                        for child, psa in zip(node.child_nodes, psa_probs)]
-        return node.child_nodes[np.argmax(puct_values)]
+        selected_child = node.child_nodes[np.argmax(puct_values)]
+        child_value = np.max(puct_values)
+        logging.debug(f"Via selection Node<{id(selected_child)}> was picked. Value: {child_value}")
+        return selected_child
 
 
 base_policy = BasePolicy()

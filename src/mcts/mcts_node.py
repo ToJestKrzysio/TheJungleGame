@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import List, Optional
 
 from src.game import Board, UnitMove
 from src.mcts import value, policy
 from src.mcts.counter import _EvaluationsCounter, evaluations_counter
+
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
 
 
 class Node(object):
@@ -31,7 +34,7 @@ class Node(object):
         self.total_value = 0.0
         self.visits = 0
         self.child_nodes = []
-        self.policy_strategy = policy.base_policy
+        self.policy_strategy = policy.network_policy
         self.value_strategy = value.base_value
         self.prior_probability = 0.0
         self.counter = evaluations_counter
@@ -63,6 +66,8 @@ class Node(object):
                 new_board = self.board.move(unit_position=current_position, selected_move=move)
                 new_node = Node(board=new_board, parent=self, unit_move=UnitMove(unit=unit, move=move))
                 self.child_nodes.append(new_node)
+        logging.debug(
+            f"Expanded Node<{id(self)}>. Created in total {len(self.child_nodes)} child nodes.")
 
     @property
     def q(self) -> float:
@@ -75,6 +80,8 @@ class Node(object):
         self.total_value += reward
         if self.parent is not None:
             self.visits += 1
+            logging.debug(f"Backpropagating reward {reward:0.3f} from Node<{id(self)}>")
             self.parent.backpropagation(reward)
         else:
+            logging.debug(f"Completed backpropagation at Node<{id(self)}>")
             self.counter += 1
