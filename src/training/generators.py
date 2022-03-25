@@ -23,16 +23,16 @@ class GameDataGenerator:
 
     def __init__(self, game_kwargs, mcts_kwargs):
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
-        self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 10)
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER")
+        self.training_iteration = game_kwargs.get("TRAINING_ITERATION")
         # self.nn_model = models.load_model(game_kwargs["NETWORK_MODEL"])
         self.mcts_kwargs = mcts_kwargs
         self.training_data_output = os.path.join("data", "training")
         os.makedirs(self.training_data_output, exist_ok=True)
 
-    def generate(self):
+    def generate(self, seed=42) -> str:
         memory = []
-        np.random.seed(42)
+        np.random.seed(seed)
 
         for game_id in range(self.num_games):
             logging.info(f"Starting game {game_id + 1} of {self.num_games}")
@@ -97,8 +97,7 @@ class GameDataGenerator:
 
         return self._save_memory_file(memory, self.training_iteration)
 
-    def _save_memory_file(self, memory,
-                          training_iteration: int) -> str:
+    def _save_memory_file(self, memory, training_iteration: int) -> str:
         """
         Given memory of collected Experiences and iteration number saves the data into a pickle
         file and returns path to saved file.
@@ -227,12 +226,12 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 1,
-        "TRAINING_ITERATION": 1,
-        "TERMINATE_COUNTER": 10,
+        "NUMBER_OF_GAMES": 10,
+        "TRAINING_ITERATION": 0,
+        "TERMINATE_COUNTER": 50,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 50,
+        "MAX_EVALUATIONS": 1000,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

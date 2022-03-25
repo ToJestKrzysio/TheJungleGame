@@ -20,7 +20,6 @@ class DataGenerator(keras.utils.data_utils.Sequence):
         data = self.data[self.batch_size * item:self.batch_size * (item + 1)]
 
 
-
 def train_nn(data, model, **kwargs):
     early_stop = tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
