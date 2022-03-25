@@ -14,9 +14,6 @@ if TYPE_CHECKING:
     from src.mcts import Node
 
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
-
-
 class AbstractPolicy(ABC):
 
     @abstractmethod
@@ -62,6 +59,7 @@ class NetworkPolicy(AbstractPolicy):
 
         if not node.child_nodes:
             value, policy_planes = node.board.predict()
+            node.total_value = value
             if node.visits == 0:
                 node.expand_node()
             self._set_child_probabilities(node, policy_planes)
@@ -79,6 +77,8 @@ class NetworkPolicy(AbstractPolicy):
             y = child_node.unit_move.move.y
             x = child_node.unit_move.move.x
             child_node.prior_probability = probability_planes[y, x, layer]
+        logging.debug(
+            f"Set child probabilities to f{[cn.prior_probability for cn in node.child_nodes]}")
 
     def select_child(self, node: "Node") -> "Node":
         prior_probabilities = np.array([child.prior_probability for child in node.child_nodes])
