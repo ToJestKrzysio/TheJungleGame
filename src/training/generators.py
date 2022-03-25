@@ -16,7 +16,7 @@ from tensorflow.keras import models
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w")
+logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w")
 
 
 class GameDataGenerator:
@@ -229,10 +229,10 @@ if __name__ == '__main__':
     game_kwargs = {
         "NUMBER_OF_GAMES": 1,
         "TRAINING_ITERATION": 1,
-        "TERMINATE_COUNTER": 50,
+        "TERMINATE_COUNTER": 10,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 1000,
+        "MAX_EVALUATIONS": 50,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

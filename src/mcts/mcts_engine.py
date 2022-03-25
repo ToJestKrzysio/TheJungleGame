@@ -8,8 +8,6 @@ from src.game import Board
 
 EXPLORATION_COEFFICIENT_C = 2
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
-
 
 class Root:
     evaluations = 0

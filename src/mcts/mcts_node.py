@@ -7,8 +7,6 @@ from src.game import Board, UnitMove
 from src.mcts import value, policy
 from src.mcts.counter import _EvaluationsCounter, evaluations_counter
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
-
 
 class Node(object):
     board: Board
@@ -64,7 +62,8 @@ class Node(object):
             for move in unit_moves:
                 current_position = self.board.positions[unit]
                 new_board = self.board.move(unit_position=current_position, selected_move=move)
-                new_node = Node(board=new_board, parent=self, unit_move=UnitMove(unit=unit, move=move))
+                new_node = Node(board=new_board, parent=self,
+                                unit_move=UnitMove(unit=unit, move=move))
                 self.child_nodes.append(new_node)
         logging.debug(
             f"Expanded Node<{id(self)}>. Created in total {len(self.child_nodes)} child nodes.")

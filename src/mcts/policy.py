@@ -14,9 +14,6 @@ if TYPE_CHECKING:
     from src.mcts import Node
 
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="a")
-
-
 class AbstractPolicy(ABC):
 
     @abstractmethod
