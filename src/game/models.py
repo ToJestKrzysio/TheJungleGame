@@ -48,12 +48,12 @@ class ValuePolicyModel(AbstractModel):
         model = Model(model_input, [policy_head, value_head])
         model.compile(
             loss={
-                "policy_head": "categorical_crossentropy",
-                "value_head": "mse"
+                "Policy_Head": "categorical_crossentropy",
+                "Value_Head": "mse"
             },
             loss_weights={
-                "policy_head": self.policy_loss_weight,
-                "value_head": self.value_loss_weight
+                "Policy_Head": self.policy_loss_weight,
+                "Value_Head": self.value_loss_weight
             },
             optimizer=optimizers.Adam()
         )

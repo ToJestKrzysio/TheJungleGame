@@ -3,3 +3,7 @@ pytest>=6.2.5
 pytest-cov>=3.0.0
 matplotlib>=3.5.1
 tensorflow==2.7.0
+
+Django~=4.0.3
+djangorestframework~=3.13.1
+environs~=9.4.0

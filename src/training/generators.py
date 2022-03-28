@@ -31,6 +31,7 @@ class GameDataGenerator:
         os.makedirs(self.training_data_output, exist_ok=True)
 
     def generate(self, seed=42) -> str:
+        # TODO add multiprocessing for running multiple games at once
         memory = []
         np.random.seed(seed)
 
@@ -117,7 +118,8 @@ class GameDataGenerator:
         return filepath
 
     @staticmethod
-    def create_experiences(incomplete_experiences: List[IncompleteExperience], outcome: float):
+    def create_experiences(incomplete_experiences: List[IncompleteExperience],
+                           outcome: float) -> Tuple[Experience, ...]:
         """
         Given list of IncompleteExperiences creates list of Experiences by adding to each
         IncompleteExperience a reward.
@@ -125,17 +127,13 @@ class GameDataGenerator:
         :param incomplete_experiences: List of IncompleteExperiences.
         :param outcome: Result of the simulation, any of those 3 values [-1, 0, 1].
 
-        :return: List of created Experiences.
+        :return: Tuple of created Experiences.
         """
-        experiences = []
-        for experience in incomplete_experiences:
-            experiences.append(Experience(
-                state=experience.state,
-                probability=experience.probability,
-                q=experience.q,
-                reward=outcome,
-            ))
-        return experiences
+        return tuple(Experience(
+            state=experience.state,
+            probability=experience.probability,
+            q=experience.q,
+            reward=outcome) for experience in incomplete_experiences)
 
     @staticmethod
     def _generate_empty_probability_planes() -> np.ndarray:
@@ -158,7 +156,7 @@ class GameDataGenerator:
         planes /= np.sum(planes)
         if not np.isclose(np.sum(planes), 1):
             raise ValueError("Sum of probabilities is not equal to 1.")
-        return planes
+        return planes.reshape(-1)
 
     @staticmethod
     def _update_plane_for_child(planes: np.ndarray, child: mcts.mcts_node.Node) -> np.ndarray:
