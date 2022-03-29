@@ -126,7 +126,7 @@ class ValuePolicyModel(AbstractModel):
             tensor = np.expand_dims(tensor, axis=0)
 
         logging.debug(f"Running TF prediction")
-        value, policy = self.model.predict(tensor, use_multiprocessing=True)
+        value, policy = self.model.predict(tensor)
 
         logging.debug(f"Processing data")
         value = value[0][0]

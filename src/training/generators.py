@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 import os
 import pickle
 import time
@@ -51,7 +52,7 @@ class GameDataGenerator:
         self.input_queue = mp.JoinableQueue(self.num_games)  # TODO CLEAN
         self.output_queue = ExperiencesQueue(self.num_games)  # TODO CLEAN
 
-    def generate_1(self, seed=42) -> str:  # TODO CLEAN
+    def generate_1(self, seed: int = 42) -> str:  # TODO CLEAN
         start = time.perf_counter()  # TODO REMOVE
         np.random.seed(seed)
 
@@ -72,7 +73,7 @@ class GameDataGenerator:
         print(f"Multiprocessing: {end}")  # TODO REMOVE
         return self._save_memory_file(memory, self.training_iteration)
 
-    def generate_2(self, seed=42) -> str:  # TODO CLEAN
+    def generate_2(self, seed: int = 42) -> str:  # TODO CLEAN
         start = time.perf_counter()  # TODO REMOVE
 
         memory = []
@@ -85,6 +86,90 @@ class GameDataGenerator:
         end = time.perf_counter() - start  # TODO REMOVE
         print(f"Standard: {end}")  # TODO REMOVE
         return self._save_memory_file(memory, self.training_iteration)
+
+    def generate_3(self, seed: int = 42):
+        start = time.perf_counter()  # TODO REMOVE
+
+        np.random.seed(seed)
+        number_of_processes = mp.cpu_count()
+        pool = mp.Pool(number_of_processes)
+
+        games = np.array_split(np.arange(self.num_games), self.num_games)
+
+        nested_memory = pool.map(self._generate_3, games)
+
+        memory: List["Experience"] = []
+        for nested in nested_memory:
+            memory.extend(nested)
+
+        end = time.perf_counter() - start  # TODO REMOVE
+        print(f"Multiprocessing 3: {end}")  # TODO REMOVE
+        self._save_memory_file(memory, self.training_iteration)
+
+    def _generate_3(self, games):
+        logging.debug(f"Starting generate.")
+        memory = []
+        for game_id in games:
+
+            logging.info(f"Starting game {game_id + 1} of {self.num_games}")
+            print(f"Starting game {game_id + 1} of {self.num_games}")
+
+            env = Board.initialize()
+            incomplete_experiences = []
+            game_over = env.game_over
+            outcome = None
+            while not game_over:
+                player_ = "white" if env.white_move else "black"
+                logging.info(f"Turn {env.move_count} moving: {player_}")
+                current_game_state = env.to_tensor()
+                current_player_value = int(env.white_move) * 2 - 1
+
+                mcts_engine = mcts.Root(env, **self.mcts_kwargs)
+                # TODO add support for passing NN to generate value and policy data - obsolete?
+                best_node, best_move = mcts_engine.evaluate()
+
+                unit, selected_move = best_move
+                current_position = env.positions[unit]
+                new_env = env.move(current_position, selected_move)
+
+                q_value = mcts_engine.node.q * current_player_value
+                probability_planes = self._generate_probability_planes(mcts_engine)
+                incomplete_experience = IncompleteExperience(
+                    state=current_game_state,
+                    probability=probability_planes,
+                    q=q_value
+                )
+                incomplete_experiences.append(incomplete_experience)
+
+                if not new_env.game_over and new_env.move_count >= self.terminate_count:
+                    game_over = True
+                    new_game_state = new_env.to_tensor()
+                    new_q_value = 0
+                    new_probability_planes = self.generate_empty_probability_vector()
+
+                    new_incomplete_experience = IncompleteExperience(
+                        state=new_game_state,
+                        probability=new_probability_planes,
+                        q=new_q_value
+                    )
+
+                    incomplete_experiences.append(new_incomplete_experience)
+                    _, outcome = new_env.find_outcome()  # TODO merge1
+
+                else:
+                    game_over = new_env.game_over
+                    env = new_env
+
+            if outcome is None:
+                _, outcome = env.find_outcome()  # TODO merge1
+
+            experiences = self.create_experiences(incomplete_experiences, outcome)
+            memory.extend(experiences)
+
+            logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
+            print(f"Game finished with result {outcome} after {env.move_count} moves.")
+
+        return memory
 
     def _generate_1(self) -> None:  # TODO CLEAN
         logging.debug(f"Starting generate.")
@@ -366,5 +451,6 @@ if __name__ == '__main__':
         "MAX_EVALUATIONS": 100,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
-    data_generator.generate_1()
+    # data_generator.generate_1()
     # data_generator.generate_2()
+    data_generator.generate_3()
