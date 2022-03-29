@@ -56,7 +56,7 @@ class NetworkPolicy(AbstractPolicy):
 
     def __call__(self, node: "Node"):
         logging.debug(f"Executing policy call for Node<{id(node)}>")
-
+        logging.debug(node.child_nodes)
         if not node.child_nodes:
             value, policy_planes = node.board.predict()
             node.total_value = value
@@ -67,6 +67,7 @@ class NetworkPolicy(AbstractPolicy):
                 f"Starting backpropagation with reward {value:0.3f} from Node<{id(node)}>")
             node.backpropagation(value)
         else:
+            logging.debug("Selecting child")
             child_node = self.select_child(node)
             child_node.evaluate()
 

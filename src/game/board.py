@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import Counter, deque, namedtuple
 from copy import copy, deepcopy
 from itertools import product
@@ -241,12 +242,17 @@ class Board(np.ndarray):
 
     def predict(self) -> Tuple[float, np.ndarray]:
         if not isinstance(self.model, AbstractModel):
+            logging.error(f"Provided model '{type(self.model)}' is not of type 'AbstractModel'.")
             raise ValueError(
                 f"Provided model '{type(self.model)}' is not of type 'AbstractModel'.")
+        logging.debug(f"Generating move mask")
         mask = self.get_move_mask()
+        logging.debug(f"Generation state tensor")
         tensor = self.to_tensor()
+        logging.debug(f"Running prediction")
         self.value, policy = self.model.predict(tensor, mask)
         # TODO - assigning value and policy to current board instead of generating every time?
+        logging.debug(f"Completed predict run")
         return self.value, policy
 
     def get_move_mask(self) -> np.ndarray:

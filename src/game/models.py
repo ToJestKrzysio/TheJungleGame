@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Tuple, TYPE_CHECKING
 
@@ -119,10 +120,15 @@ class ValuePolicyModel(AbstractModel):
 
         :return: Tuple
         """
+
+        logging.debug(f"Preparing data")
         if tensor.shape == self.input_shape:
             tensor = np.expand_dims(tensor, axis=0)
-        value, policy = self.model.predict(tensor)
 
+        logging.debug(f"Running TF prediction")
+        value, policy = self.model.predict(tensor, use_multiprocessing=True)
+
+        logging.debug(f"Processing data")
         value = value[0][0]
 
         policy = policy.reshape(self.output_shape)

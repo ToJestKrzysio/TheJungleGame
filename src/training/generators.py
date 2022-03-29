@@ -1,9 +1,13 @@
 import datetime
 import logging
-from itertools import cycle
 import os
 import pickle
+import time
+import multiprocessing as mp
+from multiprocessing.queues import Queue
+
 from collections import namedtuple
+from itertools import cycle
 from typing import List, Tuple
 
 import keras
@@ -16,31 +20,153 @@ from tensorflow.keras import models
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w")
+FORMAT = "[%(threadName)s, %(asctime)s, %(levelname)s] %(message)s"
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w", format=FORMAT)
+
+
+class ExperiencesQueue(Queue):
+
+    def __init__(self, maxsize):
+        super().__init__(maxsize, ctx=mp.get_context())
+
+    def merge(self) -> List["Experience"]:
+        result = []
+        for _ in range(self.qsize()):
+            result.extend(self.get())
+        return result
 
 
 class GameDataGenerator:
 
     def __init__(self, game_kwargs, mcts_kwargs):
+        self.mcts_kwargs = mcts_kwargs
+
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
         self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 0)
-        self.mcts_kwargs = mcts_kwargs
         self.training_data_output = os.path.join("data", "training")
+
         os.makedirs(self.training_data_output, exist_ok=True)
 
-    def generate(self, seed=42) -> str:
-        memory = []
+        self.input_queue = mp.JoinableQueue(self.num_games)  # TODO CLEAN
+        self.output_queue = ExperiencesQueue(self.num_games)  # TODO CLEAN
+
+    def generate_1(self, seed=42) -> str:  # TODO CLEAN
+        start = time.perf_counter()  # TODO REMOVE
         np.random.seed(seed)
-        # TODO Add multiprocessing
 
         for game_id in range(self.num_games):
-            experiences = self._generate(game_id)
-            memory.extend(experiences)
+            self.input_queue.put(game_id)
 
+        number_of_processes = mp.cpu_count()
+        for _ in range(number_of_processes):
+            process = mp.Process(target=self._generate_1)
+            process.start()
+
+        self.input_queue.join()
+        for _ in range(number_of_processes):
+            self.input_queue.put(None)
+
+        memory = self.output_queue.merge()
+        end = time.perf_counter() - start  # TODO REMOVE
+        print(f"Multiprocessing: {end}")  # TODO REMOVE
         return self._save_memory_file(memory, self.training_iteration)
 
-    def _generate(self, game_id) -> Tuple[Experience, ...]:
+    def generate_2(self, seed=42) -> str:  # TODO CLEAN
+        start = time.perf_counter()  # TODO REMOVE
+
+        memory = []
+        np.random.seed(seed)
+
+        for game_id in range(self.num_games):
+            experiences = self._generate_2(game_id)
+            memory.extend(experiences)
+
+        end = time.perf_counter() - start  # TODO REMOVE
+        print(f"Standard: {end}")  # TODO REMOVE
+        return self._save_memory_file(memory, self.training_iteration)
+
+    def _generate_1(self) -> None:  # TODO CLEAN
+        logging.debug(f"Starting generate.")
+
+        while True:
+            game_id = self.input_queue.get()
+            if game_id is None:
+                self.input_queue.task_done()
+                break
+
+            logging.info(f"Starting game {game_id + 1} of {self.num_games}")
+            print(f"Starting game {game_id + 1} of {self.num_games}")
+
+            env = Board.initialize()
+            incomplete_experiences = []
+            game_over = env.game_over
+            outcome = None
+            while not game_over:
+                player_ = "white" if env.white_move else "black"
+                # print("*" * 100, "\n")  # TODO REMOVE
+                # print(f"Turn {env.move_count} moving: {player_}")
+                # print(env)
+                # print("\n")
+                logging.info(f"Turn {env.move_count} moving: {player_}")
+                current_game_state = env.to_tensor()
+                current_player_value = int(env.white_move) * 2 - 1
+
+                mcts_engine = mcts.Root(env, **self.mcts_kwargs)
+                logging.debug("Created mcts engine.")
+                # TODO add support for passing NN to generate value and policy data - obsolete?
+                logging.debug("Running evaluation loop.")
+                best_node, best_move = mcts_engine.evaluate()
+                logging.debug("Completed evaluation loop.")
+
+                unit, selected_move = best_move
+                current_position = env.positions[unit]
+                new_env = env.move(current_position, selected_move)
+                logging.debug("Moved unit.")
+
+                q_value = mcts_engine.node.q * current_player_value
+                probability_planes = self._generate_probability_planes(mcts_engine)
+                incomplete_experience = IncompleteExperience(
+                    state=current_game_state,
+                    probability=probability_planes,
+                    q=q_value
+                )
+                incomplete_experiences.append(incomplete_experience)
+                logging.debug("Created incomplete experience.")
+
+                if not new_env.game_over and new_env.move_count >= self.terminate_count:
+                    logging.debug("Reached termination criteria.")
+                    game_over = True
+                    new_game_state = new_env.to_tensor()
+                    new_q_value = 0
+                    new_probability_planes = self.generate_empty_probability_vector()
+
+                    new_incomplete_experience = IncompleteExperience(
+                        state=new_game_state,
+                        probability=new_probability_planes,
+                        q=new_q_value
+                    )
+
+                    incomplete_experiences.append(new_incomplete_experience)
+                    _, outcome = new_env.find_outcome()  # TODO merge1
+                    logging.debug("Completed termination criteria.")
+
+                else:
+                    game_over = new_env.game_over
+                    env = new_env
+
+            if outcome is None:
+                _, outcome = env.find_outcome()  # TODO merge1
+
+            experiences = self.create_experiences(incomplete_experiences, outcome)
+
+            logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
+            print(f"Game finished with result {outcome} after {env.move_count} moves.")
+
+            self.input_queue.task_done()
+            self.output_queue.put(experiences)
+
+    def _generate_2(self, game_id) -> Tuple[Experience, ...]:  # TODO CLEAN
 
         logging.info(f"Starting game {game_id + 1} of {self.num_games}")
         print(f"Starting game {game_id + 1} of {self.num_games}")
@@ -101,7 +227,7 @@ class GameDataGenerator:
         logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
         print(f"Game finished with result {outcome} after {env.move_count} moves.")
 
-        return experiences
+        return experiences  # TODO CLEAN
 
     def _save_memory_file(self, memory, training_iteration: int) -> str:
         """
@@ -232,12 +358,13 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 10,
+        "NUMBER_OF_GAMES": 20,
         "TRAINING_ITERATION": 0,
         "TERMINATE_COUNTER": 5,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 10,
+        "MAX_EVALUATIONS": 100,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
-    data_generator.generate()
+    data_generator.generate_1()
+    # data_generator.generate_2()
