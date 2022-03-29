@@ -29,9 +29,10 @@ class GameDataGenerator:
         self.training_data_output = os.path.join("data", "training")
         os.makedirs(self.training_data_output, exist_ok=True)
 
-    def generate(self, seed=42):
+    def generate(self, seed=42) -> str:
         memory = []
         np.random.seed(seed)
+        # TODO Add multiprocessing
 
         for game_id in range(self.num_games):
             experiences = self._generate(game_id)
@@ -39,7 +40,7 @@ class GameDataGenerator:
 
         return self._save_memory_file(memory, self.training_iteration)
 
-    def _generate(self, game_id) -> str:
+    def _generate(self, game_id) -> Tuple[Experience, ...]:
 
         logging.info(f"Starting game {game_id + 1} of {self.num_games}")
         print(f"Starting game {game_id + 1} of {self.num_games}")
@@ -73,7 +74,6 @@ class GameDataGenerator:
                 q=q_value
             )
             incomplete_experiences.append(incomplete_experience)
-            # TODO FIND A PROBLEM WITH SMALL NUMBER OF TRAINING DATA SAVED - solved?
 
             if not new_env.game_over and new_env.move_count >= self.terminate_count:
                 game_over = True
@@ -232,12 +232,12 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 5,
+        "NUMBER_OF_GAMES": 10,
         "TRAINING_ITERATION": 0,
-        "TERMINATE_COUNTER": 50,
+        "TERMINATE_COUNTER": 5,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 1000,
+        "MAX_EVALUATIONS": 10,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
-    data_generator._generate()
+    data_generator.generate()
