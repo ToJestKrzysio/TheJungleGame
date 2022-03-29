@@ -11,3 +11,4 @@ githubAlexM
 **/data/training/training_data_*
 
 *.log
+*.pickle

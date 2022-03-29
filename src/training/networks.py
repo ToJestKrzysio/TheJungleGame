@@ -46,12 +46,7 @@ class DataGenerator(keras.utils.data_utils.Sequence):
             q_values[data_id] = experience.q
             rewards[data_id] = experience.reward
 
-        print(states.shape)
-        print(probabilities.shape)
-        print(q_values.shape)
-        print(rewards.shape)
-
-        return [states, [probabilities, (rewards + q_values) / 2]]
+        return [states, [(rewards + q_values) / 2, probabilities]]
 
 
 def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
@@ -62,25 +57,25 @@ def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
     patience = kwargs.get("TRAINING_PATIENCE", 10)
     min_delta = kwargs.get("TRAINING_MIN_DELTA", 0.01)
 
-    early_stop = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        verbose=1,
-        mode='min',
-        patience=patience,
-        min_delta=min_delta,
-    )
+    # early_stop = tf.keras.callbacks.EarlyStopping(
+    #     monitor='loss',
+    #     verbose=1,
+    #     mode='min',
+    #     patience=patience,
+    #     min_delta=min_delta,
+    # )
 
     timestamp = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
     checkpoint_filepath = f"data/models/training_iteration_{training_iteration}_{timestamp}.h5"
-    save_best_model = callbacks.ModelCheckpoint(
-        filepath=checkpoint_filepath,
-        monitor="val_loss",
-        verbose=1,
-        save_best_only=True,
-        save_weights_only=False,
-        mode="auto",
-        save_freq="epoch"
-    )
+    # save_best_model = callbacks.ModelCheckpoint(
+    #     filepath=checkpoint_filepath,
+    #     monitor="val_loss",
+    #     verbose=1,
+    #     save_best_only=True,
+    #     save_weights_only=False,
+    #     mode="auto",
+    #     save_freq="epoch"
+    # )
 
     np.random.shuffle(data)
 
@@ -93,11 +88,11 @@ def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
     history = model.fit(
         x=training_generator,
         steps_per_epoch=steps_per_epoch,
-        validation_data=validation_generator,
-        validation_steps=validation_steps,
+        # validation_data=validation_generator,
+        # validation_steps=validation_steps,
         epochs=epochs,
         shuffle=True,
-        callbacks=[early_stop, save_best_model],
+        # callbacks=[early_stop, save_best_model],
         use_multiprocessing=True
     )
 

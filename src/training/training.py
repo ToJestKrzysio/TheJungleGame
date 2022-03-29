@@ -5,6 +5,7 @@ from networks import train_nn
 from src.game.models import ValuePolicyModel
 from src.training.generators import Experience
 
+
 class ModelTrainer:
 
     def __init__(self, training_kwargs: dict = None, game_kwargs: dict = None,
@@ -24,7 +25,7 @@ class ModelTrainer:
             #                                    mcts_kwargs=self.mcts_kwargs)
             # training_data_filepath = data_generator.generate(training_id)
 
-            training_data_filepath = "./data/training/training_data_0_25-03-22_18:47:32.pickle"
+            training_data_filepath = "./data/training/training_data_0_29-03-22_00:08:04.pickle"
             with open(training_data_filepath, "rb") as file_:
                 training_data = pickle.load(file_)
 
@@ -36,13 +37,12 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     model_trainer = ModelTrainer({}, {}, {}, {})
-    # import os
-    # print(os.listdir("data/training"))
 
-    training_data_filepath = "./data/training/training_data_0_25-03-22_18:47:32.pickle"
-    with open(training_data_filepath, mode="rb") as file_:
-        training_data = pickle.load(file_)
-
+    # training_data_filepath = "./data/training/training_data_0_29-03-22_00:08:04.pickle"
+    # with open(training_data_filepath, mode="rb") as file_:
+    #     training_data = pickle.load(file_)
+    # print(len(training_data))
+    #
     history, model_filename = model_trainer()
     print(model_filename)
     with open("history.pickle", "wb") as file_:

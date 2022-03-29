@@ -70,15 +70,15 @@ class Node(object):
 
     @property
     def q(self) -> float:
-        try:
-            return self.total_value / self.visits
-        except ZeroDivisionError:
+        if self.visits == 0:
             return 0
+        return self.total_value / self.visits
 
     def backpropagation(self, reward):
         self.total_value += reward
+        self.visits += 1
+
         if self.parent is not None:
-            self.visits += 1
             logging.debug(f"Backpropagating reward {reward:0.3f} from Node<{id(self)}>")
             self.parent.backpropagation(reward)
         else:
