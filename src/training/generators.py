@@ -23,82 +23,87 @@ class GameDataGenerator:
 
     def __init__(self, game_kwargs, mcts_kwargs):
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
-        self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 10)
-        self.terminate_count = game_kwargs.get("TERMINATE_COUNTER")
-        # self.nn_model = models.load_model(game_kwargs["NETWORK_MODEL"])
+        self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
+        self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 0)
         self.mcts_kwargs = mcts_kwargs
         self.training_data_output = os.path.join("data", "training")
         os.makedirs(self.training_data_output, exist_ok=True)
 
-    def generate(self):
+    def generate(self, seed=42) -> str:
         memory = []
-        np.random.seed(42)
+        np.random.seed(seed)
+        # TODO Add multiprocessing
 
         for game_id in range(self.num_games):
-            logging.info(f"Starting game {game_id + 1} of {self.num_games}")
-            print(f"Starting game {game_id + 1} of {self.num_games}")
-
-            env = Board.initialize()
-            incomplete_experiences = []
-            game_over = env.game_over
-            outcome = None
-            while not game_over:
-                player_ = "white" if env.white_move else "black"
-                print("*" * 100, "\n")  # TODO REMOVE
-                print(f"Turn {env.move_count} moving: {player_}")
-                print(env)
-                print("\n")
-                logging.info(f"Turn {env.move_count} moving: {player_}")
-                current_game_state = env.to_tensor()
-                current_player_value = int(env.white_move) * 2 - 1
-
-                mcts_engine = mcts.Root(env, **self.mcts_kwargs)
-                # TODO add support for passing NN to generate value and policy data - obsolete?
-                best_node, best_move = mcts_engine.evaluate()
-                unit, selected_move = best_move
-                current_position = env.positions[unit]
-                new_env = env.move(current_position, selected_move)
-
-                q_value = mcts_engine.node.q * current_player_value
-                probability_planes = self._generate_probability_planes(mcts_engine)
-                incomplete_experience = IncompleteExperience(
-                    state=current_game_state,
-                    probability=probability_planes,
-                    q=q_value
-                )
-                incomplete_experiences.append(incomplete_experience)
-
-                if not new_env.game_over and new_env.move_count >= self.terminate_count:
-                    game_over = True
-                    new_game_state = new_env.to_tensor()
-                    new_q_value = 0
-                    new_probability_planes = self._generate_empty_probability_planes()
-
-                    new_incomplete_experience = IncompleteExperience(
-                        state=new_game_state,
-                        probability=new_probability_planes,
-                        q=new_q_value
-                    )
-
-                    incomplete_experiences.append(new_incomplete_experience)
-                    _, outcome = new_env.find_outcome()
-                else:
-                    game_over = new_env.game_over
-                    env = new_env
-
-            if not outcome:
-                _, outcome = env.find_outcome()
-
-            experiences = self.create_experiences(incomplete_experiences, outcome)
+            experiences = self._generate(game_id)
             memory.extend(experiences)
-
-            logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
-            print(f"Game finished with result {outcome} after {env.move_count} moves.")
 
         return self._save_memory_file(memory, self.training_iteration)
 
-    def _save_memory_file(self, memory,
-                          training_iteration: int) -> str:
+    def _generate(self, game_id) -> Tuple[Experience, ...]:
+
+        logging.info(f"Starting game {game_id + 1} of {self.num_games}")
+        print(f"Starting game {game_id + 1} of {self.num_games}")
+
+        env = Board.initialize()
+        incomplete_experiences = []
+        game_over = env.game_over
+        outcome = None
+        while not game_over:
+            player_ = "white" if env.white_move else "black"
+            print("*" * 100, "\n")  # TODO REMOVE
+            print(f"Turn {env.move_count} moving: {player_}")
+            print(env)
+            print("\n")
+            logging.info(f"Turn {env.move_count} moving: {player_}")
+            current_game_state = env.to_tensor()
+            current_player_value = int(env.white_move) * 2 - 1
+
+            mcts_engine = mcts.Root(env, **self.mcts_kwargs)
+            # TODO add support for passing NN to generate value and policy data - obsolete?
+            best_node, best_move = mcts_engine.evaluate()
+            unit, selected_move = best_move
+            current_position = env.positions[unit]
+            new_env = env.move(current_position, selected_move)
+
+            q_value = mcts_engine.node.q * current_player_value
+            probability_planes = self._generate_probability_planes(mcts_engine)
+            incomplete_experience = IncompleteExperience(
+                state=current_game_state,
+                probability=probability_planes,
+                q=q_value
+            )
+            incomplete_experiences.append(incomplete_experience)
+
+            if not new_env.game_over and new_env.move_count >= self.terminate_count:
+                game_over = True
+                new_game_state = new_env.to_tensor()
+                new_q_value = 0
+                new_probability_planes = self.generate_empty_probability_vector()
+
+                new_incomplete_experience = IncompleteExperience(
+                    state=new_game_state,
+                    probability=new_probability_planes,
+                    q=new_q_value
+                )
+
+                incomplete_experiences.append(new_incomplete_experience)
+                _, outcome = new_env.find_outcome()
+            else:
+                game_over = new_env.game_over
+                env = new_env
+
+        if not outcome:
+            _, outcome = env.find_outcome()
+
+        experiences = self.create_experiences(incomplete_experiences, outcome)
+
+        logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
+        print(f"Game finished with result {outcome} after {env.move_count} moves.")
+
+        return experiences
+
+    def _save_memory_file(self, memory, training_iteration: int) -> str:
         """
         Given memory of collected Experiences and iteration number saves the data into a pickle
         file and returns path to saved file.
@@ -118,7 +123,8 @@ class GameDataGenerator:
         return filepath
 
     @staticmethod
-    def create_experiences(incomplete_experiences: List[IncompleteExperience], outcome: float):
+    def create_experiences(incomplete_experiences: List[IncompleteExperience],
+                           outcome: float) -> Tuple[Experience, ...]:
         """
         Given list of IncompleteExperiences creates list of Experiences by adding to each
         IncompleteExperience a reward.
@@ -126,21 +132,20 @@ class GameDataGenerator:
         :param incomplete_experiences: List of IncompleteExperiences.
         :param outcome: Result of the simulation, any of those 3 values [-1, 0, 1].
 
-        :return: List of created Experiences.
+        :return: Tuple of created Experiences.
         """
-        experiences = []
-        for experience in incomplete_experiences:
-            experiences.append(Experience(
-                state=experience.state,
-                probability=experience.probability,
-                q=experience.q,
-                reward=outcome,
-            ))
-        return experiences
+        return tuple(Experience(
+            state=experience.state,
+            probability=experience.probability,
+            q=experience.q,
+            reward=outcome) for experience in incomplete_experiences)
 
     @staticmethod
     def _generate_empty_probability_planes() -> np.ndarray:
         return np.zeros(shape=(8, 9, 7))
+
+    def generate_empty_probability_vector(self) -> np.ndarray:
+        return self._generate_empty_probability_planes().reshape(-1)
 
     @staticmethod
     def _generate_probability_planes(mcts: mcts.Root) -> np.ndarray:
@@ -159,7 +164,7 @@ class GameDataGenerator:
         planes /= np.sum(planes)
         if not np.isclose(np.sum(planes), 1):
             raise ValueError("Sum of probabilities is not equal to 1.")
-        return planes
+        return planes.reshape(-1)
 
     @staticmethod
     def _update_plane_for_child(planes: np.ndarray, child: mcts.mcts_node.Node) -> np.ndarray:
@@ -227,12 +232,12 @@ class TournamentDataGenerator:
 
 if __name__ == '__main__':
     game_kwargs = {
-        "NUMBER_OF_GAMES": 1,
-        "TRAINING_ITERATION": 1,
-        "TERMINATE_COUNTER": 10,
+        "NUMBER_OF_GAMES": 10,
+        "TRAINING_ITERATION": 0,
+        "TERMINATE_COUNTER": 5,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 50,
+        "MAX_EVALUATIONS": 10,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

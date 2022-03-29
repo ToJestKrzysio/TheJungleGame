@@ -42,18 +42,18 @@ class ValuePolicyModel(AbstractModel):
         for layer_id in range(self.conv_blocks):
             input_layer = self.get_conv_block(input_layer, layer_id)
         final_conv_layer = input_layer
-        policy_head = self.get_value_head(final_conv_layer)
-        value_head = self.get_policy_head(final_conv_layer)
+        policy_head = self.get_policy_head(final_conv_layer)
+        value_head = self.get_value_head(final_conv_layer)
 
-        model = Model(model_input, [policy_head, value_head])
+        model = Model(model_input, [value_head, policy_head])
         model.compile(
             loss={
-                "policy_head": "categorical_crossentropy",
-                "value_head": "mse"
+                "Policy_Head": "categorical_crossentropy",
+                "Value_Head": "mse"
             },
             loss_weights={
-                "policy_head": self.policy_loss_weight,
-                "value_head": self.value_loss_weight
+                "Policy_Head": self.policy_loss_weight,
+                "Value_Head": self.value_loss_weight
             },
             optimizer=optimizers.Adam()
         )

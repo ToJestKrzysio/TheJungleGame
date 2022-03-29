@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.7.0
+FROM tensorflow/tensorflow-gpu:2.7.0
 
 WORKDIR ./code
 
