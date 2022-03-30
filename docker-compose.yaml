@@ -1,6 +1,0 @@
-services:
-  gen1:
-    build: .
-    command: python training/example2.py
-    volumes:
-      - ./docker_images/gen1:/code/data/training
