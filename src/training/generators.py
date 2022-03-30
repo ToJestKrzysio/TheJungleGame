@@ -6,12 +6,13 @@ import pickle
 from collections import namedtuple
 from typing import List, Tuple
 
-import keras
+from tensorflow import keras
+from tensorflow.keras import models
 import numpy as np
 
-from src.game import Board
 from src import mcts
-from tensorflow.keras import models
+from src.game import Board
+from src.game.models import value_policy_model
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
@@ -24,23 +25,24 @@ class GameDataGenerator:
     def __init__(self, game_kwargs, mcts_kwargs):
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
-        self.training_iteration = game_kwargs.get("TRAINING_ITERATION", 0)
+        self.training_iteration = game_kwargs.get("TRAINING_ITERATION", -1)
+        self.nn_model_filepath = game_kwargs.get("NN_MODEL_FILEPATH")
         self.mcts_kwargs = mcts_kwargs
-        self.training_data_output = os.path.join("data", "training")
-        os.makedirs(self.training_data_output, exist_ok=True)
 
-    def generate(self, seed=42) -> str:
-        memory = []
+        self.iteration_dir_name = f"iteration_{self.training_iteration}"
+        self.iteration_dir_path = os.path.join("../data/training", self.iteration_dir_name)
+        # self.iteration_dir_path = os.path.join("./data/training/")
+        os.makedirs(self.iteration_dir_path, exist_ok=True)
+
+        if self.nn_model_filepath:
+            value_policy_model.load(self.nn_model_filepath)
+
+    def generate(self, seed=42) -> List[str]:
         np.random.seed(seed)
-        # TODO Add multiprocessing
 
-        for game_id in range(self.num_games):
-            experiences = self._generate(game_id)
-            memory.extend(experiences)
+        return [self._generate(game_id) for game_id in range(self.num_games)]
 
-        return self._save_memory_file(memory, self.training_iteration)
-
-    def _generate(self, game_id) -> Tuple[Experience, ...]:
+    def _generate(self, game_id) -> str:
 
         logging.info(f"Starting game {game_id + 1} of {self.num_games}")
         print(f"Starting game {game_id + 1} of {self.num_games}")
@@ -60,7 +62,6 @@ class GameDataGenerator:
             current_player_value = int(env.white_move) * 2 - 1
 
             mcts_engine = mcts.Root(env, **self.mcts_kwargs)
-            # TODO add support for passing NN to generate value and policy data - obsolete?
             best_node, best_move = mcts_engine.evaluate()
             unit, selected_move = best_move
             current_position = env.positions[unit]
@@ -101,21 +102,22 @@ class GameDataGenerator:
         logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
         print(f"Game finished with result {outcome} after {env.move_count} moves.")
 
-        return experiences
+        return self._save_memory_file(experiences, game_id)
 
-    def _save_memory_file(self, memory, training_iteration: int) -> str:
+    def _save_memory_file(self, memory, game_id: int) -> str:
         """
         Given memory of collected Experiences and iteration number saves the data into a pickle
         file and returns path to saved file.
 
         :param memory: List of Lists of Experiences to save.
-        :param training_iteration: Number of iteration for which data was generated.
+        :param game_id: ID of currently played game.
 
         :return: Path indication saved file.
         """
         timestamp = datetime.datetime.now().strftime("%d-%m-%y_%H:%M:%S")
-        filename = f"training_data_{training_iteration}_{timestamp}.pickle"
-        filepath = os.path.join(self.training_data_output, filename)
+        filename = f"training_data_{game_id}_{timestamp}.pickle"
+
+        filepath = os.path.join(self.iteration_dir_path, filename)
 
         with open(filepath, "wb") as file_:
             pickle.dump(memory, file_)
@@ -233,11 +235,12 @@ class TournamentDataGenerator:
 if __name__ == '__main__':
     game_kwargs = {
         "NUMBER_OF_GAMES": 10,
-        "TRAINING_ITERATION": 0,
-        "TERMINATE_COUNTER": 5,
+        "TRAINING_ITERATION": "06",
+        "TERMINATE_COUNTER": 50,
+        "NN_MODEL_FILEPATH": "model_0"
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 10,
+        "MAX_EVALUATIONS": 1000,
     }
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

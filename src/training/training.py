@@ -1,8 +1,9 @@
+import os.path
 import pickle
 import sys
 
 from networks import train_nn
-from src.game.models import ValuePolicyModel
+from src.game.models import value_policy_model
 from src.training.generators import Experience
 
 
@@ -16,33 +17,45 @@ class ModelTrainer:
         self.nn_kwargs = nn_kwargs or {}
 
         self.training_iterations = self.training_kwargs.get("TRAINING_ITERATIONS", 1)
+        self.training_data_iteration = self.training_kwargs.get("TRAINING_ITERATION", -1)
+        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR", "../data/training/")
+
+        self.input_dir = os.path.join(self.input_data_base_dir,
+                                      f"iteration_{self.training_data_iteration}")
 
     def __call__(self, *args, **kwargs):
         for training_id in range(self.training_iterations):
-            self.game_kwargs["TRAINING_ITERATION"] = training_id
             # TODO loading NN and passing it down
             # data_generator = GameDataGenerator(game_kwargs=self.game_kwargs,
             #                                    mcts_kwargs=self.mcts_kwargs)
             # training_data_filepath = data_generator.generate(training_id)
+            training_data = []
+            for filename in os.listdir(self.input_dir):
+                filepath = os.path.join(self.input_dir, filename)
 
-            training_data_filepath = "./data/training/training_data_0_29-03-22_00:08:04.pickle"
-            with open(training_data_filepath, "rb") as file_:
-                training_data = pickle.load(file_)
+                with open(filepath, "rb") as file_:
+                    training_data.extend(pickle.load(file_))
 
-            model = ValuePolicyModel()
-            history, model_filename = train_nn(training_data, model.model)
+            model = value_policy_model
+            model.load("model_0")
+            history, model_filename = train_nn(training_data, model.model, **self.nn_kwargs)
+            model.save("model_0_trained_1")
 
             return history, model_filename
 
 
 if __name__ == '__main__':
-    model_trainer = ModelTrainer({}, {}, {}, {})
+    model_trainer = ModelTrainer(
+        training_kwargs={
+            "TRAINING_ITERATIONS": 10,
+            "TRAINING_ITERATION": 0,
+            "INPUT_DIR": "../data/training/"
+        },
+        game_kwargs={},
+        mcts_kwargs={},
+        nn_kwargs={"EPOCHS": 30}
+    )
 
-    # training_data_filepath = "./data/training/training_data_0_29-03-22_00:08:04.pickle"
-    # with open(training_data_filepath, mode="rb") as file_:
-    #     training_data = pickle.load(file_)
-    # print(len(training_data))
-    #
     history, model_filename = model_trainer()
     print(model_filename)
     with open("history.pickle", "wb") as file_:

@@ -67,15 +67,15 @@ def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
 
     timestamp = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
     checkpoint_filepath = f"data/models/training_iteration_{training_iteration}_{timestamp}.h5"
-    # save_best_model = callbacks.ModelCheckpoint(
-    #     filepath=checkpoint_filepath,
-    #     monitor="val_loss",
-    #     verbose=1,
-    #     save_best_only=True,
-    #     save_weights_only=False,
-    #     mode="auto",
-    #     save_freq="epoch"
-    # )
+    save_best_model = callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        monitor="val_loss",
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=False,
+        mode="auto",
+        save_freq="epoch"
+    )
 
     np.random.shuffle(data)
 

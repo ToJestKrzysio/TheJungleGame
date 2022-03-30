@@ -12,3 +12,6 @@ githubAlexM
 
 *.log
 *.pickle
+
+
+src/data/

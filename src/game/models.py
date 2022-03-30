@@ -1,8 +1,11 @@
+import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Tuple, TYPE_CHECKING
 
 import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
+from tensorflow.keras.models import load_model
 
 if TYPE_CHECKING:
     from src.game import BoardTensor
@@ -35,6 +38,7 @@ class ValuePolicyModel(AbstractModel):
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self.create_model()
+        self.base_dir = kwargs.get("BASE_DIR", "../data/models")
 
     def create_model(self):
         model_input = layers.Input(shape=self.input_shape)
@@ -58,6 +62,16 @@ class ValuePolicyModel(AbstractModel):
             optimizer=optimizers.Adam()
         )
         return model
+
+    def load(self, filename: str):
+        filepath = os.path.join(self.base_dir, filename)
+        self.model = load_model(filepath)
+        logging.info(f"Loaded karas model from '{filepath}'")
+
+    def save(self, filename: str):
+        filepath = os.path.join(self.base_dir, filename)
+        self.model.save(filepath)
+        logging.info(f"Saved karas model to '{filepath}'")
 
     def get_conv_block(self, input_layer: layers.Layer, layer_id: int) -> layers.Layer:
         conv_layer = layers.Conv2D(filters=self.num_filters, kernel_size=(3, 3), padding="same",
@@ -133,3 +147,6 @@ class ValuePolicyModel(AbstractModel):
 
 
 value_policy_model = ValuePolicyModel()
+
+if __name__ == '__main__':
+    value_policy_model.save("model_1")
