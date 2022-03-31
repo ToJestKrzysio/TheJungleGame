@@ -17,7 +17,7 @@ from src.game.models import value_policy_model
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w")
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w")
 
 
 class GameDataGenerator:
@@ -26,19 +26,17 @@ class GameDataGenerator:
         self.num_games = game_kwargs.get("NUMBER_OF_GAMES", 10)
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
         self.training_iteration = game_kwargs.get("TRAINING_ITERATION", -1)
-        self.nn_model_filepath = game_kwargs.get("NN_MODEL_FILEPATH")
         self.mcts_kwargs = mcts_kwargs
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
         self.iteration_dir_path = os.path.join("../data/training", self.iteration_dir_name)
-        # self.iteration_dir_path = os.path.join("./data/training/")
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 
-        if self.nn_model_filepath:
-            value_policy_model.load(self.nn_model_filepath)
+        self.model_name = game_kwargs.get("MODEL_NAME")
+        if self.model_name:
+            value_policy_model.load(self.model_name)
 
-    def generate(self, seed=42) -> List[str]:
-        np.random.seed(seed)
+    def generate(self) -> List[str]:
 
         return [self._generate(game_id) for game_id in range(self.num_games)]
 
@@ -53,10 +51,10 @@ class GameDataGenerator:
         outcome = None
         while not game_over:
             player_ = "white" if env.white_move else "black"
-            print("*" * 100, "\n")  # TODO REMOVE
-            print(f"Turn {env.move_count} moving: {player_}")
-            print(env)
-            print("\n")
+            # print("*" * 100, "\n")  # TODO REMOVE
+            # print(f"Turn {env.move_count} moving: {player_}")
+            # print(env)
+            # print("\n")
             logging.info(f"Turn {env.move_count} moving: {player_}")
             current_game_state = env.to_tensor()
             current_player_value = int(env.white_move) * 2 - 1
@@ -115,7 +113,8 @@ class GameDataGenerator:
         :return: Path indication saved file.
         """
         timestamp = datetime.datetime.now().strftime("%d-%m-%y_%H:%M:%S")
-        filename = f"training_data_{game_id}_{timestamp}.pickle"
+        pid = os.getgid()
+        filename = f"training_data_{game_id}_{pid}_{timestamp}.pickle"
 
         filepath = os.path.join(self.iteration_dir_path, filename)
 
@@ -233,14 +232,19 @@ class TournamentDataGenerator:
 
 
 if __name__ == '__main__':
+    import sys
+
+    number_of_games = int(sys.argv[1])
+    training_iteration = int(sys.argv[2])
+
     game_kwargs = {
-        "NUMBER_OF_GAMES": 10,
-        "TRAINING_ITERATION": "06",
+        "NUMBER_OF_GAMES": number_of_games,
+        "TRAINING_ITERATION": training_iteration,
         "TERMINATE_COUNTER": 50,
-        "NN_MODEL_FILEPATH": "model_0"
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 1000,
+        "MAX_EVALUATIONS": 500,
     }
+
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)
     data_generator.generate()

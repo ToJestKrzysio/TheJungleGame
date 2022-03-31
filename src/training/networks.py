@@ -1,6 +1,6 @@
 import math
 from datetime import datetime
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, List
 
 import keras.utils.data_utils
 import numpy as np
@@ -49,7 +49,7 @@ class DataGenerator(keras.utils.data_utils.Sequence):
         return [states, [(rewards + q_values) / 2, probabilities]]
 
 
-def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
+def train_nn(data, model: "Model", **kwargs):
     epochs = kwargs.get("EPOCHS", 10)
     training_iteration = kwargs.get("TRAINING_ITERATION", -1)
     validation_split = kwargs.get("VALIDATION_SPLIT", 0)

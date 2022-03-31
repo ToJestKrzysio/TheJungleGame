@@ -133,6 +133,7 @@ class ValuePolicyModel(AbstractModel):
 
         :return: Tuple
         """
+        # TODO add cache (shouldn't mess training but increase overall performance of predictions)
         if tensor.shape == self.input_shape:
             tensor = np.expand_dims(tensor, axis=0)
         value, policy = self.model.predict(tensor)
@@ -148,5 +149,7 @@ class ValuePolicyModel(AbstractModel):
 
 value_policy_model = ValuePolicyModel()
 
+
 if __name__ == '__main__':
-    value_policy_model.save("model_1")
+    # RUN TO GENERATE NEW MODEL TO TRAIN ON
+    value_policy_model.save("model_fast_0")
