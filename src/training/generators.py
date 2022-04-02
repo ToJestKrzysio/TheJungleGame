@@ -13,6 +13,7 @@ import numpy as np
 from src import mcts
 from src.game import Board
 from src.game.models import value_policy_model
+from src.training.helpers import get_timestamp
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
@@ -29,15 +30,11 @@ class GameDataGenerator:
         self.mcts_kwargs = mcts_kwargs
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
-        self.iteration_dir_path = os.path.join("../data/training", self.iteration_dir_name)
+        self.iteration_dir_path = os.path.join("../data/training", value_policy_model.name,
+                                               self.iteration_dir_name)
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 
-        self.model_name = game_kwargs.get("MODEL_NAME")
-        if self.model_name:
-            value_policy_model.load(self.model_name)
-
     def generate(self) -> List[str]:
-
         return [self._generate(game_id) for game_id in range(self.num_games)]
 
     def _generate(self, game_id) -> str:
@@ -112,9 +109,8 @@ class GameDataGenerator:
 
         :return: Path indication saved file.
         """
-        timestamp = datetime.datetime.now().strftime("%d-%m-%y_%H:%M:%S")
         pid = os.getgid()
-        filename = f"training_data_{game_id}_{pid}_{timestamp}.pickle"
+        filename = f"training_data_{game_id}_{pid}_{get_timestamp()}.pickle"
 
         filepath = os.path.join(self.iteration_dir_path, filename)
 
@@ -234,16 +230,18 @@ class TournamentDataGenerator:
 if __name__ == '__main__':
     import sys
 
-    number_of_games = int(sys.argv[1])
-    training_iteration = int(sys.argv[2])
+    NUMBER_OF_GAMES = int(sys.argv[1])
+    TRAINING_ITERATION = int(sys.argv[2])
+    TERMINATE_COUNTER = int(sys.argv[3])
+    MAX_EVALUATIONS = int(sys.argv[4])
 
     game_kwargs = {
-        "NUMBER_OF_GAMES": number_of_games,
-        "TRAINING_ITERATION": training_iteration,
-        "TERMINATE_COUNTER": 50,
+        "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
+        "TRAINING_ITERATION": TRAINING_ITERATION,
+        "TERMINATE_COUNTER": TERMINATE_COUNTER,
     }
     mcts_kwargs = {
-        "MAX_EVALUATIONS": 500,
+        "MAX_EVALUATIONS": MAX_EVALUATIONS,
     }
 
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)

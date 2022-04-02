@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 
 
 class AbstractModel(ABC):
+    model: Model
+    name: str
+
+    def __init__(self, **kwargs):
+        self.name = ""
 
     @abstractmethod
     def predict(self, tensor: "BoardTensor", mask: np.array) -> Tuple[float, np.ndarray]:
@@ -21,6 +26,7 @@ class AbstractModel(ABC):
 class ValuePolicyModel(AbstractModel):
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.conv_kernel_reg = regularizers.l2(
             kwargs.get("CONVOLUTIONAL_KERNEL_REGULARIZATION", 0.01))
         self.conv_bias_reg = regularizers.l2(
@@ -39,6 +45,8 @@ class ValuePolicyModel(AbstractModel):
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self.create_model()
         self.base_dir = kwargs.get("BASE_DIR", "../data/models")
+
+        # self._cache = {} # TODO ADD CACHE
 
     def create_model(self):
         model_input = layers.Input(shape=self.input_shape)
@@ -63,13 +71,20 @@ class ValuePolicyModel(AbstractModel):
         )
         return model
 
+    def set_name(self, name: str):
+        self.name = name
+
     def load(self, filename: str):
-        filepath = os.path.join(self.base_dir, filename)
+        filepath = os.path.join(self.base_dir, self.name, filename)
         self.model = load_model(filepath)
         logging.info(f"Loaded karas model from '{filepath}'")
 
+    def load_checkpoint(self, filepath: str):
+        self.model = load_model(filepath)
+        logging.info(f"Loaded karas checkpoint data from '{filepath}'")
+
     def save(self, filename: str):
-        filepath = os.path.join(self.base_dir, filename)
+        filepath = os.path.join(self.base_dir, self.name, filename)
         self.model.save(filepath)
         logging.info(f"Saved karas model to '{filepath}'")
 
@@ -152,4 +167,5 @@ value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    value_policy_model.save("model_fast_0")
+    value_policy_model.set_name("delete_this")
+    value_policy_model.save("0")

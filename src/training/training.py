@@ -1,6 +1,8 @@
 import json
 import logging
 import math
+import os
+
 import os.path
 import pickle
 import subprocess
@@ -11,8 +13,10 @@ from keras.callbacks import History
 from networks import train_nn
 from src.game.models import value_policy_model
 from src.training.generators import Experience
+from src.training.helpers import get_timestamp
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
                     format="%(process)d - %(name)s - %(levelname)s - %(message)s")
 
 
@@ -26,29 +30,39 @@ class ModelTrainer:
         self.nn_kwargs = nn_kwargs or {}
 
         self.training_iterations = self.training_kwargs.get("TRAINING_ITERATIONS", 1)
+        self.starting_iteration = self.training_kwargs.get("TRAINING_START_ITERATION", 0)
         self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR", "../data/training/")
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
-        self.model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
+
         self.games_per_iteration = self.training_kwargs.get("GAMES_PER_ITERATION", 50)
+        self.rollouts_per_game = self.training_kwargs.get("ROLLOUTS_PER_GAME", 1000)
+        self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
+
         self.model = value_policy_model
+        model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
+        self.model.set_name(model_base_name)
 
         self.input_dir = None
 
-    def __call__(self, *args, **kwargs):
-        for iteration_id in range(self.training_iterations):
-            model_name = self.get_model_name(iteration=iteration_id)
-            self.model.load(filename=model_name)
-            self.generate_data(iteration=iteration_id)
+    def __call__(self, generate_data=True):
+        history, best_checkpoint_filepath = None, None
+
+        for iteration_id in range(self.starting_iteration, self.training_iterations):
+            self.model.load(filename=str(iteration_id))
+            if generate_data:
+                self.generate_data(iteration=iteration_id)
 
             self.update_input_dir(iteration=iteration_id)
             training_data = self.load_training_data()
 
-            history, model_filename = train_nn(training_data, self.model.model, **self.nn_kwargs)
+            history, checkpoint_filepath = train_nn(
+                training_data, self.model, iteration=iteration_id, **self.nn_kwargs)
 
-            self.model.save(filename=self.get_model_name(iteration_id + 1))
+            self.model.load_checkpoint(checkpoint_filepath)
+            self.model.save(filename=str(iteration_id + 1))
             self.save_history(history=history, iteration=iteration_id)
 
-        return history, model_filename
+        return history, checkpoint_filepath
 
     def load_training_data(self) -> List["Experience"]:
         """
@@ -72,7 +86,8 @@ class ModelTrainer:
         logging.debug("Starting Data generation")
         for idx in range(self.max_processes):
             processes.append(
-                subprocess.Popen(["python", "generators.py", str(games), str(iteration)])
+                subprocess.Popen(["python", "generators.py", str(games), str(iteration),
+                                  str(self.terminate_counter), str(self.rollouts_per_game)])
             )
 
         for process in processes:
@@ -87,15 +102,8 @@ class ModelTrainer:
 
         :return: None
         """
-        self.input_dir = os.path.join(self.input_data_base_dir, f"iteration_{iteration}")
-
-    def get_model_name(self, iteration: int) -> str:
-        """
-        Generates new model name using base name and current iteration.
-
-        :return: New of model associated with current iteration.
-        """
-        return f"{self.model_base_name}_{iteration}"
+        dir_name = f"iteration_{iteration}"
+        self.input_dir = os.path.join(self.input_data_base_dir, dir_name)
 
     def save_history(self, history: History, iteration: int) -> None:
         """
@@ -105,26 +113,33 @@ class ModelTrainer:
         :param iteration: Number of iteration at which save occurs.
         :return: None
         """
-        filename = f"{self.get_model_name(iteration)}-history.json"
-        with open(filename) as file_:
+
+        filename = f"{get_timestamp()}_{iteration}.json"
+        filepath = os.path.join(f"../data/history", self.model.name, filename)
+        with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
             json.dump(history.history, file_)
 
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 3,
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 0,
         "INPUT_DIR": "../data/training/",
         "MAX_PROCESSES": 8,
-        "MODEL_BASE_NAME": "quick_model",
-        "GAMES_PER_ITERATION": 200,
+        "MODEL_BASE_NAME": "model",
+        "GAMES_PER_ITERATION": 20,
+        "ROLLOUTS_PER_GAME": 100,
     }
     game_kwargs = {}
     mcts_kwargs = {}
-    nn_kwargs = {"EPOCHS": 30}
+    nn_kwargs = {
+        "EPOCHS": 30,
+        "VALIDATION_SPLIT": 0.15,
+    }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer()
+    model_trainer(generate_data=False)
 
     # history, model_filename = model_trainer()
     # print(model_filename)
