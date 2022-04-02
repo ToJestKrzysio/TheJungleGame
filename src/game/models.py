@@ -1,6 +1,7 @@
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from typing import Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -46,7 +47,7 @@ class ValuePolicyModel(AbstractModel):
         self.model = self.create_model()
         self.base_dir = kwargs.get("BASE_DIR", "../data/models")
 
-        # self._cache = {} # TODO ADD CACHE
+        self._cache = {}
 
     def create_model(self):
         model_input = layers.Input(shape=self.input_shape)
@@ -75,11 +76,13 @@ class ValuePolicyModel(AbstractModel):
         self.name = name
 
     def load(self, filename: str):
+        self._cache.clear()
         filepath = os.path.join(self.base_dir, self.name, filename)
         self.model = load_model(filepath)
         logging.info(f"Loaded karas model from '{filepath}'")
 
     def load_checkpoint(self, filepath: str):
+        self._cache.clear()
         self.model = load_model(filepath)
         logging.info(f"Loaded karas checkpoint data from '{filepath}'")
 
@@ -146,12 +149,12 @@ class ValuePolicyModel(AbstractModel):
         :param tensor: Array representing current and previous board states.
         :param mask: Boolean array, 1's indicate valid moves and 0's invalid.
 
-        :return: Tuple
+        :return: Tuple of predicted [value, normalised_probabilities].
         """
-        # TODO add cache (shouldn't mess training but increase overall performance of predictions)
         if tensor.shape == self.input_shape:
             tensor = np.expand_dims(tensor, axis=0)
-        value, policy = self.model.predict(tensor)
+
+        value, policy = self._get_prediction(tensor)
 
         value = value[0][0]
 
@@ -161,9 +164,24 @@ class ValuePolicyModel(AbstractModel):
 
         return value, policy
 
+    def _get_prediction(self, tensor):
+        """
+        Cached version of Keras.model.predict.
+
+        :param tensor: Array representing current and previous board states.
+
+        :return: Tuple of predicted [value, probabilities].
+        """
+        if tensor not in self._cache:
+            self._cache[tensor] = self.model.predict(tensor)
+            if len(self._cache) > 2000:
+                key = next(iter(self._cache))
+                del self._cache[key]
+
+        return self._cache[tensor]
+
 
 value_policy_model = ValuePolicyModel()
-
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
