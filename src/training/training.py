@@ -113,6 +113,8 @@ class ModelTrainer:
         :param iteration: Number of iteration at which save occurs.
         :return: None
         """
+        base_path = os.path.join(f"../data/history", self.model.name)
+        os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
         filepath = os.path.join(f"../data/history", self.model.name, filename)
@@ -123,25 +125,20 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 1,
+        "TRAINING_ITERATIONS": 5,
         "TRAINING_START_ITERATION": 0,
         "INPUT_DIR": "../data/training/",
-        "MAX_PROCESSES": 8,
-        "MODEL_BASE_NAME": "model",
-        "GAMES_PER_ITERATION": 20,
-        "ROLLOUTS_PER_GAME": 100,
+        "MAX_PROCESSES": 7,
+        "MODEL_BASE_NAME": "first_model",
+        "GAMES_PER_ITERATION": 200,
+        "ROLLOUTS_PER_GAME": 300,
     }
     game_kwargs = {}
     mcts_kwargs = {}
     nn_kwargs = {
-        "EPOCHS": 30,
+        "EPOCHS": 40,
         "VALIDATION_SPLIT": 0.15,
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=False)
-
-    # history, model_filename = model_trainer()
-    # print(model_filename)
-    # with open("history.pickle", "wb") as file_:
-    #     pickle.dump(history, file_)
+    model_trainer(generate_data=True)

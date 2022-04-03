@@ -246,7 +246,6 @@ class Board(np.ndarray):
         mask = self.get_move_mask()
         tensor = self.to_tensor()
         self.value, policy = self.model.predict(tensor, mask)
-        # TODO - assigning value and policy to current board instead of generating every time?
         return self.value, policy
 
     def get_move_mask(self) -> np.ndarray:
@@ -290,7 +289,7 @@ class BoardTensor(np.ndarray):
             else:
                 obj[:, :, start:stop] = obj.get_step_tensor(current_board, current_white)
                 current_board = current_board.previous_board
-
+        obj.flags.writeable = False
         return obj
 
     @staticmethod

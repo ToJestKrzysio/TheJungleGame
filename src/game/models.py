@@ -172,18 +172,19 @@ class ValuePolicyModel(AbstractModel):
 
         :return: Tuple of predicted [value, probabilities].
         """
-        if tensor not in self._cache:
-            self._cache[tensor] = self.model.predict(tensor)
+        tensor_key = tensor.data.tobytes()
+        if tensor_key not in self._cache:
+            self._cache[tensor_key] = self.model.predict(tensor)
             if len(self._cache) > 2000:
                 key = next(iter(self._cache))
                 del self._cache[key]
 
-        return self._cache[tensor]
+        return self._cache[tensor_key]
 
 
 value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    value_policy_model.set_name("delete_this")
+    value_policy_model.set_name("first_model")
     value_policy_model.save("0")
