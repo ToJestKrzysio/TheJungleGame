@@ -1,14 +1,23 @@
+import logging
+import os
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from typing import Tuple, TYPE_CHECKING
 
 import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
+from tensorflow.keras.models import load_model
 
 if TYPE_CHECKING:
     from src.game import BoardTensor
 
 
 class AbstractModel(ABC):
+    model: Model
+    name: str
+
+    def __init__(self, **kwargs):
+        self.name = ""
 
     @abstractmethod
     def predict(self, tensor: "BoardTensor", mask: np.array) -> Tuple[float, np.ndarray]:
@@ -18,6 +27,7 @@ class AbstractModel(ABC):
 class ValuePolicyModel(AbstractModel):
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.conv_kernel_reg = regularizers.l2(
             kwargs.get("CONVOLUTIONAL_KERNEL_REGULARIZATION", 0.01))
         self.conv_bias_reg = regularizers.l2(
@@ -35,6 +45,9 @@ class ValuePolicyModel(AbstractModel):
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self.create_model()
+        self.base_dir = kwargs.get("BASE_DIR", "../data/models")
+
+        self._cache = {}
 
     def create_model(self):
         model_input = layers.Input(shape=self.input_shape)
@@ -58,6 +71,25 @@ class ValuePolicyModel(AbstractModel):
             optimizer=optimizers.Adam()
         )
         return model
+
+    def set_name(self, name: str):
+        self.name = name
+
+    def load(self, filename: str):
+        self._cache.clear()
+        filepath = os.path.join(self.base_dir, self.name, filename)
+        self.model = load_model(filepath)
+        logging.info(f"Loaded karas model from '{filepath}'")
+
+    def load_checkpoint(self, filepath: str):
+        self._cache.clear()
+        self.model = load_model(filepath)
+        logging.info(f"Loaded karas checkpoint data from '{filepath}'")
+
+    def save(self, filename: str):
+        filepath = os.path.join(self.base_dir, self.name, filename)
+        self.model.save(filepath)
+        logging.info(f"Saved karas model to '{filepath}'")
 
     def get_conv_block(self, input_layer: layers.Layer, layer_id: int) -> layers.Layer:
         conv_layer = layers.Conv2D(filters=self.num_filters, kernel_size=(3, 3), padding="same",
@@ -117,11 +149,12 @@ class ValuePolicyModel(AbstractModel):
         :param tensor: Array representing current and previous board states.
         :param mask: Boolean array, 1's indicate valid moves and 0's invalid.
 
-        :return: Tuple
+        :return: Tuple of predicted [value, normalised_probabilities].
         """
         if tensor.shape == self.input_shape:
             tensor = np.expand_dims(tensor, axis=0)
-        value, policy = self.model.predict(tensor)
+
+        value, policy = self._get_prediction(tensor)
 
         value = value[0][0]
 
@@ -131,5 +164,27 @@ class ValuePolicyModel(AbstractModel):
 
         return value, policy
 
+    def _get_prediction(self, tensor):
+        """
+        Cached version of Keras.model.predict.
+
+        :param tensor: Array representing current and previous board states.
+
+        :return: Tuple of predicted [value, probabilities].
+        """
+        tensor_key = tensor.data.tobytes()
+        if tensor_key not in self._cache:
+            self._cache[tensor_key] = self.model.predict(tensor)
+            if len(self._cache) > 2000:
+                key = next(iter(self._cache))
+                del self._cache[key]
+
+        return self._cache[tensor_key]
+
 
 value_policy_model = ValuePolicyModel()
+
+if __name__ == '__main__':
+    # RUN TO GENERATE NEW MODEL TO TRAIN ON
+    value_policy_model.set_name("first_model")
+    value_policy_model.save("0")

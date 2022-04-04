@@ -50,6 +50,7 @@ class BasePolicy(AbstractPolicy):
 
 
 class NetworkPolicy(AbstractPolicy):
+    # TODO recheck parameters
     EPSILON = 0.25
     ALPHA = 0.5
     C = 1.5
@@ -86,6 +87,7 @@ class NetworkPolicy(AbstractPolicy):
                      + self.EPSILON * np.random.dirichlet([self.ALPHA] * len(node.child_nodes)))
         puct_values = [child.q + self.C * psa * math.sqrt(node.visits) / (1 + child.visits)
                        for child, psa in zip(node.child_nodes, psa_probs)]
+        logging.debug(f"Child probabilities {puct_values}.")
         selected_child = node.child_nodes[np.argmax(puct_values)]
         child_value = np.max(puct_values)
         logging.debug(f"Via selection Node<{id(selected_child)}> was picked. Value: {child_value}")

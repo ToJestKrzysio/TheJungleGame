@@ -1,4 +1,5 @@
 import math
+import os
 from datetime import datetime
 from typing import Tuple, TYPE_CHECKING
 
@@ -7,9 +8,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import callbacks
 
+from game import AbstractModel
+from helpers import get_timestamp
+
 if TYPE_CHECKING:
     from src.training.generators import Experience
-    from keras.models import Model
 
 
 class DataGenerator(keras.utils.data_utils.Sequence):
@@ -46,53 +49,57 @@ class DataGenerator(keras.utils.data_utils.Sequence):
             q_values[data_id] = experience.q
             rewards[data_id] = experience.reward
 
-        return [states, [(rewards + q_values) / 2, probabilities]]
+        return [states, [(3 * rewards + q_values) / 4, probabilities]]
 
 
-def train_nn(data: Tuple["Experience", ...], model: "Model", **kwargs):
+def train_nn(data, model_instance: "AbstractModel", iteration: int = -1, **kwargs):
+    model = model_instance.model
+
     epochs = kwargs.get("EPOCHS", 10)
-    training_iteration = kwargs.get("TRAINING_ITERATION", -1)
     validation_split = kwargs.get("VALIDATION_SPLIT", 0)
     batch_size = kwargs.get("BATCH_SIZE", 32)
-    patience = kwargs.get("TRAINING_PATIENCE", 10)
+    patience = kwargs.get("TRAINING_PATIENCE", 6)
     min_delta = kwargs.get("TRAINING_MIN_DELTA", 0.01)
 
-    # early_stop = tf.keras.callbacks.EarlyStopping(
-    #     monitor='loss',
-    #     verbose=1,
-    #     mode='min',
-    #     patience=patience,
-    #     min_delta=min_delta,
-    # )
+    early_stop = tf.keras.callbacks.EarlyStopping(
+        monitor='loss',
+        verbose=1,
+        mode='min',
+        patience=patience,
+        min_delta=min_delta,
+    )
 
-    timestamp = datetime.now().strftime("%d-%m-%y_%H-%M-%S")
-    checkpoint_filepath = f"data/models/training_iteration_{training_iteration}_{timestamp}.h5"
-    # save_best_model = callbacks.ModelCheckpoint(
-    #     filepath=checkpoint_filepath,
-    #     monitor="val_loss",
-    #     verbose=1,
-    #     save_best_only=True,
-    #     save_weights_only=False,
-    #     mode="auto",
-    #     save_freq="epoch"
-    # )
+    filename = f"{get_timestamp()}_iteration_{iteration}.h5"
+    checkpoint_filepath = os.path.join(f"../data/checkpoints/", model_instance.name, filename)
+    save_best_model = callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        monitor="val_loss",
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=False,
+        mode="auto",
+        save_freq="epoch"
+    )
 
     np.random.shuffle(data)
+    training_data_length = int(len(data) * (1 - validation_split))
+    training_data = data[:training_data_length]
+    validation_data = data[training_data_length:]
 
-    training_generator = DataGenerator(data, batch_size)
+    training_generator = DataGenerator(data=training_data, batch_size=batch_size)
     steps_per_epoch = len(training_generator)
 
-    validation_generator = None
-    validation_steps = 0 if validation_generator is None else len(validation_generator)
+    validation_generator = DataGenerator(data=validation_data, batch_size=batch_size)
+    validation_steps = len(validation_generator)
 
     history = model.fit(
         x=training_generator,
         steps_per_epoch=steps_per_epoch,
-        # validation_data=validation_generator,
-        # validation_steps=validation_steps,
+        validation_data=validation_generator,
+        validation_steps=validation_steps,
         epochs=epochs,
         shuffle=True,
-        # callbacks=[early_stop, save_best_model],
+        callbacks=[early_stop, save_best_model],
         use_multiprocessing=True
     )
 
