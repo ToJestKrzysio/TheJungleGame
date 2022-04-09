@@ -1,0 +1,27 @@
+services:
+  backend:
+    image: tojestkrzysio/the_jungle_game:1.0.3
+    ports:
+      - "5000:5000"
+    networks:
+      - front-back
+    volumes:
+      - ./src/backend/server:/code/server/
+      - ./src/backend/game:/code/game/
+      - ./src/backend/mcts:/code/mcts/
+      - ./src/backend/training:/code/training/
+      - ./src/backend/tests:/code/tests/
+
+  fronted:
+    image: tojestkrzysio/the_jungle_game_fronted:1.0.0
+    ports:
+      - "3000:3000"
+    networks:
+      - front-back
+    volumes:
+      - ./src/frontend/public:/code/public/
+      - ./src/frontend/src:/code/src/
+
+networks:
+  front-back:
+    driver: bridge
