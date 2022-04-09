@@ -8,6 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENV FLASK_APP="server/app"
+ENV PATH="/code:$PATH"
 
-CMD ["python", "server/app.py"]
+CMD ["python", "app.py"]

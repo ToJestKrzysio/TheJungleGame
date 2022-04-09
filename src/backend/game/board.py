@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, deque, namedtuple
 from copy import copy, deepcopy
 from itertools import product
-from typing import Dict, List, Set, Tuple, Iterable
+from typing import Dict, List, Set, Tuple, Iterable, Optional
 
 import numpy as np
 
@@ -33,6 +33,7 @@ class Board(np.ndarray):
     game_over: bool
     value: float = 0
     outcome: float = 0
+    model: Optional[AbstractModel]
 
     def __new__(cls, cells: np.ndarray | List[List[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)

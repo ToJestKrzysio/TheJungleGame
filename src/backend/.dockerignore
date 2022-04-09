@@ -7,4 +7,5 @@ pytest.ini
 
 Dockerfile
 Dockerfile-training
-**/.pytest_cache
+.pytest_cache
+.dockerignore

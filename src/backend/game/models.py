@@ -22,6 +22,22 @@ class AbstractModel(ABC):
     def predict(self, tensor: "BoardTensor", mask: np.array) -> Tuple[float, np.ndarray]:
         pass
 
+    @abstractmethod
+    def set_name(self, name: str) -> None:
+        pass
+
+    @abstractmethod
+    def load(self, filename: str) -> None:
+        pass
+
+    @abstractmethod
+    def load_checkpoint(self, filepath: str) -> None:
+        pass
+
+    @abstractmethod
+    def save(self, filename: str) -> None:
+        pass
+
 
 class ValuePolicyModel(AbstractModel):
 
@@ -43,19 +59,19 @@ class ValuePolicyModel(AbstractModel):
         self.input_shape = (9, 7, 178)
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
-        self.model = self.create_model()
-        self.base_dir = kwargs.get("BASE_DIR", "../data/models")
+        self.model = self._create_model()
+        self.base_dir = kwargs.get("BASE_DIR", "data/models")
 
         self._cache = {}
 
-    def create_model(self):
+    def _create_model(self) -> Model:
         model_input = layers.Input(shape=self.input_shape)
         input_layer = model_input
         for layer_id in range(self.conv_blocks):
-            input_layer = self.get_conv_block(input_layer, layer_id)
+            input_layer = self._get_conv_block(input_layer, layer_id)
         final_conv_layer = input_layer
-        policy_head = self.get_policy_head(final_conv_layer)
-        value_head = self.get_value_head(final_conv_layer)
+        policy_head = self._get_policy_head(final_conv_layer)
+        value_head = self._get_value_head(final_conv_layer)
 
         model = Model(model_input, [value_head, policy_head])
         model.compile(
@@ -71,26 +87,26 @@ class ValuePolicyModel(AbstractModel):
         )
         return model
 
-    def set_name(self, name: str):
+    def set_name(self, name: str) -> None:
         self.name = name
 
-    def load(self, filename: str):
+    def load(self, filename: str) -> None:
         self._cache.clear()
         filepath = os.path.join(self.base_dir, self.name, filename)
         self.model = load_model(filepath)
         logging.info(f"Loaded karas model from '{filepath}'")
 
-    def load_checkpoint(self, filepath: str):
+    def load_checkpoint(self, filepath: str) -> None:
         self._cache.clear()
         self.model = load_model(filepath)
         logging.info(f"Loaded karas checkpoint data from '{filepath}'")
 
-    def save(self, filename: str):
+    def save(self, filename: str) -> None:
         filepath = os.path.join(self.base_dir, self.name, filename)
         self.model.save(filepath)
         logging.info(f"Saved karas model to '{filepath}'")
 
-    def get_conv_block(self, input_layer: layers.Layer, layer_id: int) -> layers.Layer:
+    def _get_conv_block(self, input_layer: layers.Layer, layer_id: int) -> layers.Layer:
         conv_layer = layers.Conv2D(filters=self.num_filters, kernel_size=(3, 3), padding="same",
                                    activation="relu", use_bias=True, data_format="channels_last",
                                    kernel_regularizer=self.conv_kernel_reg,
@@ -100,7 +116,7 @@ class ValuePolicyModel(AbstractModel):
             axis=-1, name=f"Batch_Normalization_{layer_id}")(conv_layer)
         return batch_norm
 
-    def get_policy_head(self, input_layer: layers.Layer):
+    def _get_policy_head(self, input_layer: layers.Layer) -> layers.Layer:
         conv_layer_1 = layers.Conv2D(
             filters=self.num_filters, kernel_size=(3, 3), padding="same", activation="relu",
             use_bias=True, data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
@@ -120,7 +136,7 @@ class ValuePolicyModel(AbstractModel):
             name='Policy_Head')(flatten_layer)
         return output_layer
 
-    def get_value_head(self, input_layer: layers.Layer):
+    def _get_value_head(self, input_layer: layers.Layer) -> layers.Layer:
         conv_layer = layers.Conv2D(
             filters=1, kernel_size=(1, 1), padding="same", activation="relu", use_bias=True,
             data_format="channels_last", kernel_regularizer=self.conv_kernel_reg,
@@ -163,7 +179,7 @@ class ValuePolicyModel(AbstractModel):
 
         return value, policy
 
-    def _get_prediction(self, tensor):
+    def _get_prediction(self, tensor) -> Tuple[float, np.ndarray]:
         """
         Cached version of Keras.model.predict.
 
