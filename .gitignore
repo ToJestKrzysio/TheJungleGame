@@ -1,6 +1,5 @@
 *.pyc
 .idea
-venv
 jungle_venv
 research-papers/*
 Images
@@ -8,9 +7,5 @@ Images
 .pytest_cache
 githubAlexM
 
-**/data/training/training_data_*
-
-*.log
-*.pickle
-
-src/data/
+**.log
+**.pickle

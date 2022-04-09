@@ -1,0 +1,10 @@
+data/checkpoints
+data/history
+data/training
+
+.gitignore
+pytest.ini
+
+Dockerfile
+Dockerfile-training
+**/.pytest_cache
