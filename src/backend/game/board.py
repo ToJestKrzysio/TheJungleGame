@@ -266,6 +266,9 @@ class Board(np.ndarray):
                 mask[y, x, plane] = True
         return mask
 
+    def serialize(self):
+        return BoardSerializer.serialize_board(self)
+
 
 class BoardTensor(np.ndarray):
 
@@ -539,6 +542,64 @@ class BoardMove:
             neighbour = board[new_position].occupant
             neighbour_moves = board.get_single_unit_moves(new_position)
             board.moves[neighbour] = neighbour_moves
+
+
+class BoardSerializer:
+
+    @staticmethod
+    def serialize_cell(cell: "Cell") -> dict:
+        """
+        Converts cell into a dictionary object.
+
+        :param cell: Cell instance to be serialized.
+
+        :return: Dictionary of the following format
+            {
+                unit_value: int,
+                unit_white: bool,
+                white_trap: bool,
+                black_trap: bool,
+                water: bool
+            }
+        """
+        return {
+            "unit": {
+                "white": cell.occupant.white,
+                "value": cell.occupant.value,
+                "moves": [],
+            },
+            "white_trap": cell.trap and cell.white_trap,
+            "black_trap": cell.trap and not cell.white_trap,
+            "water": cell.water
+        }
+
+    @staticmethod
+    def serialize_board(board: "Board") -> List[List[dict]]:
+        """
+        Serializes board object into JSON format.
+
+        :param board: Board instance which will be serialized.
+
+        :return: List of lists of the same shape as board, with serialized representations of Cells.
+        """
+        cells = []
+        for y in range(board.shape[0]):
+            new_row = []
+
+            for x in range(board.shape[1]):
+                position = Position(x=x, y=y)
+
+                serialized_cell = BoardSerializer.serialize_cell(board[position])
+
+                if serialized_cell["unit"]["value"] not in {0, 1}:
+                    serialized_cell["unit"]["moves"] = [
+                        board.get_new_position(position, move)._asdict() for move in
+                        board.get_single_unit_moves(position)
+                    ]
+
+                new_row.append(serialized_cell)
+            cells.append(new_row)
+        return cells
 
 
 if __name__ == '__main__':

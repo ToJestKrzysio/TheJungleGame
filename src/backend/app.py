@@ -3,7 +3,6 @@ import time
 from flask import Flask, redirect, jsonify
 
 from game import Board, value_policy_model
-from server import serialize_board
 
 app = Flask(__name__)
 value_policy_model.set_name("first_model")
@@ -13,7 +12,7 @@ board = Board.initialize()
 
 @app.route("/", methods=["GET"])
 def get_board():
-    return jsonify(serialize_board(board)), 200
+    return jsonify(board.serialize()), 200
 
 
 # @app.route("/", methods=["GET"])
