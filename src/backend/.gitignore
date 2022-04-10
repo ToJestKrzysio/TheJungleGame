@@ -1,2 +1,7 @@
 data/training
 **/.pytest_cache
+
+data/checkpoints
+data/history
+data/models/model
+data/models/quick_model
