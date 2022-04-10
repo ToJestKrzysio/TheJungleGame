@@ -15,9 +15,7 @@ def get_board():
     return jsonify(board.serialize()), 200
 
 
-# @app.route("/", methods=["GET"])
-# def get_board():
-#     return "42", 200
+q# TODO add POST request for moving a Unit.
 
 
 @app.route("/new-game", methods=["POST"])
