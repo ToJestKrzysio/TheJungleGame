@@ -1,0 +1,7 @@
+@use "scss/variables";
+
+.board {
+  background-color: variables.$land-primary;
+  width: 500px;
+  height: 500px;
+}
