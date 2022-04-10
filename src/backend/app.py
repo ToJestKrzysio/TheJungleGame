@@ -1,5 +1,3 @@
-import time
-
 from flask import Flask, redirect, jsonify
 
 from game import Board, value_policy_model
@@ -15,7 +13,7 @@ def get_board():
     return jsonify(board.serialize()), 200
 
 
-q# TODO add POST request for moving a Unit.
+# TODO add POST request for moving a Unit.
 
 
 @app.route("/new-game", methods=["POST"])
