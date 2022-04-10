@@ -19,6 +19,7 @@ services:
       - "3000:3000"
     networks:
       - frontend-network
+      - backend-network
     volumes:
       - ./src/frontend/:/code/
 
@@ -33,7 +34,6 @@ services:
     depends_on:
       - backend
       - frontend
-
 
 networks:
   backend-network:

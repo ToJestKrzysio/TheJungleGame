@@ -1,0 +1,20 @@
+@import "utils";
+
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.board {
+
+}
+
+.cell {
+  width: toRem(50);
+  height: toRem(50);
+  background-color: #779556;
+  box-sizing: border-box;
+  border: solid 1px black;
+}
