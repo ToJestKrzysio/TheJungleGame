@@ -15,7 +15,7 @@ services:
     restart: "on-failure"
 
   fronted:
-    image: tojestkrzysio/the_jungle_game_fronted:1.0.0
+    build: src/frontend/.
     ports:
       - "3000:3000"
     networks:
