@@ -1,7 +1,3 @@
-@use "scss/variables";
-
-.board {
-  background-color: variables.$land-primary;
-  width: 500px;
-  height: 500px;
-}
+@import "scss/normalize";
+@import "scss/components";
+@import "scss/layout";
