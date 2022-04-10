@@ -11,6 +11,8 @@ services:
       - ./src/backend/mcts:/code/mcts/
       - ./src/backend/training:/code/training/
       - ./src/backend/tests:/code/tests/
+      - ./src/backend/app.py:/code/app.py
+    restart: "on-failure"
 
   fronted:
     image: tojestkrzysio/the_jungle_game_fronted:1.0.0
