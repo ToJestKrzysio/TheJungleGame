@@ -1,20 +1,108 @@
-@import "utils";
+@import "variables";
+@import "properties";
 
 .App {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  background-color: #272522;
 }
 
 .board {
 
 }
 
+.row {
+  display: flex;
+}
+
 .cell {
-  width: toRem(50);
-  height: toRem(50);
-  background-color: #779556;
-  box-sizing: border-box;
-  border: solid 1px black;
+  width: $cell-size;
+  height: $cell-size;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+
+  &__land {
+    &--light {
+      background-color: $land-primary;
+
+    }
+
+    &--dark {
+      background-color: $land-secondary;
+    }
+  }
+
+  &__water {
+    &--light {
+      background-color: $water-primary;
+    }
+
+    &--dark {
+      background-color: $water-secondary;
+    }
+  }
+}
+
+.trap {
+  &--white {
+    color: white;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+  }
+}
+
+.unit {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+
+  &--black {
+  }
+
+  &--white {
+    color: white;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+  }
+
+  &--den {
+    cursor: auto;
+  }
+
+  &--mouse {
+
+  }
+
+  &--cat {
+
+  }
+
+  &--dog {
+
+  }
+
+  &--wolf {
+
+  }
+
+  &--leopard {
+
+  }
+
+  &--tiger {
+
+  }
+
+  &--lion {
+
+  }
+
+  &--elephant {
+
+  }
+
 }

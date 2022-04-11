@@ -568,8 +568,10 @@ class BoardSerializer:
                 "value": cell.occupant.value,
                 "moves": [],
             },
-            "white_trap": cell.trap and cell.white_trap,
-            "black_trap": cell.trap and not cell.white_trap,
+            "trap": {
+                "value": cell.trap,
+                "white": cell.white_trap,
+            },
             "water": cell.water
         }
 
