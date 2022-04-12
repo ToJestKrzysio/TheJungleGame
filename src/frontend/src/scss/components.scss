@@ -23,11 +23,16 @@
   display: flex;
   justify-content: center;
   align-content: center;
+  transition: $selection-animation-speed;
+
+  &--move {
+    background-color: $cell-highlight !important;
+    cursor: pointer;
+  }
 
   &__land {
     &--light {
       background-color: $land-primary;
-
     }
 
     &--dark {
@@ -44,9 +49,12 @@
       background-color: $water-secondary;
     }
   }
+
 }
 
 .trap {
+  cursor: default;
+
   &--white {
     color: white;
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
@@ -69,8 +77,18 @@
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
   }
 
+  &--selected {
+    color: $unit-highlight;
+    transition: $selection-animation-speed;
+    text-shadow: none;
+  }
+
+  &--invalid {
+    cursor: default;
+  }
+
   &--den {
-    cursor: auto;
+    cursor: default;
   }
 
   &--mouse {

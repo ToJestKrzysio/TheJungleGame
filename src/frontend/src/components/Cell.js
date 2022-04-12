@@ -1,14 +1,27 @@
-export default function Cell({cell: {trap, unit, water}, cellId}) {
-    let className = "cell"
-    className += water ? "__water" : "__land"
-    className += cellId % 2 ? "--light" : "--dark"
+export default function Cell({cell: {trap, unit, water}, position, selected}) {
+    let cellClasses = "cell cell"
+    cellClasses += water ? "__water" : "__land"
+    cellClasses += (position.y + position.x) % 2 ? "--light" : "--dark"
+    cellClasses += checkSelectedMoves(selected) ? " cell--move" : ""
 
-    // TODO add trap component
-    // TODO add unit component
+    function checkSelectedMoves(selected) {
+        return selected.value.moves.some(
+            (move) => position.x === move.x && position.y === move.y
+        )
+    }
+
+    function moveUnit() {
+        if (!checkSelectedMoves(selected) && unit.value < 2) {
+            selected.default()
+        } else {
+            // TODO MOVING LOGIC
+        }
+    }
+
     return (
-        <div className={`cell ${className}`}>
+        <div className={cellClasses} onClick={moveUnit}>
             <Trap trap={trap}/>
-            <Unit unit={unit}/>
+            <Unit unit={unit} selected={selected} position={position}/>
         </div>
     )
 }
@@ -37,7 +50,8 @@ const unitTypes = {
     9: "elephant",
 }
 
-function Unit({unit: {value, white, moves}}) {
+function Unit({unit, selected: {value: selected, set: setSelected}}) {
+    const {value, white, moves} = unit
     if (value === 0) {
         return ""
     }
@@ -45,9 +59,18 @@ function Unit({unit: {value, white, moves}}) {
     let unitClasses = "unit"
     unitClasses += ` unit--${white ? "white" : "black"}`
     unitClasses += ` unit--${unitTypes[value]}`
+    unitClasses += selected === unit ? " unit--selected" : ""
+    unitClasses += moves.length === 0 ? " unit--invalid" : ""
+
+    const selectAnimal = () => {
+        if (moves.length > 0) {
+            setSelected(unit)
+        }
+    }
+
 
     return (
-        <div className={unitClasses}>
+        <div className={unitClasses} onClick={selectAnimal}>
             <h1>{value}</h1>
         </div>
     );

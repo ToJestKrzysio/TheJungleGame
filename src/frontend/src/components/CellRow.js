@@ -1,12 +1,17 @@
 import Cell from "./Cell";
 
-export default function CellRow({row, rowId}) {
+export default function CellRow({row, rowId, selected}) {
     return (
         <div className="row">
             {
-                row.map((cell, id) => {
-                    const cellId = id + row.length * rowId
-                    return <Cell cell={cell} cellId={cellId} key={cellId}/>
+                row.map((cell, colId) => {
+                    return (
+                        <Cell
+                            cell={cell}
+                            position={{y: rowId, x: colId}}
+                            key={colId}
+                            selected={selected}/>
+                    );
                 })
             }
         </div>
