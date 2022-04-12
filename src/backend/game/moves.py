@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 __all__ = ["Move", "UnitMove", "forward", "backward", "left", "right", "forward_jump",
-           "backward_jump", "left_jump", "right_jump", "base_moves", "jump_moves", "get_jump_move"]
+           "backward_jump", "left_jump", "right_jump", "base_moves", "jump_moves", "get_jump_move",
+           "get_move_by_values"]
 
 from typing import NamedTuple
 
@@ -49,3 +50,17 @@ def get_jump_move(move: Move) -> Move:
         right: right_jump
     }
     return jump_mapping[move]
+
+
+def get_move_by_values(x: int, y: int) -> Move:
+    value_mappings = {
+        (0, 1): forward,
+        (0, -1): backward,
+        (-1, 0): left,
+        (1, 0): right,
+        (0, 4): forward_jump,
+        (0, -4): backward_jump,
+        (3, 0): left_jump,
+        (-3, 0): right_jump,
+    }
+    return value_mappings.get((x, y), invalid_move)

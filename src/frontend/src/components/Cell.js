@@ -3,7 +3,7 @@ export default function Cell(
         cell: {trap, unit, water},
         position,
         selected,
-        cellsState:{cells, setCells}
+        cellsState: {cells, setCells}
     }
 ) {
     let cellClasses = "cell cell"
@@ -18,17 +18,29 @@ export default function Cell(
     }
 
     function moveUnit() {
-        if (!checkSelectedMoves(selected) && unit.value < 2) {
-            selected.default()
-        } else if(selected.state.position !== null) {
+        if (checkSelectedMoves(selected)) {
             const movedUnit = selected.state.unit
             const movedUnitPosition = selected.state.position
             const newCells = [...cells]
-            newCells[movedUnitPosition.y][movedUnitPosition.x].unit = {moves: [], value: 0, white: false}
+            const move = {x: position.x - movedUnitPosition.x, y: position.y - movedUnitPosition.y}
+
+            newCells[movedUnitPosition.y][movedUnitPosition.x].unit = {
+                moves: [], value: 0, white: false
+            }
             newCells[position.y][position.x].unit = movedUnit
             setCells(newCells)
             selected.default()
-            // TODO add fetch to current execution
+
+            console.log({move, position: movedUnitPosition})
+            fetch("/api/board", {
+                method: "POST",
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({move, position: movedUnitPosition})
+            })
+                .then(data => data.json())
+                .then(data => setCells(data))
+        } else if (unit.value === 0) {
+            selected.default()
         }
     }
 

@@ -33,18 +33,6 @@ export default function Board() {
             .then(data => setCells(data))
     }, [])
 
-    // useEffect(() => {
-    //     fetch("api/board",
-    //         {
-    //             method: "POST",
-    //             headers: {'Content-Type': 'application/json'},
-    //             redirect: 'follow',
-    //             body: JSON.stringify(cells)
-    //         })
-    //         .then((data) => data.json())
-    //         .then((data) => setCells(data))
-    // }, [cells])
-
     const rows = cells.map((row, rowId) => (
             <CellRow
                 row={row}
