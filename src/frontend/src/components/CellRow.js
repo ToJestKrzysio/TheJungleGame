@@ -1,6 +1,6 @@
 import Cell from "./Cell";
 
-export default function CellRow({row, rowId, selected}) {
+export default function CellRow({row, rowId, selected, cellsState}) {
     return (
         <div className="row">
             {
@@ -10,7 +10,8 @@ export default function CellRow({row, rowId, selected}) {
                             cell={cell}
                             position={{y: rowId, x: colId}}
                             key={colId}
-                            selected={selected}/>
+                            selected={selected}
+                            cellsState={cellsState}/>
                     );
                 })
             }

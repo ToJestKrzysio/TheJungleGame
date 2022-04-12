@@ -5,10 +5,10 @@ export default function Board() {
     const [cells, setCells] = useState(
         [...Array(9)].map(() => [...Array(7)].map(createDefaultCellObject))
     )
-    const [selected, setSelected] = useState({moves: [], value: 0, white: false})
+    const [selected, setSelected] = useState({position: null, unit: {moves: [], value: 0, white: false}})
 
     function selectedDefault() {
-        setSelected({moves: [], value: 0, white: false})
+        setSelected({position: null, unit: {moves: [], state: 0, white: false}})
     }
 
     function createDefaultCellObject() {
@@ -33,12 +33,26 @@ export default function Board() {
             .then(data => setCells(data))
     }, [])
 
+    // useEffect(() => {
+    //     fetch("api/board",
+    //         {
+    //             method: "POST",
+    //             headers: {'Content-Type': 'application/json'},
+    //             redirect: 'follow',
+    //             body: JSON.stringify(cells)
+    //         })
+    //         .then((data) => data.json())
+    //         .then((data) => setCells(data))
+    // }, [cells])
+
     const rows = cells.map((row, rowId) => (
             <CellRow
                 row={row}
                 rowId={rowId}
                 key={rowId}
-                selected={{value: selected, set: setSelected, default: selectedDefault}}/>
+                selected={{state: selected, set: setSelected, default: selectedDefault}}
+                cellsState={{cells, setCells}}
+            />
         )
     )
 

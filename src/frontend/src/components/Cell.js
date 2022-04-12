@@ -1,11 +1,18 @@
-export default function Cell({cell: {trap, unit, water}, position, selected}) {
+export default function Cell(
+    {
+        cell: {trap, unit, water},
+        position,
+        selected,
+        cellsState:{cells, setCells}
+    }
+) {
     let cellClasses = "cell cell"
     cellClasses += water ? "__water" : "__land"
     cellClasses += (position.y + position.x) % 2 ? "--light" : "--dark"
     cellClasses += checkSelectedMoves(selected) ? " cell--move" : ""
 
     function checkSelectedMoves(selected) {
-        return selected.value.moves.some(
+        return selected.state.unit.moves.some(
             (move) => position.x === move.x && position.y === move.y
         )
     }
@@ -13,8 +20,15 @@ export default function Cell({cell: {trap, unit, water}, position, selected}) {
     function moveUnit() {
         if (!checkSelectedMoves(selected) && unit.value < 2) {
             selected.default()
-        } else {
-            // TODO MOVING LOGIC
+        } else if(selected.state.position !== null) {
+            const movedUnit = selected.state.unit
+            const movedUnitPosition = selected.state.position
+            const newCells = [...cells]
+            newCells[movedUnitPosition.y][movedUnitPosition.x].unit = {moves: [], value: 0, white: false}
+            newCells[position.y][position.x].unit = movedUnit
+            setCells(newCells)
+            selected.default()
+            // TODO add fetch to current execution
         }
     }
 
@@ -50,7 +64,7 @@ const unitTypes = {
     9: "elephant",
 }
 
-function Unit({unit, selected: {value: selected, set: setSelected}}) {
+function Unit({unit, selected: {state, set: setSelected}, position}) {
     const {value, white, moves} = unit
     if (value === 0) {
         return ""
@@ -59,12 +73,12 @@ function Unit({unit, selected: {value: selected, set: setSelected}}) {
     let unitClasses = "unit"
     unitClasses += ` unit--${white ? "white" : "black"}`
     unitClasses += ` unit--${unitTypes[value]}`
-    unitClasses += selected === unit ? " unit--selected" : ""
+    unitClasses += state.unit === unit ? " unit--selected" : ""
     unitClasses += moves.length === 0 ? " unit--invalid" : ""
 
     const selectAnimal = () => {
         if (moves.length > 0) {
-            setSelected(unit)
+            setSelected({position, unit})
         }
     }
 
