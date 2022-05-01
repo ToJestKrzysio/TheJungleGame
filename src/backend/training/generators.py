@@ -11,12 +11,13 @@ import numpy as np
 
 from mcts import Root, Node
 from game import Board, value_policy_model
-from training import get_timestamp
+from helpers import get_timestamp
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w")
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
+                    format="%(process)d - %(name)s - %(levelname)s - %(message)s")
 
 
 class GameDataGenerator:
@@ -28,7 +29,7 @@ class GameDataGenerator:
         self.mcts_kwargs = mcts_kwargs
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
-        self.iteration_dir_path = os.path.join("../data/training", value_policy_model.name,
+        self.iteration_dir_path = os.path.join("data/training", value_policy_model.name,
                                                self.iteration_dir_name)
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 

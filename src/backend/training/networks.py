@@ -70,7 +70,7 @@ def train_nn(data, model_instance: "AbstractModel", iteration: int = -1, **kwarg
     )
 
     filename = f"{get_timestamp()}_iteration_{iteration}.h5"
-    checkpoint_filepath = os.path.join(f"../data/checkpoints/", model_instance.name, filename)
+    checkpoint_filepath = os.path.join(f"data/checkpoints/", model_instance.name, filename) # TODO unify save paths
     save_best_model = callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         monitor="val_loss",
