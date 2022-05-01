@@ -592,7 +592,7 @@ class BoardSerializer:
                 position = Position(x=x, y=y)
 
                 serialized_cell = BoardSerializer.serialize_cell(board[position])
-
+                serialized_cell["id"] = y * board.shape[1] + x
                 if serialized_cell["unit"]["value"] > 1 and serialized_cell["unit"]["white"] is board.white_move:
                     serialized_cell["unit"]["moves"] = [
                         board.get_new_position(position, move)._asdict() for move in
