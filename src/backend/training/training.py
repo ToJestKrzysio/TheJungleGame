@@ -12,8 +12,8 @@ from keras.callbacks import History
 
 from networks import train_nn
 from game.models import value_policy_model
-from training.generators import Experience
-from training.helpers import get_timestamp
+from generators import Experience
+from helpers import get_timestamp
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
@@ -31,7 +31,8 @@ class ModelTrainer:
 
         self.training_iterations = self.training_kwargs.get("TRAINING_ITERATIONS", 1)
         self.starting_iteration = self.training_kwargs.get("TRAINING_START_ITERATION", 0)
-        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR", "../data/training/")
+        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR",
+                                                            "data/training/")  # TODO unify save paths
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
 
         self.games_per_iteration = self.training_kwargs.get("GAMES_PER_ITERATION", 50)
@@ -47,7 +48,8 @@ class ModelTrainer:
     def __call__(self, generate_data=True):
         history, best_checkpoint_filepath = None, None
 
-        for iteration_id in range(self.starting_iteration, self.training_iterations):
+        for iteration_id in range(
+                self.starting_iteration, self.starting_iteration + self.training_iterations):
             self.model.load(filename=str(iteration_id))
             if generate_data:
                 self.generate_data(iteration=iteration_id)
@@ -85,14 +87,16 @@ class ModelTrainer:
         processes = []
         logging.debug("Starting Data generation")
         for idx in range(self.max_processes):
+            logging.debug(os.listdir())
             processes.append(
-                subprocess.Popen(["python", "generators.py", str(games), str(iteration),
+                subprocess.Popen(["python", "training/generators.py", str(games), str(iteration),
                                   str(self.terminate_counter), str(self.rollouts_per_game)])
             )
 
         for process in processes:
-            logging.debug(f"Waiting for process {process.pid}")
+            logging.debug(f"Starting data generation using process {process.pid}")
             process.wait()
+            logging.debug(f"Completed data generation using process {process.pid}")
 
     def update_input_dir(self, iteration: int) -> None:
         """
@@ -117,7 +121,8 @@ class ModelTrainer:
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
-        filepath = os.path.join(f"../data/history", self.model.name, filename)
+        filepath = os.path.join(f"data/history", self.model.name,
+                                filename)  # TODO unify save paths
         with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
             json.dump(history.history, file_)
@@ -125,9 +130,9 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 5,
-        "TRAINING_START_ITERATION": 0,
-        "INPUT_DIR": "../data/training/",
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 7,
+        "INPUT_DIR": "data/training/",  # TODO unify save paths
         "MAX_PROCESSES": 7,
         "MODEL_BASE_NAME": "first_model",
         "GAMES_PER_ITERATION": 200,
@@ -141,4 +146,4 @@ if __name__ == '__main__':
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=True)
+    model_trainer(generate_data=False)
