@@ -1,7 +1,8 @@
 import {useEffect, useState, useContext} from "react";
 import CellRow from "./CellRow";
+import BoardBackground from "./BoardBackground/BoardBackground"
 
-export default function Board() {
+function Board() {
     const [cells, setCells] = useState(
         [...Array(9)].map(() => [...Array(7)].map(createDefaultCellObject))
     )
@@ -46,7 +47,10 @@ export default function Board() {
 
     return (
         <div className="board">
-            {rows}
+            {/*{rows}*/}
+            <BoardBackground/>
         </div>
     );
 }
+
+export default Board;

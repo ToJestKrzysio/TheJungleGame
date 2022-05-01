@@ -2,9 +2,9 @@
 @import "properties";
 
 .App {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+//  display: flex;
+//  justify-content: center;
+//  align-items: center;
   height: 100vh;
   background-color: #272522;
 }
@@ -17,7 +17,7 @@
   display: flex;
 }
 
-.cell {
+.background_cell {
   width: $cell-size;
   height: $cell-size;
   display: flex;

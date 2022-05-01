@@ -1,0 +1,31 @@
+@import "../scss/properties";
+@import "../scss/variables";
+
+.BackgroundRow {
+  display: flex;
+}
+
+.BackgroundCell {
+  width: $cell-size;
+  height: $cell-size;
+
+  &__land {
+    &--light {
+      background-color: $land-primary;
+    }
+
+    &--dark {
+      background-color: $land-secondary;
+    }
+  }
+
+  &__water {
+    &--light {
+      background-color: $water-primary;
+    }
+
+    &--dark {
+      background-color: $water-secondary;
+    }
+  }
+}
