@@ -7,12 +7,11 @@ function Home() {
     return (
         <div className="Home">
             <div className="BoardColumn">
-                <BoardBackground/>
-                {/*<Board/>*/}
+                <Board/>
             </div>
-            {/*<div className="NavigationColumn">*/}
-            {/*    <ModelSelect/>*/}
-            {/*</div>*/}
+            <div className="NavigationColumn">
+                <ModelSelect/>
+            </div>
         </div>
     );
 }

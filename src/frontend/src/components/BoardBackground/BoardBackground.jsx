@@ -17,7 +17,9 @@ function BoardBackground() {
     ]
 
     const cells = water.flat(1).map(
-        (isWater, index) => <BoardBackgroundCell isWater={isWater} light={index % 2}/>
+        (isWater, index) => (
+            <BoardBackgroundCell isWater={isWater} light={index % 2} key={index}/>
+        )
     );
 
     return (

@@ -1,0 +1,13 @@
+@import "../scss/variables";
+@import "../scss/properties";
+
+.board {
+  position: relative;
+
+  &__overlay {
+    display: grid;
+    grid-template-columns: repeat(7, $cell-size);
+    grid-template-rows: repeat(9, $cell-size);
+    position: absolute;
+  }
+}

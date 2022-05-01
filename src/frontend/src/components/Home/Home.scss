@@ -8,13 +8,13 @@
 
 .BoardColumn {
   display: flex;
-  flex-grow: 7;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  width: 70%
 }
 
 .NavigationColumn {
   display: flex;
-  flex-grow: 3;
+  width: 30%;
   align-items: center;
 }
