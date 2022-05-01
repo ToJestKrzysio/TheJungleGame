@@ -1,4 +1,7 @@
-import BoardBackgroundRow from "../BoardBackgroundRow/BoardBackgroundRow";
+import "./BoardBackground.scss"
+
+import BoardBackgroundCell from "../BoardBackgroundCell/BoardBackgroundCell";
+
 
 function BoardBackground() {
     const water = [
@@ -13,9 +16,13 @@ function BoardBackground() {
         [0, 0, 0, 0, 0, 0, 0],
     ]
 
+    const cells = water.flat(1).map(
+        (isWater, index) => <BoardBackgroundCell isWater={isWater} light={index % 2}/>
+    );
+
     return (
-        <div>
-            {water.map((row, rowID) => <BoardBackgroundRow row={row} rowID={rowID}/>)}
+        <div className="board_background">
+            {cells}
         </div>
     );
 }

@@ -1,11 +1,7 @@
 @import "../scss/properties";
 @import "../scss/variables";
 
-.BackgroundRow {
-  display: flex;
-}
-
-.BackgroundCell {
+.background_cell {
   width: $cell-size;
   height: $cell-size;
 
