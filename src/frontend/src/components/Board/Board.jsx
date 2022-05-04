@@ -1,6 +1,6 @@
 import "./Board.scss"
 import {useEffect, useState} from "react";
-import {fetchBoardState} from "../../utils/helpers";
+import {fetchBoardState, postMove} from "../../utils/helpers";
 
 import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
@@ -17,13 +17,13 @@ function Board() {
     }, [])
 
     function createDefaultCells() {
-        return [...Array(rows)]
-            .map((_, rowID) => ([...Array(cols)].map((_, colID) => ({
-                id: rowID * cols + colID,
+        return [...Array(rows * cols)]
+            .map((_, id) => ({
+                id: id,
                 trap: {value: false, white: false},
                 unit: {moves: [], value: 0, white: false},
                 water: false
-            }))))
+            }))
     }
 
     function selectCell(id) {
@@ -39,10 +39,11 @@ function Board() {
 
                     setCells(newCells)
                     setSelected(null)
-                } else if (unit.moves.length) {
-                    setSelected(id)
+                    postMove(selected, id)
+                        .then(data => setCells(data))
+                        .catch(err => window.alert(err))
                 } else {
-                    setSelected(null)
+                    setSelected(unit.moves.length ? id : null)
                 }
             }
         }
@@ -55,16 +56,18 @@ function Board() {
         return cells[selected].unit.moves.includes(id)
     }
 
-    const cellElements = cells.flat().map((cell) => (
-        <BoardCell
-            key={cell.id}
-            trap={cell.trap}
-            unit={cell.unit}
-            isSelected={cell.id === selected}
-            isValidMove={isValidMove(cell.id, selected)}
-            onClick={selectCell(cell.id)}
-        />
-    ))
+    const cellElements = cells.map((cell) => {
+        return (
+            <BoardCell
+                key={cell.id}
+                // trap={cell.trap}
+                unit={cell.unit}
+                isSelected={cell.id === selected}
+                isValidMove={isValidMove(cell.id)}
+                onClick={selectCell(cell.id)}
+            />
+        )
+    })
 
     return (<div className="board">
         <div className="board__overlay">
