@@ -29,7 +29,17 @@ function Board() {
     function selectCell(id) {
         return function (unit) {
             return function () {
-                if (unit.value > 1) {
+                if (selected && cells[selected].unit.moves.includes(id)) {
+                    const newCells = JSON.parse(JSON.stringify(cells))
+
+                    newCells[id].unit = newCells[selected].unit
+                    newCells[selected].unit = {moves: [], value: 0, white: false}
+
+                    newCells.forEach(cell => cell.unit.moves = [])
+
+                    setCells(newCells)
+                    setSelected(null)
+                } else if (unit.moves.length) {
                     setSelected(id)
                 } else {
                     setSelected(null)
@@ -42,8 +52,7 @@ function Board() {
         if (selected === null) {
             return false
         }
-        const selectedCell = cells[Math.floor(selected / cols)][selected % cols]
-        return selectedCell.unit.moves.includes(id)
+        return cells[selected].unit.moves.includes(id)
     }
 
     const cellElements = cells.flat().map((cell) => (

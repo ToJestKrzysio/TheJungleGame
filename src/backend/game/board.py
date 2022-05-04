@@ -576,7 +576,7 @@ class BoardSerializer:
         }
 
     @staticmethod
-    def serialize_board(board: "Board") -> List[List[dict]]:
+    def serialize_board(board: "Board") -> List[dict]:
         """
         Serializes board object into JSON format.
 
@@ -585,23 +585,21 @@ class BoardSerializer:
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
         cells = []
-        for y in range(board.shape[0]):
-            new_row = []
+        for cell_id in range(board.shape[0] * board.shape[1]):
+            x = cell_id % board.shape[1]
+            y = cell_id // board.shape[1]
+            position = Position(x=x, y=y)
 
-            for x in range(board.shape[1]):
-                position = Position(x=x, y=y)
-
-                serialized_cell = BoardSerializer.serialize_cell(board[position])
-                serialized_cell["id"] = y * board.shape[1] + x
-                if (serialized_cell["unit"]["value"] > 1
-                        and serialized_cell["unit"]["white"] is board.white_move):
-                    serialized_cell["unit"]["moves"] = [
-                        BoardSerializer.position_to_id(
-                            board.get_new_position(position, move), board.shape[1]
-                        ) for move in board.get_single_unit_moves(position)
-                    ]
-                new_row.append(serialized_cell)
-            cells.append(new_row)
+            serialized_cell = BoardSerializer.serialize_cell(board[position])
+            serialized_cell["id"] = y * board.shape[1] + x
+            if (serialized_cell["unit"]["value"] > 1
+                    and serialized_cell["unit"]["white"] is board.white_move):
+                serialized_cell["unit"]["moves"] = [
+                    BoardSerializer.position_to_id(board.get_new_position(position, move),
+                                                   board.shape[1]) for move in
+                    board.get_single_unit_moves(position)
+                ]
+            cells.append(serialized_cell)
         return cells
 
     @staticmethod

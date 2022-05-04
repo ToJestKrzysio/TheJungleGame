@@ -8,6 +8,7 @@
   align-items: center;
   font-size: 2rem;
   font-weight: bold;
+  transition: $selection-animation-speed;
 
   &--white {
     color: white;
@@ -20,11 +21,11 @@
 
   &--valid_move {
     background-color: #ff33cc;
+    opacity: 70%;
   }
 
   &--selected {
     color: $unit-highlight;
-    transition: $selection-animation-speed;
     text-shadow: none;
   }
 }
