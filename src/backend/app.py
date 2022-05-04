@@ -1,20 +1,22 @@
 from flask import Flask, redirect, jsonify, request, url_for
 
-from game import Board, value_policy_model, get_move_by_values, Position
+from game import Board, get_move_by_values, Position, ValuePolicyModel
 from mcts import Root
-from game_state import global_storage
+from storage import Storage
 
 app = Flask(__name__)
-value_policy_model.set_name("first_model")
-value_policy_model.load("5")
+storage = Storage()
 
-global_storage["board"] = Board.initialize()
+model = ValuePolicyModel()
+model.set_name(storage["model"])
+model.load(storage["version"])
+
+storage.data["board"] = Board.initialize()
 
 
 @app.get("/api/board")
 def get_board():
-    print(global_storage["board"])
-    return jsonify(global_storage["board"].serialize()), 200
+    return jsonify(storage["board"].serialize()), 200
 
 
 @app.post("/api/board")
@@ -29,22 +31,21 @@ def move_unit():
         y=destination // 7 - unit_position.y
     )
 
-    new_board = global_storage["board"].move(unit_position=unit_position,
-                                             selected_move=selected_move)
+    new_board = storage["board"].move(unit_position=unit_position, selected_move=selected_move)
 
     root = Root(new_board, **{"MAX_EVALUATIONS": 20})
     _, (unit, best_move) = root.evaluate()
     current_position = new_board.positions[unit]
     computer_board = new_board.move(unit_position=current_position, selected_move=best_move)
 
-    global_storage["board"] = computer_board
+    storage["board"] = computer_board
 
     return jsonify(computer_board.serialize()), 201
 
 
 @app.post("/api/new-game")
 def new_game():
-    global_storage["board"] = Board.initialize()
+    storage["board"] = Board.initialize()
     return redirect(url_for("get_board"))
 
 
