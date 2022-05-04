@@ -7,7 +7,8 @@ from typing import Dict, List, Set, Tuple, Iterable, Optional
 
 import numpy as np
 
-from game import AbstractModel, Cell, MoveNotPossibleError, unit, value_policy_model
+from game import AbstractModel, Cell, MoveNotPossibleError, unit, value_policy_model, get_unit, \
+    ValuePolicyModel
 from game import moves as unit_moves
 
 Position = namedtuple("Position", ["y", "x"])
@@ -184,7 +185,7 @@ class Board(np.ndarray):
         return self.game_over, self.outcome
 
     @classmethod
-    def initialize(cls, model: AbstractModel = None) -> Board:
+    def initialize(cls) -> Board:
         """ Initializes board according to game rules. """
         cells = [
             [Cell(unit.BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
@@ -209,7 +210,7 @@ class Board(np.ndarray):
              Cell(unit.WHITE_LION)],
         ]
         new_board = Board(cells)
-        new_board.model = model or value_policy_model
+        new_board.model = ValuePolicyModel()
         return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
@@ -268,6 +269,16 @@ class Board(np.ndarray):
 
     def serialize(self):
         return BoardSerializer.serialize_board(self)
+
+    @classmethod
+    def load(cls, state: List[List[dict]]) -> Board:
+        cells = BoardSerializer.deserialize_board(state)
+        board = cls(cells)
+        board.model = ValuePolicyModel()
+        return board
+
+    def dump_board(self):
+        return BoardSerializer.dump(self)
 
 
 class BoardTensor(np.ndarray):
@@ -556,10 +567,8 @@ class BoardSerializer:
 
         :return: Dictionary of the following format
             {
-                unit_value: int,
-                unit_white: bool,
-                white_trap: bool,
-                black_trap: bool,
+                unit: {value: int, white: bool, moves: list},
+                trap: {value: bool, white: bool}
                 water: bool
             }
         """
@@ -614,6 +623,35 @@ class BoardSerializer:
         :return: Cell ID.
         """
         return position.x + position.y * columns
+
+    @staticmethod
+    def deserialize_cell(serialized_cell: dict) -> Cell:
+        """
+        Given dictionary representing cell converts it back into a cell.
+
+        :param serialized_cell: Dictionary containing data about current cell state.
+
+        :return: Cell constructed using cell_state.
+        """
+        unit = get_unit(serialized_cell["unit"]["value"], serialized_cell["unit"]["white"])
+        cell_data = {
+            "occupant": unit,
+            "water": serialized_cell["water"],
+            "trap": serialized_cell["trap"]["value"],
+            "white_trap": serialized_cell["trap"]["white"]
+        }
+        return Cell(**cell_data)
+
+    @staticmethod
+    def dump(board: Board) -> List[List[dict]]:
+        return [
+            [BoardSerializer.serialize_cell(board[y, x]) for x in range(board.shape[1])]
+            for y in range(board.shape[0])
+        ]
+
+    @staticmethod
+    def deserialize_board(state: List[List[dict]]) -> List[List[Cell]]:
+        return [[BoardSerializer.deserialize_cell(cell) for cell in row] for row in state]
 
 
 if __name__ == '__main__':

@@ -15,6 +15,29 @@ class Storage:
         self.filename = filename
         with open(self.filename) as file_:
             self.data = json.load(file_)
+        self._board = None
+
+    @property
+    def board(self) -> Board:
+        """
+        Return current state of self._board.
+
+        :return: Board.
+        """
+        return self._board
+
+    @board.setter
+    def board(self, board: Board) -> None:
+        """
+        Update board and it's corresponding state.
+
+        :param board: State to which self._board and state will be set.
+
+        :return: None.
+        """
+        self._board = board
+        self["state"] = board.dump_board()
+        self.save()
 
     def save(self) -> None:
         """
@@ -22,19 +45,8 @@ class Storage:
 
         :return: None.
         """
-        with open(self.filename) as file_:
+        with open(self.filename, "w+") as file_:
             json.dump(self.data, file_)
-
-    def set_board(self, board: Board) -> None:
-        """
-        Set self.data["state"] to provided value and save to storage.
-
-        :param board: Current board state.
-
-        :return: None.
-        """
-        self.data["board"] = board
-        self.save()
 
     def __getitem__(self, key: str) -> Any:
         """
