@@ -6,20 +6,17 @@ import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
 
 function Board() {
+    const rows = 9;
+    const cols = 7;
+
     const [cells, setCells] = useState(createDefaultCells());
     const [selected, setSelected] = useState(null)
-
-    function setSelectedDefault() {
-        setSelected({position: null, unit: {moves: [], state: 0, white: false}})
-    }
 
     useEffect(() => {
         fetchBoardState().then(data => setCells(data))
     }, [])
 
     function createDefaultCells() {
-        const rows = 9;
-        const cols = 7;
         return [...Array(rows)]
             .map((_, rowID) => ([...Array(cols)].map((_, colID) => ({
                 id: rowID * cols + colID,
@@ -31,14 +28,22 @@ function Board() {
 
     function selectCell(id) {
         return function (unit) {
-            return function() {
+            return function () {
                 if (unit.value > 1) {
                     setSelected(id)
                 } else {
-                    setSelectedDefault()
+                    setSelected(null)
                 }
             }
         }
+    }
+
+    function isValidMove(id) {
+        if (selected === null) {
+            return false
+        }
+        const selectedCell = cells[Math.floor(selected / cols)][selected % cols]
+        return selectedCell.unit.moves.includes(id)
     }
 
     const cellElements = cells.flat().map((cell) => (
@@ -47,6 +52,7 @@ function Board() {
             trap={cell.trap}
             unit={cell.unit}
             isSelected={cell.id === selected}
+            isValidMove={isValidMove(cell.id, selected)}
             onClick={selectCell(cell.id)}
         />
     ))

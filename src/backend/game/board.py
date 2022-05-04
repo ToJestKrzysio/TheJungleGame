@@ -593,15 +593,28 @@ class BoardSerializer:
 
                 serialized_cell = BoardSerializer.serialize_cell(board[position])
                 serialized_cell["id"] = y * board.shape[1] + x
-                if serialized_cell["unit"]["value"] > 1 and serialized_cell["unit"]["white"] is board.white_move:
+                if (serialized_cell["unit"]["value"] > 1
+                        and serialized_cell["unit"]["white"] is board.white_move):
                     serialized_cell["unit"]["moves"] = [
-                        board.get_new_position(position, move)._asdict() for move in
-                        board.get_single_unit_moves(position)
+                        BoardSerializer.position_to_id(
+                            board.get_new_position(position, move), board.shape[1]
+                        ) for move in board.get_single_unit_moves(position)
                     ]
-
                 new_row.append(serialized_cell)
             cells.append(new_row)
         return cells
+
+    @staticmethod
+    def position_to_id(position: Position, columns: int) -> int:
+        """
+        Converts position into an ID value.
+
+        :param position: Position which will be converted into an ID.
+        :param columns: Number of columns in the board.
+
+        :return: Cell ID.
+        """
+        return position.x + position.y * columns
 
 
 if __name__ == '__main__':

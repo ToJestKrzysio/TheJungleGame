@@ -18,6 +18,10 @@
 
   }
 
+  &--valid_move {
+    background-color: #ff33cc;
+  }
+
   &--selected {
     color: $unit-highlight;
     transition: $selection-animation-speed;

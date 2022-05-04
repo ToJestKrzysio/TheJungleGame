@@ -1,6 +1,6 @@
 import "./BoardCell.scss"
 
-function BoardCell({trap, unit, isSelected, onClick:handleClick}) {
+function BoardCell({trap, unit, isSelected, isValidMove, onClick:handleClick}) {
 
     const classNames = ["cell"]
 
@@ -10,6 +10,10 @@ function BoardCell({trap, unit, isSelected, onClick:handleClick}) {
         classNames.push(unit.white ? "cell--white" : "cell--black")
     }
 
+    if (isValidMove) {
+        classNames.push("cell--valid_move")
+    }
+
     if (unit.value) {
         classNames.push("cell--occupied")
     }
@@ -17,7 +21,7 @@ function BoardCell({trap, unit, isSelected, onClick:handleClick}) {
     let state = ""
     state += unit.value ? unit.value : ""
     state += trap.value ? "X" : ""
-
+    // state = isValidMove ? "1" : ""
 
     return (
         <div className={classNames.join(" ")} onClick={handleClick(unit)}>{state}</div>
