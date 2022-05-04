@@ -383,6 +383,7 @@ class BoardMove:
         self.update_unit(board=new_board, unit=selected_unit, position=new_position)
 
         self.update_neighbours(board=new_board, position=new_position)
+        self.update_neighbours(board=new_board, position=unit_position)
         self.update_repetitions(board=new_board, start_position=unit_position,
                                 end_position=new_position)
 
@@ -568,13 +569,15 @@ class BoardSerializer:
                 "value": cell.occupant.value,
                 "moves": [],
             },
-            "white_trap": cell.trap and cell.white_trap,
-            "black_trap": cell.trap and not cell.white_trap,
+            "trap": {
+                "value": cell.trap,
+                "white": cell.white_trap,
+            },
             "water": cell.water
         }
 
     @staticmethod
-    def serialize_board(board: "Board") -> List[List[dict]]:
+    def serialize_board(board: "Board") -> List[dict]:
         """
         Serializes board object into JSON format.
 
@@ -583,23 +586,34 @@ class BoardSerializer:
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
         cells = []
-        for y in range(board.shape[0]):
-            new_row = []
+        for cell_id in range(board.shape[0] * board.shape[1]):
+            x = cell_id % board.shape[1]
+            y = cell_id // board.shape[1]
+            position = Position(x=x, y=y)
 
-            for x in range(board.shape[1]):
-                position = Position(x=x, y=y)
-
-                serialized_cell = BoardSerializer.serialize_cell(board[position])
-
-                if serialized_cell["unit"]["value"] not in {0, 1}:
-                    serialized_cell["unit"]["moves"] = [
-                        board.get_new_position(position, move)._asdict() for move in
-                        board.get_single_unit_moves(position)
-                    ]
-
-                new_row.append(serialized_cell)
-            cells.append(new_row)
+            serialized_cell = BoardSerializer.serialize_cell(board[position])
+            serialized_cell["id"] = y * board.shape[1] + x
+            if (serialized_cell["unit"]["value"] > 1
+                    and serialized_cell["unit"]["white"] is board.white_move):
+                serialized_cell["unit"]["moves"] = [
+                    BoardSerializer.position_to_id(board.get_new_position(position, move),
+                                                   board.shape[1]) for move in
+                    board.get_single_unit_moves(position)
+                ]
+            cells.append(serialized_cell)
         return cells
+
+    @staticmethod
+    def position_to_id(position: Position, columns: int) -> int:
+        """
+        Converts position into an ID value.
+
+        :param position: Position which will be converted into an ID.
+        :param columns: Number of columns in the board.
+
+        :return: Cell ID.
+        """
+        return position.x + position.y * columns
 
 
 if __name__ == '__main__':

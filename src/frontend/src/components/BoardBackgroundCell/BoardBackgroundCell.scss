@@ -1,0 +1,43 @@
+@import "../../scss/properties";
+@import "../../scss/variables";
+
+.background_cell {
+  width: $cell-size;
+  height: $cell-size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+
+  &--font {
+    &_light{
+      color: white;
+      text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    }
+    &_dark {
+
+    }
+
+  }
+
+  &__land {
+    &--light {
+      background-color: $land-primary;
+    }
+
+    &--dark {
+      background-color: $land-secondary;
+    }
+  }
+
+  &__water {
+    &--light {
+      background-color: $water-primary;
+    }
+
+    &--dark {
+      background-color: $water-secondary;
+    }
+  }
+}
