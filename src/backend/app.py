@@ -19,16 +19,20 @@ def get_board():
 
 @app.post("/api/board")
 def move_unit():
-    position = request.json["position"]
-    move = request.json["move"]
+    origin = request.json["origin"]
+    destination = request.json["destination"]
 
-    unit_position = Position(x=position["x"], y=position["y"])
-    selected_move = get_move_by_values(x=move["x"], y=move["y"])
+    unit_position = Position(x=origin % 7, y=origin // 7)
+
+    selected_move = get_move_by_values(
+        x=destination % 7 - unit_position.x,
+        y=destination // 7 - unit_position.y
+    )
 
     new_board = global_storage["board"].move(unit_position=unit_position,
                                              selected_move=selected_move)
 
-    root = Root(new_board, **{"MAX_EVALUATIONS": 50})
+    root = Root(new_board, **{"MAX_EVALUATIONS": 20})
     _, (unit, best_move) = root.evaluate()
     current_position = new_board.positions[unit]
     computer_board = new_board.move(unit_position=current_position, selected_move=best_move)

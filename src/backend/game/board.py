@@ -383,6 +383,7 @@ class BoardMove:
         self.update_unit(board=new_board, unit=selected_unit, position=new_position)
 
         self.update_neighbours(board=new_board, position=new_position)
+        self.update_neighbours(board=new_board, position=unit_position)
         self.update_repetitions(board=new_board, start_position=unit_position,
                                 end_position=new_position)
 
