@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 
 from game import Board
@@ -38,6 +39,18 @@ class Storage:
         self._board = board
         self["state"] = board.dump_board()
         self.save()
+
+    def load_model(self) -> None:
+        """
+        Set self.board.model to selected version.
+
+        :return: None
+        """
+        name = self["model"]
+        version = self["version"]
+        self.board.model.set_name(name)
+        self.board.model.load(version)
+        logging.debug(f"Loaded model '{name}' version {version}.")
 
     def save(self) -> None:
         """
