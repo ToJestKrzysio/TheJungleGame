@@ -2,17 +2,13 @@
 @import "../../scss/utils";
 
 
-option:hover {
-  background-color: yellow;
-}
-
 .model_form {
-  padding: toRem(20) 0 ;
+  padding: toRem(20) 0;
   display: flex;
 
   > * {
-    padding: 5px 10px;
-    margin: 0 10px;
+    padding: toRem(5) toRem(10);
+    margin: 0 toRem(10);
     border-radius: toRem(7);
   }
 
@@ -46,12 +42,12 @@ option:hover {
   &__button {
     background-color: $color-primary;
     font-weight: bold;
-    color: white;
+    color: $color-light;
     border: none;
   }
 
   &__button:hover {
-    background-color: lighten($color-primary, 10%);
-    transition: 200ms;
+    background-color: lighten($color-primary, $highlight-color-shift);
+    transition: $selection-animation-speed;
   }
 }
