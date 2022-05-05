@@ -4,16 +4,36 @@ async function fetchBoardState() {
 }
 
 async function postMove(origin_id, destination_id) {
-    console.log(origin_id);
-    console.log(destination_id);
     const data = JSON.stringify({origin: origin_id, destination: destination_id})
-    console.log(data);
-    const result = await fetch("/api/board", {
+    const response = await fetch("/api/board", {
         method: "POST",
         headers: {'Content-Type': 'application/json'},
         body: data
     })
-    return await result.json()
+    return await response.json()
 }
 
-export {fetchBoardState, postMove};
+
+async function getModels() {
+    const response = await fetch("/api/models")
+    return await response.json()
+}
+
+
+async function postModels(model, version) {
+    const data = JSON.stringify({model, version})
+    const response = await fetch("/api/models/", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: data
+    })
+    return await response.json()
+}
+
+
+export {
+    fetchBoardState,
+    postMove,
+    getModels,
+    postModels
+};

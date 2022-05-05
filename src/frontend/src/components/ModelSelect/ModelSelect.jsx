@@ -1,16 +1,35 @@
 import "./ModelSelect.scss"
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import {getModels} from "../../utils/helpers";
 
 function ModelSelect() {
-    const [models, setModels] = useState(["first_model", "model_2", "model_3", "model_4"])
-    const [versions, setVersions] = useState([1, 2, 4, 5, 6])
-
-    const modelOptions = models.map((model) => <option value={model} key={model}>{model}</option>)
-    const modelVersions = versions.map((version) => <option value={version} key={version}>V{version}.0</option>)
+    const [models, setModels] = useState([]);
+    const [versions, setVersions] = useState([]);
+    const [modelsData, setModelsData] = useState([])
+    const [selectedModel, setSelectedModel] = useState([]);
+    // const [selectedVersion, setSelectedVersion] = useState([]);
 
     function handleSubmit(event) {
         event.preventDefault()
+        console.log(event.target)
     }
+
+    useEffect(() => {
+        getModels()
+            .then(data => {
+                setVersions(data)
+                const modelNames = []
+                for (const modelName in data) {
+                    modelNames.push(modelName)
+                }
+                setModels(modelNames)
+            })
+            .catch(err => console.log(err))
+    }, [])
+
+    const modelOptions = models.map((model) => <option value={model} key={model}>{model}</option>)
+    const modelVersions = (versions[selectedModel] || []).map(
+        (version) => <option value={version} key={version}>V{version}.0</option>)
 
     return (
         <form action="" onSubmit={handleSubmit}>
