@@ -33,20 +33,62 @@ function ModelSelect() {
             .catch(err => console.log(err))
     }
 
-    const modelOptions = models.map((model) => <option value={model} key={model}>{model}</option>)
-    const modelVersions = versions.map((version) => <option value={version} key={version}>V{version}.0</option>)
+    const modelNames = models.map((model) => (
+            <option
+                value={model}
+                key={model}
+                className="model_form__name--option">
+                {model}
+            </option>
+        )
+    )
+
+    const modelVersions = versions.map((version) => (
+            <option
+                value={version}
+                key={version}
+                className="model_form__version--option">
+                V{version}.0
+            </option>
+        )
+    )
 
     return (
-        <form action="" onSubmit={handleSubmit}>
-            <label htmlFor="model_name">Model Name</label>
-            <select name="Models" id="model_name" onChange={handleModelChange} onBlur={handleModelChange}>
-                {modelOptions}
+        <form action="" onSubmit={handleSubmit} className="model_form">
+            <label
+                htmlFor="model_name"
+                className="model_form__name--label">
+                Model Name
+            </label>
+            <select
+                name="Models"
+                id="model_name"
+                onChange={handleModelChange}
+                onBlur={handleModelChange}
+                className="model_form__name--select">
+                {modelNames}
             </select>
-            <label htmlFor="model_version">Model Version</label>
-            <select name="Versions" id="model_version" onChange={handleVersionChange} onBlur={handleVersionChange} value={selectedVersion}>
+
+            <label
+                htmlFor="model_version"
+                className="model_form__version--label">
+                Model Version
+            </label>
+            <select
+                name="Versions"
+                id="model_version"
+                onChange={handleVersionChange}
+                onBlur={handleVersionChange}
+                value={selectedVersion}
+                className="model_form__version--select">
                 {modelVersions}
             </select>
-            <button type="submit">Switch Model</button>
+
+            <button
+                type="submit"
+                className="model_form__button">
+                Switch Model
+            </button>
         </form>
     );
 }

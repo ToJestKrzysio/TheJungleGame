@@ -1,1 +1,57 @@
 @import "../../scss/variables";
+@import "../../scss/utils";
+
+
+option:hover {
+  background-color: yellow;
+}
+
+.model_form {
+  padding: toRem(20) 0 ;
+  display: flex;
+
+  > * {
+    padding: 5px 10px;
+    margin: 0 10px;
+    border-radius: toRem(7);
+  }
+
+  &__name {
+    &--label {
+      display: none;
+    }
+
+    &--select {
+
+    }
+
+    &--option {
+
+    }
+  }
+
+  &__version {
+    &--label {
+      display: none;
+
+    }
+
+    &--select {
+
+    }
+
+
+  }
+
+  &__button {
+    background-color: $color-primary;
+    font-weight: bold;
+    color: white;
+    border: none;
+  }
+
+  &__button:hover {
+    background-color: lighten($color-primary, 10%);
+    transition: 200ms;
+  }
+}
