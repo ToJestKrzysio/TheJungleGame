@@ -81,3 +81,4 @@ class Storage:
         :return: None
         """
         self.data[key] = value
+        self.save()

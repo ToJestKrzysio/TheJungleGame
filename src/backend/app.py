@@ -75,10 +75,10 @@ def model_list():
 
 @app.post("/api/models")
 def model_select():
-    name = request.json["name"]
+    model = request.json["model"]
     version = request.json["version"]
 
-    storage["model"] = name
+    storage["model"] = model
     storage["version"] = version
     storage.load_model()
 
