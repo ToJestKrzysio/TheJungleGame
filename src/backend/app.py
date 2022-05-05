@@ -69,8 +69,12 @@ def new_game():
 
 @app.get("/api/models")
 def model_list():
-    versioned = {name: get_model_versions(name) for name in os.listdir("./data/models")}
-    return jsonify(versioned)
+    return jsonify(os.listdir("./data/models"))
+
+
+@app.get("/api/models/<name>")
+def version_list(name):
+    return jsonify(os.listdir(f"./data/models/{name}"))
 
 
 @app.post("/api/models")
