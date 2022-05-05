@@ -22,7 +22,7 @@ async function getModels() {
 
 async function postModels(model, version) {
     const data = JSON.stringify({model, version})
-    const response = await fetch("/api/models/", {
+    const response = await fetch("/api/models", {
         method: "POST",
         headers: {'Content-Type': 'application/json'},
         body: data

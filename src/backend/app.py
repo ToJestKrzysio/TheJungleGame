@@ -7,7 +7,6 @@ from game import Board, get_move_by_values, Position, ValuePolicyModel
 from mcts import Root
 from storage import Storage
 
-from utils.models import get_model_versions
 from utils.formatters import ColoredFormatter
 
 logging_formatter = ColoredFormatter()
