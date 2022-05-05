@@ -66,7 +66,7 @@ class Mouse(Unit):
         [Units.EMPTY.value, Units.DEN.value, Units.MOUSE.value,
          Units.ELEPHANT.value]
     )
-    captures_from_water: frozenset = frozenset(
+    captures_water: frozenset = frozenset(
         [Units.EMPTY.value, Units.MOUSE.value]
     )
     captures_mixed: frozenset = frozenset(

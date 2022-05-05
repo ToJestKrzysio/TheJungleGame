@@ -5,3 +5,5 @@ data/checkpoints
 data/history
 data/models/model
 data/models/quick_model
+
+storage.json
