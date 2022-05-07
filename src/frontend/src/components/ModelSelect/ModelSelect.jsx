@@ -2,12 +2,14 @@ import "./ModelSelect.scss"
 import {useEffect, useState} from "react";
 import {getModels, postModels} from "../../utils/helpers";
 import useVersion from "../../hooks/useVersion";
+import AnimatedButton from "../AnimatedButton/AnimatedButton";
 
 function ModelSelect() {
     const [selectedModel, setSelectedModel] = useState("");
     const [selectedVersion, setSelectedVersion] = useState("");
     const [models, setModels] = useState([]);
     const [versions] = useVersion(selectedModel, setSelectedVersion);
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         getModels()
@@ -28,9 +30,11 @@ function ModelSelect() {
 
     function handleSubmit(event) {
         event.preventDefault()
+        setLoading(true)
         postModels(selectedModel, selectedVersion)
             .then(data => console.log(data.message))
             .catch(err => console.log(err))
+            .finally(() => setLoading(false))
     }
 
     const modelNames = models.map((model) => (
@@ -84,11 +88,7 @@ function ModelSelect() {
                 {modelVersions}
             </select>
 
-            <button
-                type="submit"
-                className="model_form__button">
-                Switch Model
-            </button>
+            <AnimatedButton value="Switch Model" isLoading={loading}/>
         </form>
     );
 }
