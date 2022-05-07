@@ -1,6 +1,7 @@
 import "./EvaluationsSelect.scss"
 import {useEffect, useState} from "react";
 import {getEvaluations, postEvaluations} from "../../utils/helpers";
+import AnimatedButton from "../AnimatedButton/AnimatedButton";
 
 function EvaluationsSelect() {
     const minEvaluations = 50
@@ -52,11 +53,7 @@ function EvaluationsSelect() {
                 onBlur={handleMinCheck}
                 onKeyUp={handleKeyUp}
             />
-            <button
-                className="evaluation_select__button"
-                onClick={handleOnClick}>
-                Submit
-            </button>
+            <AnimatedButton onClick={handleOnClick} value="Submit"/>
         </div>
     );
 }

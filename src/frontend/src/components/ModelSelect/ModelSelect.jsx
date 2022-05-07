@@ -2,6 +2,7 @@ import "./ModelSelect.scss"
 import {useEffect, useState} from "react";
 import {getModels, postModels} from "../../utils/helpers";
 import useVersion from "../../hooks/useVersion";
+import AnimatedButton from "../AnimatedButton/AnimatedButton";
 
 function ModelSelect() {
     const [selectedModel, setSelectedModel] = useState("");
@@ -84,11 +85,7 @@ function ModelSelect() {
                 {modelVersions}
             </select>
 
-            <button
-                type="submit"
-                className="model_form__button">
-                Switch Model
-            </button>
+            <AnimatedButton value="Switch Model"/>
         </form>
     );
 }

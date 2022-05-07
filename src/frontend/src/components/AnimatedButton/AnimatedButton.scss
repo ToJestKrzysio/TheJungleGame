@@ -1,0 +1,17 @@
+@import "../../scss/variables";
+
+.animated_button {
+  background-color: $color-primary;
+  border: none;
+  border-radius: $border-radius-sm;
+  color: $color-light;
+  font-weight: bold;
+  padding: toRem(5) toRem(10);
+  margin-left: auto;
+  height: toRem(30);
+
+  &__button:hover {
+    background-color: lighten($color-primary, $highlight-color-shift);
+    transition: $selection-animation-speed;
+  }
+}
