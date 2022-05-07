@@ -9,9 +9,11 @@
   padding: toRem(5) toRem(10);
   margin-left: auto;
   height: toRem(30);
+  box-sizing: border-box;
 
-  &__button:hover {
-    background-color: lighten($color-primary, $highlight-color-shift);
-    transition: $selection-animation-speed;
+  &:hover {
+    background-color: darken($color-primary, $highlight-color-shift);
+    outline: 2px solid $color-light;
+    transition: background-color color $selection-animation-speed;
   }
 }

@@ -1,10 +1,10 @@
 import "./AnimatedButton.scss"
 
-function AnimatedButton({onClick:handleClick, isLoading, value}) {
+function AnimatedButton({onClick:handleClick, isLoading = false, value}) {
 
     return (
         <button onClick={handleClick} className="animated_button">
-            {value}
+            {isLoading ? "" : value}
         </button>
     );
 }

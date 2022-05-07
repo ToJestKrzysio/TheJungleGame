@@ -1,0 +1,15 @@
+@import "../../scss/variables";
+
+
+.bar_loader {
+  width: toRem(20);
+  height: toRem(3);
+
+  &--full{
+    background-color: $color-light;
+  }
+  &--empty{
+    background-color: $color-secondary;
+    width: 100%
+  }
+}
