@@ -1,15 +1,38 @@
 @import "../../scss/variables";
 
+.loader {
+  position: relative;
+  background-color: $color-secondary;
+  border-radius: toRem(2);
+  color: transparent;
 
-.bar_loader {
-  width: toRem(20);
-  height: toRem(3);
-
-  &--full{
+  &__bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
     background-color: $color-light;
+    border-radius: toRem(2);
   }
-  &--empty{
-    background-color: $color-secondary;
-    width: 100%
+}
+@keyframes loadingBar {
+  0% {
+    left: 0;
+    right: 100%;
+    width: 0;
+  }
+  25% {
+    left: 0;
+    right: 25%;
+    width: 25%;
+  }
+  75% {
+    left: 75%;
+    right: 0;
+    width: 25%;
+  }
+  100% {
+    left: 100%;
+    right: 0;
+    width: 0;
   }
 }

@@ -1,11 +1,24 @@
 import "./BarLoader.scss"
 
-function BarLoader() {
-
+function BarLoader(
+    {
+        // width = 100,
+        height = 6,
+        speedMultiplier = 1,
+        value
+    }
+) {
+    const animationSpeed = 2 / speedMultiplier
+    const loaderStyle = {
+        height,
+    }
+    const sliderStyle = {
+        animation: `loadingBar ${animationSpeed}s linear infinite`
+    }
     return (
-        <div className="bar_loader">
-            <div className="bar_loader--full"></div>
-            <div className="bar_loader--empty"></div>
+        <div className="loader" style={loaderStyle}>
+            {value}
+            <div className="loader__bar" style={sliderStyle}/>
         </div>
     );
 }
