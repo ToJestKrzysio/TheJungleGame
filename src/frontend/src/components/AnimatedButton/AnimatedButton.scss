@@ -10,8 +10,10 @@
   margin-left: auto;
   height: toRem(30);
   box-sizing: border-box;
+  text-align: center;
+  transition: $selection-animation-speed;
 
-  &:hover {
+  &--active:hover {
     background-color: darken($color-primary, $highlight-color-shift);
     outline: 2px solid $color-light;
     transition: background-color color $selection-animation-speed;
