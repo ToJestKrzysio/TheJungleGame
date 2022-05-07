@@ -52,5 +52,7 @@ export {
     fetchBoardState,
     postMove,
     getModels,
-    postModels
+    postModels,
+    getEvaluations,
+    postEvaluations,
 };
