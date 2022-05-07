@@ -1,0 +1,48 @@
+@import "../../scss/variables";
+@import "../../scss/utils";
+
+.evaluation_select {
+  padding: toRem(20);
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+
+  &__label {
+    color: $color-light;
+    font-weight: bold;
+    margin-right: toRem(20);
+    text-align: center;
+  }
+
+  &__input {
+    background-color: $color-light;
+    border: 2px solid $color-light;
+    border-radius: $border-radius-sm;
+    padding: toRem(5) toRem(10);
+    margin-right: toRem(20);
+    width: 6rem;
+    height: toRem(30);
+    box-sizing: border-box;
+
+    &:focus{
+      outline: none;
+      border-color: $color-secondary;
+    }
+
+    &--invalid:focus{
+      outline: none;
+      border-color: red;
+    }
+  }
+
+  &__button {
+    background-color: $color-primary;
+    border: none;
+    border-radius: $border-radius-sm;
+    color: $color-light;
+    font-weight: bold;
+    padding: toRem(5) toRem(10);
+    margin-left: auto;
+  }
+}
