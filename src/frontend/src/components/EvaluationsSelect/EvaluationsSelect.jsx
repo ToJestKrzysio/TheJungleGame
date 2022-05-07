@@ -18,7 +18,7 @@ function EvaluationsSelect() {
 
     function handleOnClick() {
         postEvaluations(evaluations)
-            .then(data => console.log(data))
+            .then(data => console.log(data.message))
             .catch(err => console.log(err))
     }
 

@@ -88,5 +88,17 @@ def model_select():
     return jsonify({"message": f"Successfully loaded model {model} version {version}"}), 200
 
 
+@app.get("/api/evaluations")
+def get_evaluations():
+    return jsonify({"value": storage["evaluations"]}), 200
+
+
+@app.post("/api/evaluations")
+def post_evaluations():
+    evaluations = request.json["value"]
+    storage["evaluations"] = evaluations
+    return jsonify({"message": f"Successfully set evaluations to {evaluations}"}), 200
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
