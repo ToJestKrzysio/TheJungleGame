@@ -140,8 +140,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 3,
-        "TRAINING_START_ITERATION": 5,
+        "TRAINING_ITERATIONS": 2,
+        "TRAINING_START_ITERATION": 11,
         "INPUT_DIR": "data/training/",  # TODO unify save paths
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 8,
