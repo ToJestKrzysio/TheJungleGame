@@ -32,14 +32,14 @@ async function postModels(model, version) {
 
 
 async function getEvaluations() {
-    const response = await fetch("/evaluations")
+    const response = await fetch("/api/evaluations")
     return await response.json()
 }
 
 
 async function postEvaluations(evaluations) {
     const data = JSON.stringify({value: evaluations})
-    const response = await fetch("/evaluations", {
+    const response = await fetch("/api/evaluations", {
         method: "POST",
         headers: {'Content-Type': 'application/json'},
         body: data
