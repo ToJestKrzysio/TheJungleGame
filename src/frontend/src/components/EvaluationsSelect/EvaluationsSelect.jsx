@@ -6,6 +6,7 @@ import AnimatedButton from "../AnimatedButton/AnimatedButton";
 function EvaluationsSelect() {
     const minEvaluations = 50
     const [evaluations, setEvaluations] = useState(minEvaluations)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         getEvaluations()
@@ -18,9 +19,11 @@ function EvaluationsSelect() {
     }
 
     function handleOnClick() {
+        setLoading(true)
         postEvaluations(evaluations)
             .then(data => console.log(data.message))
             .catch(err => console.log(err))
+            .finally(() => setLoading(false))
     }
 
     function handleMinCheck() {
@@ -53,7 +56,7 @@ function EvaluationsSelect() {
                 onBlur={handleMinCheck}
                 onKeyUp={handleKeyUp}
             />
-            <AnimatedButton onClick={handleOnClick} value="Submit"/>
+            <AnimatedButton onClick={handleOnClick} isLoading={loading} value="Submit"/>
         </div>
     );
 }

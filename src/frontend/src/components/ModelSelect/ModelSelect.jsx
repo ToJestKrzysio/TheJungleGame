@@ -9,6 +9,7 @@ function ModelSelect() {
     const [selectedVersion, setSelectedVersion] = useState("");
     const [models, setModels] = useState([]);
     const [versions] = useVersion(selectedModel, setSelectedVersion);
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         getModels()
@@ -29,9 +30,11 @@ function ModelSelect() {
 
     function handleSubmit(event) {
         event.preventDefault()
+        setLoading(true)
         postModels(selectedModel, selectedVersion)
             .then(data => console.log(data.message))
             .catch(err => console.log(err))
+            .finally(() => setLoading(false))
     }
 
     const modelNames = models.map((model) => (
@@ -85,7 +88,7 @@ function ModelSelect() {
                 {modelVersions}
             </select>
 
-            <AnimatedButton value="Switch Model"/>
+            <AnimatedButton value="Switch Model" isLoading={loading}/>
         </form>
     );
 }
