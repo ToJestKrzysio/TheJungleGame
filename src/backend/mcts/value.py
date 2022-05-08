@@ -22,7 +22,8 @@ class BaseValue(AbstractValue):
         if game_over:
             return (int(node.board.white_move) * 2 - 1) * game_state
         else:
-            return random.random() * 0.4 - 0.2
+            value, _ = node.board.predict()
+            return value
 
 
 base_value = BaseValue()
