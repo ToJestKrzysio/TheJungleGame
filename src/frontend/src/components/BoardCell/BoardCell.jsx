@@ -1,29 +1,39 @@
 import "./BoardCell.scss"
 
-function BoardCell({unit, isSelected, isValidMove, onClick:handleClick}) {
+function BoardCell({unit, selected, probability, isSelected, isValidMove, onClick:handleClick}) {
 
-    const classNames = ["cell"]
-
-    if (isSelected) {
-        classNames.push("cell--selected")
-    } else {
-        classNames.push(unit.white ? "cell--white" : "cell--black")
-    }
+    const cellClasses = ["cell"]
+    const unitClasses = ["cell__unit"]
 
     if (isValidMove) {
-        classNames.push("cell--valid_move")
+        cellClasses.push("cell--valid_move")
     }
 
-    if (unit.value) {
-        classNames.push("cell--occupied")
+    if (unit.moves.length) {
+        cellClasses.push("cell--occupied")
     }
 
-    let state = ""
-    state += unit.value ? unit.value : ""
-    // state += trap.value ? "X" : ""
+    if (isSelected) {
+        unitClasses.push("cell__unit--selected")
+    } else {
+        unitClasses.push(unit.white ? "cell__unit--white" : "cell__unit--black")
+    }
+
+    let unit_value = ""
+    unit_value += unit.value ? unit.value : ""
+
+    let probabilityValue
+    if (isValidMove) {
+        probabilityValue = probability[selected] !== undefined ? probability[selected].toFixed(2) : ""
+    } else {
+        probabilityValue = probability.value ? probability.value.toFixed(2) : ""
+    }
 
     return (
-        <div className={classNames.join(" ")} onClick={handleClick(unit)}>{state}</div>
+        <div className={cellClasses.join(" ")} onClick={handleClick(unit)}>
+            <p className="cell__probability">{probabilityValue}</p>
+            <h2 className={unitClasses.join(" ")}>{unit_value}</h2>
+        </div>
     );
 }
 

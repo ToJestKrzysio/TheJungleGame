@@ -22,7 +22,8 @@ function Board() {
                 id: id,
                 trap: {value: false, white: false},
                 unit: {moves: [], value: 0, white: false},
-                water: false
+                water: false,
+                probability: {value: 0}
             }))
     }
 
@@ -35,7 +36,10 @@ function Board() {
                     newCells[id].unit = newCells[selected].unit
                     newCells[selected].unit = {moves: [], value: 0, white: false}
 
-                    newCells.forEach(cell => cell.unit.moves = [])
+                    newCells.forEach(cell => {
+                        cell.unit.moves = []
+                        cell.probability.value = 0
+                    })
 
                     setCells(newCells)
                     setSelected(null)
@@ -60,8 +64,9 @@ function Board() {
         return (
             <BoardCell
                 key={cell.id}
-                // trap={cell.trap}
                 unit={cell.unit}
+                selected={selected}
+                probability={cell.probability}
                 isSelected={cell.id === selected}
                 isValidMove={isValidMove(cell.id)}
                 onClick={selectCell(cell.id)}
