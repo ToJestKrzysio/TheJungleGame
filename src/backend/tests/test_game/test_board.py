@@ -804,7 +804,7 @@ class TestBoardSerializer:
         occupant_mock = Mock(value=42, white=True)
         cell_mock = Mock(occupant=occupant_mock, trap=True, white_trap=True, water=True)
 
-        result = BoardSerializer.serialize_cell(cell_mock)
+        result = BoardSerializer._serialize_cell(cell_mock)
 
         assert list(result.keys()) == ["unit", "trap", "water"]
         assert list(result["unit"].keys()) == ["white", "value", "moves"]

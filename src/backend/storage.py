@@ -17,6 +17,7 @@ class Storage:
         with open(self.filename) as file_:
             self.data = json.load(file_)
         self._board = None
+        self.root = None
 
     @property
     def board(self) -> Board:
@@ -37,7 +38,7 @@ class Storage:
         :return: None.
         """
         self._board = board
-        self["state"] = board.dump_board()
+        self["state"] = board.serializer.dump(board)
         self.save()
 
     def load_model(self) -> None:

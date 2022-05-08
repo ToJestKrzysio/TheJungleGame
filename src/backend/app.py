@@ -13,10 +13,10 @@ logging_formatter = ColoredFormatter()
 logging_handler = logging.StreamHandler()
 logging_handler.setFormatter(logging_formatter)
 root = logging.getLogger()
-root.setLevel(logging.DEBUG)
+root.setLevel(logging.INFO)
 root.addHandler(logging_handler)
 
-logging.debug("Running initial setup")
+logging.warning("Running initial setup")
 app = Flask(__name__)
 storage = Storage()
 
@@ -26,12 +26,14 @@ model.load(storage["version"])
 
 storage.board = Board.load(storage["state"])
 storage.board.model = model
-logging.debug("Completed initial setup")
+logging.warning("Completed initial setup")
 
 
 @app.get("/api/board")
 def get_board():
-    return jsonify(storage.board.serialize()), 200
+    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
+    storage.root.evaluate()
+    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 200
 
 
 @app.post("/api/board")
@@ -46,20 +48,20 @@ def move_unit():
     )
     logging.debug(f"Requested {selected_move} from {unit_position}.")
 
-    new_board = storage.board.move(unit_position=unit_position, selected_move=selected_move)
-    storage.board = new_board
+    storage.board = storage.board.move(unit_position=unit_position, selected_move=selected_move)
 
-    root = Root(new_board, **{"MAX_EVALUATIONS": storage["evaluations"]})
-    _, (unit, best_move) = root.evaluate()
-    current_position = new_board.positions[unit]
-    computer_board = new_board.move(unit_position=current_position, selected_move=best_move)
+    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
+    _, (unit, best_move) = storage.root.evaluate()
+    current_position = storage.board.positions[unit]
 
-    storage.board = computer_board
+    storage.board = storage.board.move(unit_position=current_position, selected_move=best_move)
 
-    return jsonify(computer_board.serialize()), 201
+    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
+    storage.root.evaluate()
+    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 201
 
 
-@app.post(f"/api/new-game")
+@app.post("/api/new-game")
 def new_game():
     storage.board = Board.initialize()
     logging.debug("Restarting game")
