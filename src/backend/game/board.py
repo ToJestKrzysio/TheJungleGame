@@ -3,12 +3,16 @@ from __future__ import annotations
 from collections import Counter, deque, namedtuple
 from copy import copy, deepcopy
 from itertools import product
-from typing import Dict, List, Set, Tuple, Iterable, Optional
+from typing import Dict, List, Set, Tuple, Iterable, Optional, TYPE_CHECKING
 
 import numpy as np
 
-from game import AbstractModel, Cell, MoveNotPossibleError, unit, value_policy_model
+from game import AbstractModel, Cell, MoveNotPossibleError, unit, get_unit, \
+    ValuePolicyModel
 from game import moves as unit_moves
+
+if TYPE_CHECKING:
+    from mcts import Node, Root
 
 Position = namedtuple("Position", ["y", "x"])
 
@@ -54,6 +58,7 @@ class Board(np.ndarray):
         self.move_count = 0
         self.game_over = False
         self.model = None
+        self.serializer = BoardSerializer
 
     def get_positions(self) -> dict[unit.Unit, Position]:
         """
@@ -184,7 +189,7 @@ class Board(np.ndarray):
         return self.game_over, self.outcome
 
     @classmethod
-    def initialize(cls, model: AbstractModel = None) -> Board:
+    def initialize(cls) -> Board:
         """ Initializes board according to game rules. """
         cells = [
             [Cell(unit.BLACK_LION), Cell(), Cell(trap=True, white_trap=False),
@@ -209,7 +214,7 @@ class Board(np.ndarray):
              Cell(unit.WHITE_LION)],
         ]
         new_board = Board(cells)
-        new_board.model = model or value_policy_model
+        new_board.model = ValuePolicyModel()
         return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
@@ -266,8 +271,12 @@ class Board(np.ndarray):
                 mask[y, x, plane] = True
         return mask
 
-    def serialize(self):
-        return BoardSerializer.serialize_board(self)
+    @classmethod
+    def load(cls, state: List[List[dict]]) -> Board:
+        cells = BoardSerializer.deserialize_board(state)
+        board = cls(cells)
+        board.model = ValuePolicyModel()
+        return board
 
 
 class BoardTensor(np.ndarray):
@@ -383,6 +392,7 @@ class BoardMove:
         self.update_unit(board=new_board, unit=selected_unit, position=new_position)
 
         self.update_neighbours(board=new_board, position=new_position)
+        self.update_neighbours(board=new_board, position=unit_position)
         self.update_repetitions(board=new_board, start_position=unit_position,
                                 end_position=new_position)
 
@@ -545,9 +555,10 @@ class BoardMove:
 
 
 class BoardSerializer:
+    MoveProbability = namedtuple("MoveProbability", ["start", "end", "value"])
 
     @staticmethod
-    def serialize_cell(cell: "Cell") -> dict:
+    def _serialize_cell(cell: "Cell") -> dict:
         """
         Converts cell into a dictionary object.
 
@@ -555,10 +566,8 @@ class BoardSerializer:
 
         :return: Dictionary of the following format
             {
-                unit_value: int,
-                unit_white: bool,
-                white_trap: bool,
-                black_trap: bool,
+                unit: {value: int, white: bool, moves: list},
+                trap: {value: bool, white: bool}
                 water: bool
             }
         """
@@ -568,38 +577,128 @@ class BoardSerializer:
                 "value": cell.occupant.value,
                 "moves": [],
             },
-            "white_trap": cell.trap and cell.white_trap,
-            "black_trap": cell.trap and not cell.white_trap,
+            "trap": {
+                "value": cell.trap,
+                "white": cell.white_trap,
+            },
             "water": cell.water
         }
 
     @staticmethod
-    def serialize_board(board: "Board") -> List[List[dict]]:
+    def serialize_board(board: "Board", root: "Root") -> List[dict]:
         """
         Serializes board object into JSON format.
 
         :param board: Board instance which will be serialized.
+        :param root: Root instance of MCTS which will be used to add probabilities to moves.
 
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
+        serialized_root = board.serializer.serialize_root(root)
         cells = []
-        for y in range(board.shape[0]):
-            new_row = []
+        for cell_id in range(board.shape[0] * board.shape[1]):
+            x = cell_id % board.shape[1]
+            y = cell_id // board.shape[1]
+            position = Position(x=x, y=y)
 
-            for x in range(board.shape[1]):
-                position = Position(x=x, y=y)
-
-                serialized_cell = BoardSerializer.serialize_cell(board[position])
-
-                if serialized_cell["unit"]["value"] not in {0, 1}:
-                    serialized_cell["unit"]["moves"] = [
-                        board.get_new_position(position, move)._asdict() for move in
-                        board.get_single_unit_moves(position)
-                    ]
-
-                new_row.append(serialized_cell)
-            cells.append(new_row)
+            serialized_cell = BoardSerializer._serialize_cell(board[position])
+            serialized_cell["id"] = y * board.shape[1] + x
+            if (serialized_cell["unit"]["value"] > 1
+                    and serialized_cell["unit"]["white"] is board.white_move):
+                serialized_cell["unit"]["moves"] = [
+                    BoardSerializer._position_to_id(board.get_new_position(position, move),
+                                                    board.shape[1]) for move in
+                    board.get_single_unit_moves(position)
+                ]
+            serialized_cell["probability"] = serialized_root[cell_id]
+            cells.append(serialized_cell)
         return cells
+
+    @staticmethod
+    def _position_to_id(position: Position, columns: int) -> int:
+        """
+        Converts position into an ID value.
+
+        :param position: Position which will be converted into an ID.
+        :param columns: Number of columns in the board.
+
+        :return: Cell ID.
+        """
+        return position.x + position.y * columns
+
+    @staticmethod
+    def _deserialize_cell(serialized_cell: dict) -> Cell:
+        """
+        Given dictionary representing cell converts it back into a cell.
+
+        :param serialized_cell: Dictionary containing data about current cell state.
+
+        :return: Cell constructed using cell_state.
+        """
+        unit = get_unit(serialized_cell["unit"]["value"], serialized_cell["unit"]["white"])
+        cell_data = {
+            "occupant": unit,
+            "water": serialized_cell["water"],
+            "trap": serialized_cell["trap"]["value"],
+            "white_trap": serialized_cell["trap"]["white"]
+        }
+        return Cell(**cell_data)
+
+    @staticmethod
+    def dump(board: Board) -> List[List[dict]]:
+        return [
+            [BoardSerializer._serialize_cell(board[y, x]) for x in range(board.shape[1])]
+            for y in range(board.shape[0])
+        ]
+
+    @staticmethod
+    def deserialize_board(state: List[List[dict]]) -> List[List[Cell]]:
+        return [[BoardSerializer._deserialize_cell(cell) for cell in row] for row in state]
+
+    @staticmethod
+    def _serialize_node(node: "Node") -> MoveProbability:
+        """
+        Given node object converts it into a tuple where first element represents move origin
+        cell ID, second move destination cell ID and third cell value.
+
+        :param node: Instance of node object.
+
+        :return: New instance of MoveProbability.
+        """
+        import logging
+        logging.error(node.board)
+        old_position = node.parent.board.positions[node.unit_move.unit]
+        new_position = node.board.positions[node.unit_move.unit]
+        start_id = BoardSerializer._position_to_id(old_position, node.board.shape[1])
+        end_id = BoardSerializer._position_to_id(new_position, node.board.shape[1])
+        return BoardSerializer.MoveProbability(start=start_id, end=end_id, value=node.q)
+
+    @staticmethod
+    def serialize_root(root: "Root") -> List[dict]:
+        """
+        Given MCTS root node generates MoveProbabilities of all direct child nodes.
+
+        :param root: Instance of Root class associated with MCTS.
+
+        :return: List of all MoveProbabilities generated directly form root.
+        """
+        move_probs = [
+            {"value": 0.0} for _ in range(root.node.board.shape[0] * root.node.board.shape[1])
+        ]
+
+        total_value = 0
+        child_probs = []
+        for child_node in root.node.child_nodes:
+            move_prob = BoardSerializer._serialize_node(child_node)
+            child_probs.append(move_prob)
+            total_value += move_prob.value
+
+        for idx, move_prob in enumerate(child_probs):
+            value = move_prob.value / total_value
+            move_probs[move_prob.start]["value"] += value
+            move_probs[move_prob.end][str(move_prob.start)] = value
+
+        return move_probs
 
 
 if __name__ == '__main__':

@@ -804,10 +804,11 @@ class TestBoardSerializer:
         occupant_mock = Mock(value=42, white=True)
         cell_mock = Mock(occupant=occupant_mock, trap=True, white_trap=True, water=True)
 
-        result = BoardSerializer.serialize_cell(cell_mock)
+        result = BoardSerializer._serialize_cell(cell_mock)
 
-        assert list(result.keys()) == ["unit", "white_trap", "black_trap", "water"]
+        assert list(result.keys()) == ["unit", "trap", "water"]
         assert list(result["unit"].keys()) == ["white", "value", "moves"]
+        assert list(result["trap"].keys()) == ["white", "value"]
 
     @patch(f"{PATH}.serialize_cell")
     def test_serialize_board(self, serialize_cell_patch):
@@ -818,8 +819,10 @@ class TestBoardSerializer:
                 "value": 1,
                 "moves": [],
             },
-            "white_trap": False,
-            "black_trap": False,
+            "trap": {
+                "value": False
+                "white": False
+            }
             "water": False,
         }
 

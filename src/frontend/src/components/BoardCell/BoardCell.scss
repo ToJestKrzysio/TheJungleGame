@@ -1,0 +1,52 @@
+@import "../../scss/variables";
+
+.cell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  transition: $selection-animation-speed;
+  cursor: default;
+  position: relative;
+
+  &__probability {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: toRem(5);
+    font-size: 0.8rem;
+    color: $color-gray;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+  }
+
+  &--valid_move {
+    background-color: #ff33cc;
+    opacity: 70%;
+  }
+
+  &--occupied {
+    cursor: pointer;
+  }
+
+  &__unit {
+    font-size: 2.5rem;
+    margin: 0;
+
+    &--white {
+      color: white;
+      text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    }
+
+    &--black {
+
+    }
+
+    &--selected {
+      color: $unit-highlight;
+      text-shadow: none;
+    }
+  }
+
+}

@@ -1,7 +1,25 @@
+@import "utils";
+
 $land-primary: #779556;
 $land-secondary: #ebecd0;
 
 $water-primary: #016599;
 $water-secondary: #9cf;
 
-$base-font-size: 16;
+$unit-highlight: rgb(255, 102, 0);
+
+$cell-highlight: #ff33cc;
+
+$color-primary: #B23CFD;
+$color-secondary: #c29ffa;
+$color-light: white;
+
+$color-gray: #AAA;
+
+$color-danger: #F93154;
+
+$selection-animation-speed: 250ms;
+
+$highlight-color-shift: 15%;
+
+$border-radius-sm: toRem(5);

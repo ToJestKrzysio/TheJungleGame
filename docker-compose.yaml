@@ -1,29 +1,40 @@
 services:
   backend:
-    image: tojestkrzysio/the_jungle_game:1.0.3
+    build:
+      context: ./src/backend
     ports:
       - "5000:5000"
     networks:
-      - front-back
+      - backend-network
     volumes:
-      - ./src/backend/server:/code/server/
-      - ./src/backend/game:/code/game/
-      - ./src/backend/mcts:/code/mcts/
-      - ./src/backend/training:/code/training/
-      - ./src/backend/tests:/code/tests/
-      - ./src/backend/app.py:/code/app.py
+      - ./src/backend/:/code/
     restart: "on-failure"
 
-  fronted:
-    build: src/frontend/.
+  frontend:
+    build:
+      context: ./src/frontend
     ports:
       - "3000:3000"
     networks:
-      - front-back
+      - frontend-network
+      - backend-network
     volumes:
-      - ./src/frontend/public:/code/public/
-      - ./src/frontend/src:/code/src/
+      - ./src/frontend/:/code/
+
+  proxy:
+    build:
+      context: ./src/proxy
+    ports:
+      - "8000:80"
+    networks:
+      - frontend-network
+      - backend-network
+    depends_on:
+      - backend
+      - frontend
 
 networks:
-  front-back:
+  backend-network:
+    driver: bridge
+  frontend-network:
     driver: bridge

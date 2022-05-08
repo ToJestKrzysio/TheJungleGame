@@ -1,5 +1,5 @@
 __all__ = [
-    "Unit", "Units", "Den",
+    "Unit", "Units", "Den", "get_unit",
     "EMPTY", "WHITE_DEN", "BLACK_DEN",
     "WHITE_MOUSE", "WHITE_CAT", "WHITE_DOG", "WHITE_WOLF", "WHITE_LEOPARD", "WHITE_TIGER",
     "WHITE_LION", "WHITE_ELEPHANT",
@@ -66,7 +66,7 @@ class Mouse(Unit):
         [Units.EMPTY.value, Units.DEN.value, Units.MOUSE.value,
          Units.ELEPHANT.value]
     )
-    captures_from_water: frozenset = frozenset(
+    captures_water: frozenset = frozenset(
         [Units.EMPTY.value, Units.MOUSE.value]
     )
     captures_mixed: frozenset = frozenset(
@@ -164,3 +164,36 @@ BLACK_LEOPARD = Leopard(False)
 BLACK_TIGER = Tiger(False)
 BLACK_LION = Lion(False)
 BLACK_ELEPHANT = Elephant(False)
+
+
+def get_unit(value: int, white: bool) -> Unit:
+    """
+    Returns unit instance associated with given value and color.
+
+    :param value: Value associated to the given unit.
+    :param white: Boolean value, unit color.
+
+    :return: Proper unit instance.
+    """
+    units = {
+        (1, False): BLACK_DEN,
+        (2, False): BLACK_MOUSE,
+        (3, False): BLACK_CAT,
+        (4, False): BLACK_DOG,
+        (5, False): BLACK_WOLF,
+        (6, False): BLACK_LEOPARD,
+        (7, False): BLACK_TIGER,
+        (8, False): BLACK_LION,
+        (9, False): BLACK_ELEPHANT,
+
+        (1, True): WHITE_DEN,
+        (2, True): WHITE_MOUSE,
+        (3, True): WHITE_CAT,
+        (4, True): WHITE_DOG,
+        (5, True): WHITE_WOLF,
+        (6, True): WHITE_LEOPARD,
+        (7, True): WHITE_TIGER,
+        (8, True): WHITE_LION,
+        (9, True): WHITE_ELEPHANT,
+    }
+    return units.get((value, white), EMPTY)

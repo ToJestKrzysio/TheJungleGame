@@ -1,0 +1,22 @@
+@import "../../scss/variables";
+
+.Home {
+  display: flex;
+  height: 100vh;
+  background-color: #272522;
+}
+
+.BoardColumn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70%
+}
+
+.NavigationColumn {
+  display: flex;
+  width: 30%;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+}
