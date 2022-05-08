@@ -31,7 +31,9 @@ logging.warning("Completed initial setup")
 
 @app.get("/api/board")
 def get_board():
-    return jsonify(storage.board.serializer.serialize_board(storage.board)), 200
+    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
+    storage.root.evaluate()
+    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 200
 
 
 @app.post("/api/board")
@@ -54,15 +56,9 @@ def move_unit():
 
     storage.board = storage.board.move(unit_position=current_position, selected_move=best_move)
 
-    return jsonify(storage.board.serializer.serialize_board()), 201
-
-
-@app.get("/api/probabilities")
-def get_probabilities():
-    board = storage.board
     storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
     storage.root.evaluate()
-    return jsonify(board.serializer.serialize_root(storage.root)), 200
+    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 201
 
 
 @app.post("/api/new-game")

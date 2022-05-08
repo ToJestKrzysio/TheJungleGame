@@ -585,14 +585,16 @@ class BoardSerializer:
         }
 
     @staticmethod
-    def serialize_board(board: "Board") -> List[dict]:
+    def serialize_board(board: "Board", root: "Root") -> List[dict]:
         """
         Serializes board object into JSON format.
 
         :param board: Board instance which will be serialized.
+        :param root: Root instance of MCTS which will be used to add probabilities to moves.
 
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
+        serialized_root = board.serializer.serialize_root(root)
         cells = []
         for cell_id in range(board.shape[0] * board.shape[1]):
             x = cell_id % board.shape[1]
@@ -608,6 +610,7 @@ class BoardSerializer:
                                                     board.shape[1]) for move in
                     board.get_single_unit_moves(position)
                 ]
+            serialized_cell["probability"] = serialized_root[cell_id]
             cells.append(serialized_cell)
         return cells
 
@@ -679,8 +682,9 @@ class BoardSerializer:
 
         :return: List of all MoveProbabilities generated directly form root.
         """
-        move_probs = [{"id": idx+1, "value": 0.0}
-                      for idx in range(root.node.board.shape[0] * root.node.board.shape[1])]
+        move_probs = [
+            {"value": 0.0} for _ in range(root.node.board.shape[0] * root.node.board.shape[1])
+        ]
 
         total_value = 0
         child_probs = []
