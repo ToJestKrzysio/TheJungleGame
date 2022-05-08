@@ -140,12 +140,12 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 2,
-        "TRAINING_START_ITERATION": 5,
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 0,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 8,
-        "MODEL_BASE_NAME": "second_model",
+        "MODEL_BASE_NAME": "third_model",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }
