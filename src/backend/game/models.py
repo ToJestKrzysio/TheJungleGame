@@ -90,9 +90,14 @@ class ValuePolicyModel(AbstractModel):
     def set_name(self, name: str) -> None:
         self.name = name
 
-    def load(self, filename: str) -> None:
+    def load(self, filename: int = -1) -> None:
         self._cache.clear()
-        filepath = os.path.join(self.base_dir, self.name, filename)
+
+        load_dir = os.path.join(self.base_dir, self.name)
+        if filename == -1:
+            filename = max(os.listdir(load_dir))
+
+        filepath = os.path.join(load_dir, str(filename))
         self.model = load_model(filepath)
         logging.info(f"Loaded karas model from '{filepath}'")
 
@@ -201,5 +206,8 @@ value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    value_policy_model.set_name("first_model")
-    value_policy_model.save("0")
+    name = "third_model"
+    kwargs = {"BASE_DIR": "../data/models"}
+    model = ValuePolicyModel(**kwargs)
+    model.set_name(name)
+    model.save("0")

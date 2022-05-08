@@ -10,14 +10,15 @@ from tensorflow.keras import models
 import numpy as np
 
 from mcts import Root, Node
-from game import Board, value_policy_model
+from game import Board, ValuePolicyModel
 from helpers import get_timestamp
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
-                    format="%(process)d - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
+                    format="%(asctime)s - %(process)d - %(levelname)s - %(message)s",
+                    datefmt="%H:%M:%S")
 
 
 class GameDataGenerator:
@@ -27,9 +28,13 @@ class GameDataGenerator:
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
         self.training_iteration = game_kwargs.get("TRAINING_ITERATION", -1)
         self.mcts_kwargs = mcts_kwargs
+        self.model_name = game_kwargs.get("MODEL_NAME", "first_model")
+        self.model = ValuePolicyModel()
+        self.model.set_name(self.model_name)
+        self.model.load(self.training_iteration)
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
-        self.iteration_dir_path = os.path.join("data/training", value_policy_model.name,
+        self.iteration_dir_path = os.path.join("data/training", self.model.name,
                                                self.iteration_dir_name)
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 
@@ -233,11 +238,13 @@ if __name__ == '__main__':
     TRAINING_ITERATION = int(sys.argv[2])
     TERMINATE_COUNTER = int(sys.argv[3])
     MAX_EVALUATIONS = int(sys.argv[4])
+    MODEL_NAME = str(sys.argv[5])
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
         "TRAINING_ITERATION": TRAINING_ITERATION,
         "TERMINATE_COUNTER": TERMINATE_COUNTER,
+        "MODEL_NAME": MODEL_NAME,
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,

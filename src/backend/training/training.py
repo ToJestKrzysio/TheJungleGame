@@ -11,13 +11,14 @@ from typing import List
 from keras.callbacks import History
 
 from networks import train_nn
-from game.models import value_policy_model
+from game.models import value_policy_model, ValuePolicyModel
 from generators import Experience
 from helpers import get_timestamp
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
-                    format="%(process)d - %(name)s - %(levelname)s - %(message)s")
+                    format="%(asctime)s - %(process)d - %(levelname)s - %(message)s",
+                    datefmt="%H:%M:%S")
 
 
 class ModelTrainer:
@@ -33,14 +34,15 @@ class ModelTrainer:
         self.starting_iteration = self.training_kwargs.get("TRAINING_START_ITERATION", 0)
         self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR",
                                                             "data/training/")  # TODO unify save paths
+        self.output_base_dir = self.training_kwargs.get("OUTPUT_DIR", "data")
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
 
         self.games_per_iteration = self.training_kwargs.get("GAMES_PER_ITERATION", 50)
         self.rollouts_per_game = self.training_kwargs.get("ROLLOUTS_PER_GAME", 1000)
         self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
 
-        self.model = value_policy_model
         model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
+        self.model = ValuePolicyModel()
         self.model.set_name(model_base_name)
 
         self.input_dir = None
@@ -50,13 +52,14 @@ class ModelTrainer:
 
         for iteration_id in range(
                 self.starting_iteration, self.starting_iteration + self.training_iterations):
-            self.model.load(filename=str(iteration_id))
+
             if generate_data:
                 self.generate_data(iteration=iteration_id)
 
             self.update_input_dir(iteration=iteration_id)
             training_data = self.load_training_data()
 
+            self.model.load(filename=iteration_id)
             history, checkpoint_filepath = train_nn(
                 training_data, self.model, iteration=iteration_id, **self.nn_kwargs)
 
@@ -89,8 +92,15 @@ class ModelTrainer:
         for idx in range(self.max_processes):
             logging.debug(os.listdir())
             processes.append(
-                subprocess.Popen(["python", "training/generators.py", str(games), str(iteration),
-                                  str(self.terminate_counter), str(self.rollouts_per_game)])
+                subprocess.Popen(
+                    [
+                        "python", "training/generators.py",
+                        str(games),
+                        str(iteration),
+                        str(self.terminate_counter),
+                        str(self.rollouts_per_game),
+                        str(self.model.name)
+                    ])
             )
 
         for process in processes:
@@ -107,7 +117,7 @@ class ModelTrainer:
         :return: None
         """
         dir_name = f"iteration_{iteration}"
-        self.input_dir = os.path.join(self.input_data_base_dir, dir_name)
+        self.input_dir = os.path.join(self.input_data_base_dir, self.model.name, dir_name)
 
     def save_history(self, history: History, iteration: int) -> None:
         """
@@ -117,11 +127,11 @@ class ModelTrainer:
         :param iteration: Number of iteration at which save occurs.
         :return: None
         """
-        base_path = os.path.join(f"../data/history", self.model.name)
+        base_path = os.path.join(self.output_base_dir, "history", self.model.name)
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
-        filepath = os.path.join(f"data/history", self.model.name,
+        filepath = os.path.join(self.output_base_dir, "history", self.model.name,
                                 filename)  # TODO unify save paths
         with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
@@ -130,11 +140,12 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 2,
-        "TRAINING_START_ITERATION": 5,
-        "INPUT_DIR": "data/training/",  # TODO unify save paths
-        "MAX_PROCESSES": 7,
-        "MODEL_BASE_NAME": "first_model",
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 0,
+        "INPUT_DIR": "data/training/",
+        "OUTPUT_DIR": "data/",
+        "MAX_PROCESSES": 8,
+        "MODEL_BASE_NAME": "third_model",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }
@@ -146,4 +157,4 @@ if __name__ == '__main__':
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=False)
+    model_trainer(generate_data=True)
