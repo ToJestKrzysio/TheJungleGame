@@ -16,7 +16,7 @@ from helpers import get_timestamp
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
 
-logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
                     format="%(asctime)s - %(process)d - %(levelname)s - %(message)s",
                     datefmt="%H:%M:%S")
 

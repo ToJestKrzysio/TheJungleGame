@@ -11,12 +11,12 @@ from typing import List
 from keras.callbacks import History
 
 from networks import train_nn
-from game.models import value_policy_model, ValuePolicyModel
+from game.models import ValuePolicyModel
 from generators import Experience
 from helpers import get_timestamp
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-logging.basicConfig(filename="../runtime.log", level=logging.INFO, filemode="w",
+logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
                     format="%(asctime)s - %(process)d - %(levelname)s - %(message)s",
                     datefmt="%H:%M:%S")
 
@@ -37,6 +37,9 @@ class ModelTrainer:
         self.output_base_dir = self.training_kwargs.get("OUTPUT_DIR", "data")
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
 
+        # Additional data added to training data from previous iterations
+        self.training_previous = self.training_kwargs.get("TRAINING_PREVIOUS", 0)
+
         self.games_per_iteration = self.training_kwargs.get("GAMES_PER_ITERATION", 50)
         self.rollouts_per_game = self.training_kwargs.get("ROLLOUTS_PER_GAME", 1000)
         self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
@@ -44,8 +47,6 @@ class ModelTrainer:
         model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
         self.model = ValuePolicyModel()
         self.model.set_name(model_base_name)
-
-        self.input_dir = None
 
     def __call__(self, generate_data=True):
         history, best_checkpoint_filepath = None, None
@@ -56,8 +57,11 @@ class ModelTrainer:
             if generate_data:
                 self.generate_data(iteration=iteration_id)
 
-            self.update_input_dir(iteration=iteration_id)
-            training_data = self.load_training_data()
+            training_data = []
+            for data_iteration_id in range(
+                    max(0, iteration_id - self.training_previous), iteration_id):
+                input_dir = self.get_input_dir(iteration=iteration_id)
+                training_data.extend(self.load_training_data(input_dir))
 
             self.model.load(filename=iteration_id)
             history, checkpoint_filepath = train_nn(
@@ -69,15 +73,18 @@ class ModelTrainer:
 
         return history, checkpoint_filepath
 
-    def load_training_data(self) -> List["Experience"]:
+    @staticmethod
+    def load_training_data(input_dir: str) -> List["Experience"]:
         """
         Collects all records saved inside input dir and merges them into a single input data.
+
+        :param input_dir: Directory from which data will be loaded.
 
         :return: List of merged data records.
         """
         training_data = []
-        for filename in os.listdir(self.input_dir):
-            filepath = os.path.join(self.input_dir, filename)
+        for filename in os.listdir(input_dir):
+            filepath = os.path.join(input_dir, filename)
 
             with open(filepath, "rb") as file_:
                 training_data.extend(pickle.load(file_))
@@ -108,16 +115,16 @@ class ModelTrainer:
             process.wait()
             logging.debug(f"Completed data generation using process {process.pid}")
 
-    def update_input_dir(self, iteration: int) -> None:
+    def get_input_dir(self, iteration: int) -> str:
         """
-        Updates training directory to path specified according to iteration number.
+        Returns data input directory given iteration number.
 
-        :param iteration: Number of iteration from which data will be gathered.
+        :param iteration: Iteration ID defining data folder.
 
-        :return: None
+        :return: Relative path to directory from base dir.
         """
         dir_name = f"iteration_{iteration}"
-        self.input_dir = os.path.join(self.input_data_base_dir, self.model.name, dir_name)
+        return os.path.join(self.input_data_base_dir, self.model.name, dir_name)
 
     def save_history(self, history: History, iteration: int) -> None:
         """
@@ -141,11 +148,12 @@ class ModelTrainer:
 if __name__ == '__main__':
     training_kwargs = {
         "TRAINING_ITERATIONS": 1,
-        "TRAINING_START_ITERATION": 0,
+        "TRAINING_START_ITERATION": 2,
+        "TRAINING_PREVIOUS": 5,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 8,
-        "MODEL_BASE_NAME": "third_model",
+        "MODEL_BASE_NAME": "simple_model",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }
