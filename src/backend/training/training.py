@@ -147,9 +147,9 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 5,
-        "TRAINING_START_ITERATION": 3,
-        "TRAINING_PREVIOUS": 5,
+        "TRAINING_ITERATIONS": 3,
+        "TRAINING_START_ITERATION": 12,
+        "TRAINING_PREVIOUS": 8,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 8,
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     mcts_kwargs = {}
     nn_kwargs = {
         "EPOCHS": 40,
-        "VALIDATION_SPLIT": 0.15,
+        "VALIDATION_SPLIT": 0.10,
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)

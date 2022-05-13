@@ -596,6 +596,8 @@ class BoardSerializer:
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
         serialized_root = board.serializer.serialize_root(root)
+        # TODO FIX SERIALIZATION - serialized_cell["probability"] should equal to value predicted
+        #  by policy network not value network
         cells = []
         for cell_id in range(board.shape[0] * board.shape[1]):
             x = cell_id % board.shape[1]
