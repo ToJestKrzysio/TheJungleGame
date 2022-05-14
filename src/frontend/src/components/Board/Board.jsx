@@ -5,7 +5,7 @@ import {fetchBoardState, postMove} from "../../utils/helpers";
 import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
 
-function Board() {
+function Board({completeUpdate}) {
     const rows = 9;
     const cols = 7;
 
@@ -13,8 +13,13 @@ function Board() {
     const [selected, setSelected] = useState(null)
 
     useEffect(() => {
-        fetchBoardState().then(data => setCells(data))
-    }, [])
+        fetchBoardState()
+            .then(data => {
+                    setCells(data)
+                    completeUpdate("Cells update completed")
+                }
+            )
+    }, [completeUpdate])
 
     function createDefaultCells() {
         return [...Array(rows * cols)]

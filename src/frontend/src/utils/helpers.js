@@ -48,6 +48,14 @@ async function postEvaluations(evaluations) {
 }
 
 
+async function postNewGame(){
+    const response = await fetch("/api/new-game", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+    })
+    return await response.json()
+}
+
 export {
     fetchBoardState,
     postMove,
@@ -55,4 +63,5 @@ export {
     postModels,
     getEvaluations,
     postEvaluations,
+    postNewGame
 };
