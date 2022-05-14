@@ -49,7 +49,7 @@ class DataGenerator(keras.utils.data_utils.Sequence):
             q_values[data_id] = experience.q
             rewards[data_id] = experience.reward
 
-        return [states, [(3 * rewards + q_values) / 4, probabilities]]
+        return [states, [(2 * rewards + q_values) / 3, probabilities]]
 
 
 def train_nn(data, model_instance: "AbstractModel", iteration: int = -1, **kwargs):
