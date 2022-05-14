@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import Counter, deque, namedtuple
 from copy import copy, deepcopy
 from itertools import product
@@ -693,13 +694,8 @@ class BoardSerializer:
         child_probs = []
         for child_node in root.node.child_nodes:
             move_prob = BoardSerializer._serialize_node(child_node)
-            child_probs.append(move_prob)
-            total_value += move_prob.value
-
-        for idx, move_prob in enumerate(child_probs):
-            value = move_prob.value / total_value
-            move_probs[move_prob.start]["value"] += value
-            move_probs[move_prob.end][str(move_prob.start)] = value
+            move_probs[move_prob.start]["value"] += move_prob.value
+            move_probs[move_prob.end][str(move_prob.start)] = move_prob.value
 
         return move_probs
 

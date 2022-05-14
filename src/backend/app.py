@@ -65,7 +65,7 @@ def move_unit():
 def new_game():
     storage.board = Board.initialize()
     logging.debug("Restarting game")
-    return redirect(url_for("get_board"))
+    return jsonify({"message": f"Started new game"}), 200
 
 
 @app.get("/api/models")

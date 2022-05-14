@@ -1,0 +1,8 @@
+@import "../../scss/variables";
+@import "../../scss/mixins";
+
+
+.new_game {
+  @include selection_group;
+
+}
