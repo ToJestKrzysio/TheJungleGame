@@ -5,12 +5,15 @@ import EvaluationsSelect from "../EvaluationsSelect/EvaluationsSelect";
 import NewGame from "../NewGame/NewGame";
 import {postNewGame} from "../../utils/helpers";
 import {useState} from "react";
+import UpdateBoard from "../UpdateBoard/UpdateBoard";
+import ButtonFooter from "../ButtonFooter/ButtonFooter";
 
 function Home() {
     const [newGameLoading, setNewGameLoading] = useState(false)
-    const [completeUpdate, setCompleteUpdate] = useState(() => () => {})
+    const [boardUpdateLoading, setBoardUpdateLoading] = useState(true)
+    const [completeUpdate, setCompleteUpdate] = useState(() => () => setBoardUpdateLoading(false))
 
-    async function startNewGame() {
+    function startNewGame() {
         setNewGameLoading(true)
         postNewGame()
             .then(data => {
@@ -23,6 +26,11 @@ function Home() {
             })
     }
 
+    function updateBoard() {
+        setBoardUpdateLoading(true)
+        setCompleteUpdate(() => () => setBoardUpdateLoading(false))
+    }
+
     return (
         <div className="Home">
             <div className="BoardColumn">
@@ -31,7 +39,10 @@ function Home() {
             <div className="NavigationColumn">
                 <ModelSelect/>
                 <EvaluationsSelect/>
-                <NewGame onClick={startNewGame} isLoading={newGameLoading}/>
+                <ButtonFooter>
+                    <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
+                    <NewGame onClick={startNewGame} isLoading={newGameLoading}/>
+                </ButtonFooter>
             </div>
         </div>
     );

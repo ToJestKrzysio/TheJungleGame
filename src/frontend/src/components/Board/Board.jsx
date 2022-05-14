@@ -13,6 +13,12 @@ function Board({completeUpdate}) {
     const [selected, setSelected] = useState(null)
 
     useEffect(() => {
+        const newCells = JSON.parse(JSON.stringify(cells))
+        newCells.forEach(cell => {
+            cell.unit.moves = []
+            cell.probability.value = 0
+        })
+        setCells(newCells)
         fetchBoardState()
             .then(data => {
                     setCells(data)

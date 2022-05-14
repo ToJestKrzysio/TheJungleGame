@@ -1,11 +1,10 @@
 import "./NewGame.scss"
 import AnimatedButton from "../AnimatedButton/AnimatedButton";
 
-function NewGame({onClick:handleClick, isLoading}) {
-
+function NewGame({onClick:handleClick, isLoadingNewGame}) {
     return (
         <div className="new_game">
-            <AnimatedButton onClick={handleClick} isLoading={isLoading} value="New Game"/>
+            <AnimatedButton onClick={handleClick} isLoading={isLoadingNewGame} value="New Game"/>
         </div>
     );
 }
