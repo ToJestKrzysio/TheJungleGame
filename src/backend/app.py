@@ -35,6 +35,7 @@ def get_board():
         "value": float(storage.board.predict()[0]),
         "cells": storage.board.serializer.serialize_board(storage.board),
         "turn": storage.board.move_count,
+        "game_over": storage.board.outcome,
     }), 200
 
 
@@ -62,6 +63,7 @@ def move_unit():
         "value": float(storage.board.predict()[0]),
         "cells": storage.board.serializer.serialize_board(storage.board),
         "turn": storage.board.move_count,
+        "game_over": storage.board.outcome
     }), 201
 
 

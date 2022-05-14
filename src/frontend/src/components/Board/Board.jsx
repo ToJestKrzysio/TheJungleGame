@@ -3,8 +3,9 @@ import {useState} from "react";
 
 import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
+import GameOver from "../GameOver/GameOver";
 
-function Board({cells, setCells, setMove, nextTurn}) {
+function Board({cells, setCells, setMove, nextTurn, gameOver}) {
     const [selected, setSelected] = useState(null);
 
     function selectCell(id) {
@@ -56,6 +57,7 @@ function Board({cells, setCells, setMove, nextTurn}) {
     return (<div className="board">
         <div className="board__overlay">
             {cellElements}
+            <GameOver game_over={gameOver}/>
         </div>
         <BoardBackground/>
     </div>);

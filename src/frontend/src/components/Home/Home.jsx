@@ -15,6 +15,7 @@ function Home() {
     const [cells, setCells] = useState(createDefaultCells);
     const [value, setValue] = useState(0);
     const [turn, setTurn] = useState(0);
+    const [gameOver, setGameOver] = useState(0);
     const [move, setMove] = useState(null);
     const [newGameLoading, setNewGameLoading] = useState(false);
     const [boardUpdateLoading, setBoardUpdateLoading] = useState(true);
@@ -41,6 +42,7 @@ function Home() {
                 setCells(data.cells)
                 setValue(data.value)
                 setTurn(data.turn)
+                setGameOver(data.game_over)
             })
             .catch(err => console.log(err))
             .finally(() => setBoardUpdateLoading(false))
@@ -52,6 +54,7 @@ function Home() {
                 setCells(data.cells)
                 setValue(data.value)
                 setTurn(data.turn)
+                setGameOver(data.game_over)
             })
             .catch(err => console.log(err))
             .finally(cb())
@@ -76,7 +79,13 @@ function Home() {
     return (
         <div className="Home">
             <div className="BoardColumn">
-                <Board cells={cells} setCells={setCells} setMove={setMove} nextTurn={() => setTurn(turn + 1)}/>
+                <Board
+                    cells={cells}
+                    setCells={setCells}
+                    setMove={setMove}
+                    gameOver = {gameOver}
+                    nextTurn={() => setTurn(turn + 1)}
+                />
             </div>
             <div className="NavigationColumn">
                 <div className="NavigationColumn__header">
