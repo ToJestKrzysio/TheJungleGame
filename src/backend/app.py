@@ -1,7 +1,7 @@
 import logging
 import os
 
-from flask import Flask, redirect, jsonify, request, url_for
+from flask import Flask, jsonify, request
 
 from game import Board, get_move_by_values, Position, ValuePolicyModel
 from mcts import Root
@@ -31,9 +31,10 @@ logging.warning("Completed initial setup")
 
 @app.get("/api/board")
 def get_board():
-    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
-    storage.root.evaluate()
-    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 200
+    return jsonify({
+        "value": float(storage.board.predict()[0]),
+        "cells": storage.board.serializer.serialize_board(storage.board)
+    }), 200
 
 
 @app.post("/api/board")
@@ -56,9 +57,10 @@ def move_unit():
 
     storage.board = storage.board.move(unit_position=current_position, selected_move=best_move)
 
-    storage.root = Root(storage.board, **{"MAX_EVALUATIONS": storage["evaluations"]})
-    storage.root.evaluate()
-    return jsonify(storage.board.serializer.serialize_board(storage.board, storage.root)), 201
+    return jsonify({
+        "value": float(storage.board.predict()[0]),
+        "cells": storage.board.serializer.serialize_board(storage.board)
+    }), 201
 
 
 @app.post("/api/new-game")
@@ -70,12 +72,15 @@ def new_game():
 
 @app.get("/api/models")
 def model_list():
-    return jsonify(os.listdir("./data/models"))
+    return jsonify({"selected": storage["model"], "models": os.listdir("./data/models")}), 200
 
 
 @app.get("/api/models/<name>")
 def version_list(name):
-    return jsonify(os.listdir(f"./data/models/{name}"))
+    return jsonify({
+        "selected": storage["version"],
+        "versions": os.listdir(f"./data/models/{name}")
+    }), 200
 
 
 @app.post("/api/models")

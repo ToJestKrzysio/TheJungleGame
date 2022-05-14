@@ -1,42 +1,11 @@
 import "./Board.scss"
-import {useEffect, useState} from "react";
-import {fetchBoardState, postMove} from "../../utils/helpers";
+import {useState} from "react";
 
 import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
 
-function Board({completeUpdate}) {
-    const rows = 9;
-    const cols = 7;
-
-    const [cells, setCells] = useState(createDefaultCells());
-    const [selected, setSelected] = useState(null)
-
-    useEffect(() => {
-        const newCells = JSON.parse(JSON.stringify(cells))
-        newCells.forEach(cell => {
-            cell.unit.moves = []
-            cell.probability.value = 0
-        })
-        setCells(newCells)
-        fetchBoardState()
-            .then(data => {
-                    setCells(data)
-                    completeUpdate("Cells update completed")
-                }
-            )
-    }, [completeUpdate])
-
-    function createDefaultCells() {
-        return [...Array(rows * cols)]
-            .map((_, id) => ({
-                id: id,
-                trap: {value: false, white: false},
-                unit: {moves: [], value: 0, white: false},
-                water: false,
-                probability: {value: 0}
-            }))
-    }
+function Board({cells, setCells, setMove}) {
+    const [selected, setSelected] = useState(null);
 
     function selectCell(id) {
         return function (unit) {
@@ -54,9 +23,7 @@ function Board({completeUpdate}) {
 
                     setCells(newCells)
                     setSelected(null)
-                    postMove(selected, id)
-                        .then(data => setCells(data))
-                        .catch(err => window.alert(err))
+                    setMove({selected, id})
                 } else {
                     setSelected(unit.moves.length ? id : null)
                 }

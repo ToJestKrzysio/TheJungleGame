@@ -264,6 +264,10 @@ class Board(np.ndarray):
         """
         mask = np.zeros((9, 7, 8), dtype=bool)
         for unit, moves in self.moves.items():
+
+            if unit.white != self.white_move:
+                continue
+
             position = self.positions[unit]
             for move in moves:
                 x = position.x + move.x
@@ -587,18 +591,16 @@ class BoardSerializer:
         }
 
     @staticmethod
-    def serialize_board(board: "Board", root: "Root") -> List[dict]:
+    def serialize_board(board: "Board") -> List[dict]:
         """
         Serializes board object into JSON format.
 
         :param board: Board instance which will be serialized.
-        :param root: Root instance of MCTS which will be used to add probabilities to moves.
 
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
-        serialized_root = board.serializer.serialize_root(root)
-        # TODO FIX SERIALIZATION - serialized_cell["probability"] should equal to value predicted
-        #  by policy network not value network
+        serialized_policy = board.serializer.serialize_policy(board)
+
         cells = []
         for cell_id in range(board.shape[0] * board.shape[1]):
             x = cell_id % board.shape[1]
@@ -614,7 +616,7 @@ class BoardSerializer:
                                                     board.shape[1]) for move in
                     board.get_single_unit_moves(position)
                 ]
-            serialized_cell["probability"] = serialized_root[cell_id]
+            serialized_cell["probability"] = serialized_policy[cell_id]
             cells.append(serialized_cell)
         return cells
 
@@ -690,14 +692,57 @@ class BoardSerializer:
             {"value": 0.0} for _ in range(root.node.board.shape[0] * root.node.board.shape[1])
         ]
 
-        total_value = 0
-        child_probs = []
         for child_node in root.node.child_nodes:
             move_prob = BoardSerializer._serialize_node(child_node)
             move_probs[move_prob.start]["value"] += move_prob.value
             move_probs[move_prob.end][str(move_prob.start)] = move_prob.value
 
         return move_probs
+
+    @staticmethod
+    def serialize_policy(board: Board) -> List[dict]:
+        """
+        Given current board state list of policy values associated with each cell.
+
+        :param board: Current board state.
+
+        :return: List of all MoveProbabilities generated from current board state.
+        """
+        move_probs = [
+            {"value": 0.0} for _ in range(board.shape[0] * board.shape[1])
+        ]
+
+        _, policy = board.predict()
+
+        for unit, start_position in board.positions.items():
+            if unit.white != board.white_move:
+                continue
+
+            for move in board.moves[unit]:
+                end_position = board.get_new_position(start_position, move)
+                policy_value = float(BoardSerializer.get_policy_value_for_unit_move(
+                    end_position, move, policy))
+
+                start_id = BoardSerializer._position_to_id(start_position, board.shape[1])
+                end_id = BoardSerializer._position_to_id(end_position, board.shape[1])
+
+                move_probs[start_id]["value"] += policy_value
+                move_probs[end_id][str(start_id)] = policy_value
+
+        return move_probs
+
+    @staticmethod
+    def get_policy_value_for_unit_move(
+            end_position: Position,
+            move: unit_moves.Move,
+            policy: np.ndarray
+    ) -> float:
+        """
+        Given unit position and its move extract policy value associated with that combination.
+        """
+        y, x = end_position
+        z = move.value
+        return policy[y, x, z]
 
 
 if __name__ == '__main__':

@@ -6,6 +6,10 @@ from game import Board
 
 
 class Storage:
+    """
+    Simple JSON data storage.
+    Currently, following keys are used: (evaluations, model, version, state).
+    """
 
     def __init__(self, filename: str = "storage.json"):
         """

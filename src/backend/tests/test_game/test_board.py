@@ -352,7 +352,7 @@ class TestBoard:
             for move in board.moves[unit]:
                 x = position.x + move.x
                 y = position.y + move.y
-                assert result[y, x, move.value] == 1
+                assert result[y, x, move.value] == unit.white
 
 
 class TestBoardMove:
@@ -820,9 +820,9 @@ class TestBoardSerializer:
                 "moves": [],
             },
             "trap": {
-                "value": False
-                "white": False
-            }
+                "value": False,
+                "white": False,
+            },
             "water": False,
         }
 
