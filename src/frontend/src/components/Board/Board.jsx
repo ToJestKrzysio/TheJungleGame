@@ -4,7 +4,7 @@ import {useState} from "react";
 import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
 
-function Board({cells, setCells, setMove}) {
+function Board({cells, setCells, setMove, nextTurn}) {
     const [selected, setSelected] = useState(null);
 
     function selectCell(id) {
@@ -22,6 +22,7 @@ function Board({cells, setCells, setMove}) {
                     })
 
                     setCells(newCells)
+                    nextTurn()
                     setSelected(null)
                     setMove({selected, id})
                 } else {

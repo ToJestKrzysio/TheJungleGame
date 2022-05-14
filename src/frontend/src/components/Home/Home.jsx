@@ -40,6 +40,7 @@ function Home() {
             .then(data => {
                 setCells(data.cells)
                 setValue(data.value)
+                setTurn(data.turn)
             })
             .catch(err => console.log(err))
             .finally(() => setBoardUpdateLoading(false))
@@ -50,6 +51,7 @@ function Home() {
             .then(data => {
                 setCells(data.cells)
                 setValue(data.value)
+                setTurn(data.turn)
             })
             .catch(err => console.log(err))
             .finally(cb())
@@ -74,12 +76,12 @@ function Home() {
     return (
         <div className="Home">
             <div className="BoardColumn">
-                <Board cells={cells} setCells={setCells} setMove={setMove}/>
+                <Board cells={cells} setCells={setCells} setMove={setMove} nextTurn={() => setTurn(turn + 1)}/>
             </div>
             <div className="NavigationColumn">
                 <div className="NavigationColumn__header">
                     <h2>Current Board Value: {value.toFixed(2)}</h2>
-                    <h4>Turn: {turn}</h4>
+                    <h3>Turn: {turn}</h3>
                 </div>
                 <ModelSelect/>
                 <EvaluationsSelect/>
