@@ -2,7 +2,7 @@
 @import "./utils";
 
 @mixin selection_group {
-  padding: toRem(20);
+  padding: toRem(20) toRem(40) toRem(20) toRem(20);
   display: flex;
   width: 100%;
   box-sizing: border-box;
