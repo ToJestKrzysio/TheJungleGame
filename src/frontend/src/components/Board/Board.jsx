@@ -40,6 +40,8 @@ function Board({cells, setCells, setMove, nextTurn, gameOver}) {
         return cells[selected].unit.moves.includes(id)
     }
 
+    // TODO find cell with max value and pass ids to highlight to BoardCell
+
     const cellElements = cells.map((cell) => {
         return (
             <BoardCell
@@ -47,6 +49,7 @@ function Board({cells, setCells, setMove, nextTurn, gameOver}) {
                 unit={cell.unit}
                 selected={selected}
                 probability={cell.probability}
+                maxProbability={maxProbability}
                 isSelected={cell.id === selected}
                 isValidMove={isValidMove(cell.id)}
                 onClick={selectCell(cell.id)}

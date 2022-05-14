@@ -1,6 +1,6 @@
 import "./BoardCell.scss"
 
-function BoardCell({unit, selected, probability, isSelected, isValidMove, onClick:handleClick}) {
+function BoardCell({unit, selected, probability, isSelected, isValidMove, onClick:handleClick, maxProbability}) {
 
     const cellClasses = ["cell"]
     const unitClasses = ["cell__unit"]
@@ -29,9 +29,13 @@ function BoardCell({unit, selected, probability, isSelected, isValidMove, onClic
         probabilityValue = probability.value ? probability.value.toFixed(2) : ""
     }
 
+    const descriptionClasses = ["cell__probability"];
+    if (Object.values(probability).includes(maxProbability)) descriptionClasses.push("cell__probability--highlight");
+
+
     return (
         <div className={cellClasses.join(" ")} onClick={handleClick(unit)}>
-            <p className="cell__probability">{probabilityValue}</p>
+            <p className={descriptionClasses.join(" ")}>{probabilityValue}</p>
             <h2 className={unitClasses.join(" ")}>{unit_value}</h2>
         </div>
     );
