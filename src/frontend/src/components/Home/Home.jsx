@@ -6,7 +6,7 @@ import NewGame from "../NewGame/NewGame";
 import {fetchBoardState, postMove, postNewGame} from "../../utils/helpers";
 import {useEffect, useState} from "react";
 import UpdateBoard from "../UpdateBoard/UpdateBoard";
-import ButtonFooter from "../ButtonFooter/ButtonFooter";
+
 
 function Home() {
     const rows = 9;
@@ -14,6 +14,7 @@ function Home() {
 
     const [cells, setCells] = useState(createDefaultCells);
     const [value, setValue] = useState(0);
+    const [turn, setTurn] = useState(0);
     const [move, setMove] = useState(null);
     const [newGameLoading, setNewGameLoading] = useState(false);
     const [boardUpdateLoading, setBoardUpdateLoading] = useState(true);
@@ -39,6 +40,7 @@ function Home() {
             .then(data => {
                 setCells(data.cells)
                 setValue(data.value)
+                setTurn(data.turn)
             })
             .catch(err => console.log(err))
             .finally(() => setBoardUpdateLoading(false))
@@ -49,6 +51,7 @@ function Home() {
             .then(data => {
                 setCells(data.cells)
                 setValue(data.value)
+                setTurn(data.turn)
             })
             .catch(err => console.log(err))
             .finally(cb())
@@ -73,15 +76,19 @@ function Home() {
     return (
         <div className="Home">
             <div className="BoardColumn">
-                <Board cells={cells} setCells={setCells} setMove={setMove}/>
+                <Board cells={cells} setCells={setCells} setMove={setMove} nextTurn={() => setTurn(turn + 1)}/>
             </div>
             <div className="NavigationColumn">
+                <div className="NavigationColumn__header">
+                    <h2>Current Board Value: {value.toFixed(2)}</h2>
+                    <h3>Turn: {turn}</h3>
+                </div>
                 <ModelSelect/>
                 <EvaluationsSelect/>
-                <ButtonFooter>
+                <div className="NavigationColumn__footer">
                     <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
                     <NewGame onClick={startNewGame} isLoading={newGameLoading}/>
-                </ButtonFooter>
+                </div>
             </div>
         </div>
     );
