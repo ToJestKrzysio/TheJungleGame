@@ -19,9 +19,9 @@ function useVersion(modelName, setSelectedVersion) {
         } else {
             const response = await fetch(`/api/models/${modelName}`)
             const data = await response.json()
-            localCache[modelName] = data.sort((a, b) => parseInt(b) - parseInt(a))
+            localCache[modelName] = data.versions.sort((a, b) => parseInt(b) - parseInt(a))
             setVersions(localCache[modelName])
-            setSelectedVersion(localCache[modelName][0])
+            setSelectedVersion(data.selected)
         }
     }
 

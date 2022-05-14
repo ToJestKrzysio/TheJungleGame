@@ -21,7 +21,7 @@ function Board({completeUpdate}) {
         setCells(newCells)
         fetchBoardState()
             .then(data => {
-                    setCells(data)
+                    setCells(data.cells)
                     completeUpdate("Cells update completed")
                 }
             )

@@ -14,8 +14,8 @@ function ModelSelect() {
     useEffect(() => {
         getModels()
             .then(data => {
-                setModels(data)
-                setSelectedModel(data[0])
+                setModels(data.models)
+                setSelectedModel(data.selected)
             })
             .catch(err => console.log(err))
     }, [])
@@ -69,7 +69,9 @@ function ModelSelect() {
                 id="model_name"
                 onChange={handleModelChange}
                 onBlur={handleModelChange}
-                className="model_form__name--select">
+                value={selectedModel}
+                className="model_form__name--select"
+            >
                 {modelNames}
             </select>
 
@@ -84,7 +86,8 @@ function ModelSelect() {
                 onChange={handleVersionChange}
                 onBlur={handleVersionChange}
                 value={selectedVersion}
-                className="model_form__version--select">
+                className="model_form__version--select"
+            >
                 {modelVersions}
             </select>
 
