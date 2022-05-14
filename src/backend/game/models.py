@@ -56,7 +56,7 @@ class ValuePolicyModel(AbstractModel):
         self.num_filters = kwargs.get("NUMBER_OF_FILTERS", 12)
         self.policy_loss_weight = kwargs.get("POLICY_LOSS_WEIGHT", 0.01)
         self.value_loss_weight = kwargs.get("VALUE_LOSS_WEIGHT", 0.01)
-        self.input_shape = (9, 7, 178)
+        self.input_shape = (9, 7, 24)
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self._create_model()
@@ -206,7 +206,7 @@ value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    name = "third_model"
+    name = "simple_model"
     kwargs = {"BASE_DIR": "../data/models"}
     model = ValuePolicyModel(**kwargs)
     model.set_name(name)

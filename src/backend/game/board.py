@@ -283,10 +283,11 @@ class BoardTensor(np.ndarray):
 
     def __new__(cls, board: Board):
         STEP_BOARDS = 22
+        NO_STEPS = 1
         if not isinstance(board, Board):
             raise TypeError(f"Expected type 'Board' got {type(board)}.")
 
-        obj = np.zeros(shape=(9, 7, STEP_BOARDS * 8 + 2)).view(cls)
+        obj = np.zeros(shape=(9, 7, STEP_BOARDS * NO_STEPS + 2)).view(cls)
         obj.current_board = board
 
         current_white = board.white_move
@@ -294,7 +295,7 @@ class BoardTensor(np.ndarray):
         obj[:, :, -2] = board.move_count
 
         current_board = board
-        for step in range(8):
+        for step in range(NO_STEPS):
             start = step * STEP_BOARDS
             stop = (step + 1) * STEP_BOARDS
             if current_board is None:
@@ -595,6 +596,8 @@ class BoardSerializer:
         :return: List of lists of the same shape as board, with serialized representations of Cells.
         """
         serialized_root = board.serializer.serialize_root(root)
+        # TODO FIX SERIALIZATION - serialized_cell["probability"] should equal to value predicted
+        #  by policy network not value network
         cells = []
         for cell_id in range(board.shape[0] * board.shape[1]):
             x = cell_id % board.shape[1]
