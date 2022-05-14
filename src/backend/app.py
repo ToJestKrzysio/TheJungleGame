@@ -33,7 +33,8 @@ logging.warning("Completed initial setup")
 def get_board():
     return jsonify({
         "value": float(storage.board.predict()[0]),
-        "cells": storage.board.serializer.serialize_board(storage.board)
+        "cells": storage.board.serializer.serialize_board(storage.board),
+        "turn": storage.board.move_count,
     }), 200
 
 
@@ -59,7 +60,8 @@ def move_unit():
 
     return jsonify({
         "value": float(storage.board.predict()[0]),
-        "cells": storage.board.serializer.serialize_board(storage.board)
+        "cells": storage.board.serializer.serialize_board(storage.board),
+        "turn": storage.board.move_count,
     }), 201
 
 
