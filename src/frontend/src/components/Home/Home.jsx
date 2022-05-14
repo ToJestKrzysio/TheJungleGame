@@ -6,7 +6,7 @@ import NewGame from "../NewGame/NewGame";
 import {fetchBoardState, postMove, postNewGame} from "../../utils/helpers";
 import {useEffect, useState} from "react";
 import UpdateBoard from "../UpdateBoard/UpdateBoard";
-import ButtonFooter from "../ButtonFooter/ButtonFooter";
+
 
 function Home() {
     const rows = 9;
@@ -14,6 +14,7 @@ function Home() {
 
     const [cells, setCells] = useState(createDefaultCells);
     const [value, setValue] = useState(0);
+    const [turn, setTurn] = useState(0);
     const [move, setMove] = useState(null);
     const [newGameLoading, setNewGameLoading] = useState(false);
     const [boardUpdateLoading, setBoardUpdateLoading] = useState(true);
@@ -76,12 +77,16 @@ function Home() {
                 <Board cells={cells} setCells={setCells} setMove={setMove}/>
             </div>
             <div className="NavigationColumn">
+                <div className="NavigationColumn__header">
+                    <h2>Current Board Value: {value.toFixed(2)}</h2>
+                    <h4>Turn: {turn}</h4>
+                </div>
                 <ModelSelect/>
                 <EvaluationsSelect/>
-                <ButtonFooter>
+                <div className="NavigationColumn__footer">
                     <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
                     <NewGame onClick={startNewGame} isLoading={newGameLoading}/>
-                </ButtonFooter>
+                </div>
             </div>
         </div>
     );

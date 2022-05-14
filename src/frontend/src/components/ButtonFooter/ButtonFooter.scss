@@ -1,7 +1,0 @@
-@import "../../scss/variables";
-@import "../../scss/mixins";
-
-.button_footer {
-  @include selection_group;
-  justify-content: space-between;
-}

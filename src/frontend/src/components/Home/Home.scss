@@ -1,4 +1,5 @@
 @import "../../scss/variables";
+@import "../../scss/mixins";
 
 .Home {
   display: flex;
@@ -21,8 +22,20 @@
   justify-content: center;
   position: relative;
 
-  .button_footer {
+  &__footer {
+    @include selection_group;
+    justify-content: space-between;
     position: absolute;
     bottom: 5%;
   }
+
+  &__header {
+    @include selection_group;
+    justify-content: center;
+    flex-direction: column;
+    color: $color-light;
+    position: absolute;
+    top: 5%;
+  }
+
 }
