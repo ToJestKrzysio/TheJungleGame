@@ -59,7 +59,7 @@ class ModelTrainer:
 
             training_data = []
             for data_iteration_id in range(
-                    max(0, iteration_id - self.training_previous), iteration_id):
+                    max(0, iteration_id - self.training_previous), iteration_id+1):
                 input_dir = self.get_input_dir(iteration=iteration_id)
                 training_data.extend(self.load_training_data(input_dir))
 
@@ -147,7 +147,7 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 3,
+        "TRAINING_ITERATIONS": 1,
         "TRAINING_START_ITERATION": 0,
         "TRAINING_PREVIOUS": 5,
         "INPUT_DIR": "data/training/",
@@ -160,9 +160,9 @@ if __name__ == '__main__':
     game_kwargs = {}
     mcts_kwargs = {}
     nn_kwargs = {
-        "EPOCHS": 40,
+        "EPOCHS": 15,
         "VALIDATION_SPLIT": 0.10,
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=True)
+    model_trainer(generate_data=False)
