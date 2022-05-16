@@ -147,8 +147,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 1,
-        "TRAINING_START_ITERATION": 0,
+        "TRAINING_ITERATIONS": 3,
+        "TRAINING_START_ITERATION": 1,
         "TRAINING_PREVIOUS": 5,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
@@ -165,4 +165,4 @@ if __name__ == '__main__':
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=False)
+    model_trainer(generate_data=True)
