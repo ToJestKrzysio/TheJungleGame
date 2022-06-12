@@ -33,8 +33,7 @@ class ModelTrainer:
 
         self.training_iterations = self.training_kwargs.get("TRAINING_ITERATIONS", 1)
         self.starting_iteration = self.training_kwargs.get("TRAINING_START_ITERATION", 0)
-        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR",
-                                                            "data/training/")  # TODO unify save paths
+        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR", "data/training/")
         self.output_base_dir = self.training_kwargs.get("OUTPUT_DIR", "data")
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
 
@@ -60,7 +59,7 @@ class ModelTrainer:
 
             training_data = []
             for data_iteration_id in range(
-                    max(0, iteration_id - self.training_previous), iteration_id+1):
+                    max(0, iteration_id - self.training_previous), iteration_id + 1):
                 input_dir = self.get_input_dir(iteration=iteration_id)
                 training_data.extend(self.load_training_data(input_dir))
 
@@ -145,8 +144,7 @@ class ModelTrainer:
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
-        filepath = os.path.join(self.output_base_dir, "history", self.model.name,
-                                filename)  # TODO unify save paths
+        filepath = os.path.join(self.output_base_dir, "history", self.model.name, filename)
         with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
             json.dump(history.history, file_)

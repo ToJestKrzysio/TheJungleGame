@@ -216,7 +216,6 @@ class TournamentDataGenerator:
             current_network_model = next(get_network_model)
 
             mcts_engine = Root(env)
-            # TODO add support for passing NN to generate value and policy data
             best_node, best_move = mcts_engine.evaluate()
             unit, selected_move = best_move
             current_position = env.positions[unit]
