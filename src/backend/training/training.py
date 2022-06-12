@@ -14,6 +14,7 @@ from networks import train_nn
 from game.models import ValuePolicyModel
 from generators import Experience
 from helpers import get_timestamp
+from utils.plots import generate_all_plots
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 logging.basicConfig(filename="../runtime.log", level=logging.DEBUG, filemode="w",
@@ -48,7 +49,7 @@ class ModelTrainer:
         self.model = ValuePolicyModel()
         self.model.set_name(model_base_name)
 
-    def __call__(self, generate_data=True):
+    def __call__(self, generate_data=True, generate_plots=False):
         history, best_checkpoint_filepath = None, None
 
         for iteration_id in range(
@@ -70,6 +71,11 @@ class ModelTrainer:
             self.model.load_checkpoint(checkpoint_filepath)
             self.model.save(filename=str(iteration_id + 1))
             self.save_history(history=history, iteration=iteration_id)
+
+            if generate_plots:
+                source = f"../data/history/{self.model.name}"
+                destination = f"../data/plots/{self.model.name}"
+                generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
 

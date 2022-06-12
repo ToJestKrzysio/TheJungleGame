@@ -3,6 +3,7 @@ data/training
 
 data/checkpoints
 data/history
+data/plots
 data/models/model
 data/plots
 data/models/quick_model
