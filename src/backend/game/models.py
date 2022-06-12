@@ -206,7 +206,7 @@ value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    name = "first_model"
+    name = "robust_model"
     kwargs = {"BASE_DIR": "../data/models"}
     model = ValuePolicyModel(**kwargs)
     model.set_name(name)

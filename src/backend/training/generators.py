@@ -52,10 +52,6 @@ class GameDataGenerator:
         outcome = None
         while not game_over:
             player_ = "white" if env.white_move else "black"
-            # print("*" * 100, "\n")  # TODO REMOVE
-            # print(f"Turn {env.move_count} moving: {player_}")
-            # print(env)
-            # print("\n")
             logging.info(f"Turn {env.move_count} moving: {player_}")
             current_game_state = env.to_tensor()
             current_player_value = int(env.white_move) * 2 - 1
@@ -88,12 +84,13 @@ class GameDataGenerator:
                 )
 
                 incomplete_experiences.append(new_incomplete_experience)
-                _, outcome = new_env.find_outcome()
+                # _, outcome = new_env.find_outcome()
+                outcome = 0
             else:
                 game_over = new_env.game_over
                 env = new_env
 
-        if not outcome:
+        if outcome is None:
             _, outcome = env.find_outcome()
 
         experiences = self.create_experiences(incomplete_experiences, outcome)
@@ -239,6 +236,7 @@ if __name__ == '__main__':
     TERMINATE_COUNTER = int(sys.argv[3])
     MAX_EVALUATIONS = int(sys.argv[4])
     MODEL_NAME = str(sys.argv[5])
+    CHILD_SELECTION = str(sys.argv[6])
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
@@ -248,6 +246,7 @@ if __name__ == '__main__':
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,
+        "CHILD_SELECTION": CHILD_SELECTION,
     }
 
     data_generator = GameDataGenerator(game_kwargs, mcts_kwargs)

@@ -73,8 +73,8 @@ class ModelTrainer:
             self.save_history(history=history, iteration=iteration_id)
 
             if generate_plots:
-                source = f"../data/history/{self.model.name}"
-                destination = f"../data/plots/{self.model.name}"
+                source = f"./data/history/{self.model.name}"
+                destination = f"./data/plots/{self.model.name}"
                 generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
@@ -112,7 +112,8 @@ class ModelTrainer:
                         str(iteration),
                         str(self.terminate_counter),
                         str(self.rollouts_per_game),
-                        str(self.model.name)
+                        str(self.model.name),
+                        str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX"))
                     ])
             )
 
@@ -153,22 +154,24 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 15,
-        "TRAINING_START_ITERATION": 20,
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 0,
         "TRAINING_PREVIOUS": 10,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 8,
-        "MODEL_BASE_NAME": "first_model",
+        "MODEL_BASE_NAME": "robust_model",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }
     game_kwargs = {}
-    mcts_kwargs = {}
+    mcts_kwargs = {
+        "CHILD_SELECTION": "ROBUST"
+    }
     nn_kwargs = {
         "EPOCHS": 15,
         "VALIDATION_SPLIT": 0.10,
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=True)
+    model_trainer(generate_data=True, generate_plots=False)

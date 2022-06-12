@@ -17,6 +17,7 @@ class Root:
         """ Prepares conditions to run the simulation. """
         self.node = Node(initial_board)
         self.kwargs = kwargs
+        self.child_selection = kwargs.get("CHILD_SELECTION", "MAX")
         max_evaluations = kwargs.get("MAX_EVALUATIONS", 100)
         self.counter = evaluations_counter
         self.counter.set_max_evaluations(max_evaluations)
@@ -31,6 +32,21 @@ class Root:
         return best_node, best_node.unit_move
 
     def find_best_node(self) -> Node:
+        if self.child_selection == "ROBUST":
+            return self.find_robust_node()
+        raise ValueError("BO TAK")
+        return self.find_max_node()
+
+    def find_robust_node(self) -> Node:
+        logging.warning("USED ROBUST STRATEGY!")
+        best_node = self.node.child_nodes[0]
+        for child_node in self.node.child_nodes[1:]:
+            if child_node.visits > best_node.visits:
+                best_node = child_node
+        return best_node
+
+    def find_max_node(self):
+        logging.warning("USED VALUE STRATEGY!")
         best_node = self.node.child_nodes[0]
         for child_node in self.node.child_nodes[1:]:
             if child_node.total_value > best_node.total_value:
