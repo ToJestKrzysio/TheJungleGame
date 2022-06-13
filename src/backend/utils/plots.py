@@ -63,8 +63,9 @@ def generate_all_plots(source: str, destination: str) -> None:
         ylabel="Loss [-]"
     )
 
+
 if __name__ == "__main__":
-    model_name = "third_model"
+    model_name = str(input()).lower()
     source = f"../data/history/{model_name}"
     destination = f"../data/plots/{model_name}"
     generate_all_plots(source, destination)

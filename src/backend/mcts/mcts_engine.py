@@ -34,11 +34,9 @@ class Root:
     def find_best_node(self) -> Node:
         if self.child_selection == "ROBUST":
             return self.find_robust_node()
-        raise ValueError("BO TAK")
         return self.find_max_node()
 
     def find_robust_node(self) -> Node:
-        logging.warning("USED ROBUST STRATEGY!")
         best_node = self.node.child_nodes[0]
         for child_node in self.node.child_nodes[1:]:
             if child_node.visits > best_node.visits:
@@ -46,7 +44,6 @@ class Root:
         return best_node
 
     def find_max_node(self):
-        logging.warning("USED VALUE STRATEGY!")
         best_node = self.node.child_nodes[0]
         for child_node in self.node.child_nodes[1:]:
             if child_node.total_value > best_node.total_value:
