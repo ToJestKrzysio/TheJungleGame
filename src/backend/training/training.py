@@ -152,12 +152,12 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 3,
-        "TRAINING_START_ITERATION": 0,
+        "TRAINING_ITERATIONS": 4,
+        "TRAINING_START_ITERATION": 3,
         "TRAINING_PREVIOUS": 10,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
-        "MAX_PROCESSES": 8,
+        "MAX_PROCESSES": 10,
         "MODEL_BASE_NAME": "robust_model",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
@@ -172,4 +172,4 @@ if __name__ == '__main__':
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=True, generate_plots=False)
+    model_trainer(generate_data=True, generate_plots=True)
