@@ -152,8 +152,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 2,
-        "TRAINING_START_ITERATION": 10,
+        "TRAINING_ITERATIONS": 3,
+        "TRAINING_START_ITERATION": 12,
         "TRAINING_PREVIOUS": 10,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
