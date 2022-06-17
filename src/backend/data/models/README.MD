@@ -24,3 +24,20 @@
 - alpha = 0.5
 - epsilon = 0.25
 - C = 1.5
+
+### Robust model
+- small input size (24,9,7)
+- Robust child selection policy
+- CNN network architecture
+- alpha = 0.5
+- epsilon = 0.25
+- C = 1.5
+
+### Robust Single model
+- small input size (24,9,7)
+- Robust child selection policy
+- CNN network architecture
+- alpha = 0.5
+- epsilon = 0.25
+- C = 1.5
+- train using only data generated in current step
