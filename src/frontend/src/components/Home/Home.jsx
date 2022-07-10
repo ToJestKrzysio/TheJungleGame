@@ -8,7 +8,8 @@ import {useEffect, useState} from "react";
 import UpdateBoard from "../UpdateBoard/UpdateBoard";
 import ProbabilityToggle from "../ProbabilityToggle/ProbabilityToggle";
 import useToggleState from "../../hooks/useToggleState";
-
+import generateNewCellsForMove from "../../utils/generateNewCellsForMove";
+import RandomMoves from "../RandomMoves/RandomMoves";
 
 function Home() {
     const rows = 9;
@@ -79,6 +80,23 @@ function Home() {
         updateBoardState(() => setBoardUpdateLoading(false))
     }
 
+    function moveRandomUnit() {
+        const validUnits = cells.filter(cell => cell.unit.value && cell.unit.moves.length)
+        const selectedCell = validUnits[Math.floor(Math.random() * validUnits.length)]
+        // const selectedMove = selectedCell.unit.moves[Math.floor(Math.random() * selectedCell.unit.moves.length)]
+        console.log(selectedCell);
+        const selectedMove = Math.min(...selectedCell.unit.moves)
+
+        const newCells = generateNewCellsForMove(cells, selectedCell.id, selectedMove)
+        setCells(newCells)
+        nextTurn()
+        setMove({id: selectedMove, selected: selectedCell.id})
+    }
+
+    function nextTurn() {
+        setTurn(turn + 1)
+    }
+
     return (
         <div className="Home">
             <div className="BoardColumn">
@@ -87,7 +105,7 @@ function Home() {
                     setCells={setCells}
                     setMove={setMove}
                     gameOver={gameOver}
-                    nextTurn={() => setTurn(turn + 1)}
+                    nextTurn={nextTurn}
                     visibleProbabilities={visibleProbabilities}
                 />
             </div>
@@ -96,9 +114,11 @@ function Home() {
                     <h2>Current Board Value: {value.toFixed(2)}</h2>
                     <h3>Turn: {turn}</h3>
                 </div>
-                <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
                 <ModelSelect/>
                 <EvaluationsSelect/>
+                <div className="spacer"></div>
+                <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
+                <RandomMoves loading={boardUpdateLoading} action={moveRandomUnit} gameOver={gameOver}/>
                 <div className="NavigationColumn__footer">
                     <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
                     <NewGame onClick={startNewGame} isLoading={newGameLoading}/>
