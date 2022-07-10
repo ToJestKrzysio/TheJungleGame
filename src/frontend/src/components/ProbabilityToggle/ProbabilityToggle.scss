@@ -1,9 +1,9 @@
 @import "../../scss/variables";
 @import "../../scss/mixins";
+@import "../../scss/globals";
 
 .toggle_button {
   height: toRem(30);
-  width: toRem(175);
   border: none;
   border-radius: $border-radius-sm;
   color: $color-light;
@@ -15,11 +15,11 @@
   transition: $selection-animation-speed;
 
   &--on {
-    background-color: $color-primary;
+    background-color: $color-success;
   }
 
   &--off {
-    background-color: $color-gray;
+    background-color: $color-danger;
   }
 
   &:hover {

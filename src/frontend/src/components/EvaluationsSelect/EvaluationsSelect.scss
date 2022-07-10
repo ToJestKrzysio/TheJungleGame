@@ -6,10 +6,7 @@
   @include selection_group;
 
   &__label {
-    color: $color-light;
-    font-weight: bold;
-    margin-right: toRem(20);
-    text-align: center;
+    @include label_light;
   }
 
   &__input {

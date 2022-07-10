@@ -12,7 +12,7 @@ function AnimatedButton({onClick: handleClick, isLoading, value, disabled = fals
         classNames.push("animated_button--active")
     }
 
-    const buttonValue = isLoading ? <BarLoader speedMultiplier={1.5} value={value}/> : value
+    const buttonValue = isLoading && !disabled ? <BarLoader speedMultiplier={1.5} value={value}/> : value
 
     return (
         <button onClick={handleClick} className={classNames.join(" ")} disabled={loadingOrDisabled}>

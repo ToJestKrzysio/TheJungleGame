@@ -8,7 +8,6 @@ import {useEffect, useState} from "react";
 import UpdateBoard from "../UpdateBoard/UpdateBoard";
 import ProbabilityToggle from "../ProbabilityToggle/ProbabilityToggle";
 import useToggleState from "../../hooks/useToggleState";
-import AnimatedButton from "../AnimatedButton/AnimatedButton";
 import generateNewCellsForMove from "../../utils/generateNewCellsForMove";
 import RandomMoves from "../RandomMoves/RandomMoves";
 
@@ -107,10 +106,11 @@ function Home() {
                     <h2>Current Board Value: {value.toFixed(2)}</h2>
                     <h3>Turn: {turn}</h3>
                 </div>
-                <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
                 <ModelSelect/>
                 <EvaluationsSelect/>
-                <RandomMoves loading={boardUpdateLoading} action={moveRandomUnit}/>
+                <div className="spacer"></div>
+                <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
+                <RandomMoves loading={boardUpdateLoading} action={moveRandomUnit} gameOver={gameOver}/>
                 <div className="NavigationColumn__footer">
                     <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
                     <NewGame onClick={startNewGame} isLoading={newGameLoading}/>

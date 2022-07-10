@@ -8,3 +8,10 @@
   box-sizing: border-box;
   align-items: center;
 }
+
+@mixin label_light {
+  color: $color-light;
+  font-weight: bold;
+  margin-right: toRem(20);
+  text-align: center;
+}
