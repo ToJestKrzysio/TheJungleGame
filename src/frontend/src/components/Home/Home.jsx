@@ -10,6 +10,7 @@ import ProbabilityToggle from "../ProbabilityToggle/ProbabilityToggle";
 import useToggleState from "../../hooks/useToggleState";
 import AnimatedButton from "../AnimatedButton/AnimatedButton";
 import generateNewCellsForMove from "../../utils/generateNewCellsForMove";
+import RandomMoves from "../RandomMoves/RandomMoves";
 
 function Home() {
     const rows = 9;
@@ -109,13 +110,7 @@ function Home() {
                 <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
                 <ModelSelect/>
                 <EvaluationsSelect/>
-                <div className="model_form">
-                    <AnimatedButton
-                        value="Random Move"
-                        isLoading={boardUpdateLoading}
-                        onClick={moveRandomUnit}
-                    />
-                </div>
+                <RandomMoves loading={boardUpdateLoading} action={moveRandomUnit}/>
                 <div className="NavigationColumn__footer">
                     <UpdateBoard onClick={updateBoard} isLoading={boardUpdateLoading}/>
                     <NewGame onClick={startNewGame} isLoading={newGameLoading}/>

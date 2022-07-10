@@ -18,4 +18,8 @@
     outline: 2px solid $color-light;
     transition: background-color color $selection-animation-speed;
   }
+
+  &--disabled {
+    background-color: $color-gray;
+  }
 }
