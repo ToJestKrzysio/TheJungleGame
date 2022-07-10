@@ -1,0 +1,28 @@
+@import "../../scss/variables";
+@import "../../scss/mixins";
+
+.toggle_button {
+  height: toRem(30);
+  width: toRem(175);
+  border: none;
+  border-radius: $border-radius-sm;
+  color: $color-light;
+  font-weight: bold;
+  padding: toRem(5) toRem(10);
+  margin-left: auto;
+  box-sizing: border-box;
+  text-align: center;
+  transition: $selection-animation-speed;
+
+  &--on {
+    background-color: $color-primary;
+  }
+
+  &--off {
+    background-color: $color-gray;
+  }
+
+  &:hover {
+    outline: 2px solid $color-light;
+  }
+}
