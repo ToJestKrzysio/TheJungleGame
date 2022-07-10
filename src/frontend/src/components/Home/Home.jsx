@@ -86,8 +86,9 @@ function Home() {
                     cells={cells}
                     setCells={setCells}
                     setMove={setMove}
-                    gameOver = {gameOver}
+                    gameOver={gameOver}
                     nextTurn={() => setTurn(turn + 1)}
+                    visibleProbabilities={visibleProbabilities}
                 />
             </div>
             <div className="NavigationColumn">

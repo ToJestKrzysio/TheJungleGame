@@ -5,7 +5,7 @@ import BoardCell from "../BoardCell/BoardCell";
 import BoardBackground from "../BoardBackground/BoardBackground";
 import GameOver from "../GameOver/GameOver";
 
-function Board({cells, setCells, setMove, nextTurn, gameOver}) {
+function Board({cells, setCells, setMove, nextTurn, gameOver, visibleProbabilities}) {
     const [selected, setSelected] = useState(null);
 
     function selectCell(id) {
@@ -50,6 +50,7 @@ function Board({cells, setCells, setMove, nextTurn, gameOver}) {
                 isSelected={cell.id === selected}
                 isValidMove={isValidMove(cell.id)}
                 onClick={selectCell(cell.id)}
+                visibleProbabilities={visibleProbabilities}
             />
         )
     })
