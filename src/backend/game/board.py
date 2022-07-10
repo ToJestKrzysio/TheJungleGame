@@ -411,9 +411,11 @@ class BoardMove:
         unit_moves = self.board.moves[selected_unit]
         if selected_move not in unit_moves:
             unit_moves_str = "\n".join(f"\t{unit_move}" for unit_move in unit_moves)
+            unit_position = self.board.positions[selected_unit]
+
             raise MoveNotPossibleError(
                 f"Selected move is not valid.\n"
-                f"Selected {selected_move} for unit '{selected_unit}' with moves:\n"
+                f"Selected {selected_move} for unit '{selected_unit}' at {unit_position} with moves:\n"
                 f"{unit_moves_str}"
             )
 

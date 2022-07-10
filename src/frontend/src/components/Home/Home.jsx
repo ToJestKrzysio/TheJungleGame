@@ -83,10 +83,18 @@ function Home() {
     function moveRandomUnit() {
         const validUnits = cells.filter(cell => cell.unit.value && cell.unit.moves.length)
         const selectedCell = validUnits[Math.floor(Math.random() * validUnits.length)]
-        const selectedMove = selectedCell.unit.moves[Math.floor(Math.random() * selectedCell.unit.moves.length)]
+        // const selectedMove = selectedCell.unit.moves[Math.floor(Math.random() * selectedCell.unit.moves.length)]
+        console.log(selectedCell);
+        const selectedMove = Math.min(...selectedCell.unit.moves)
+
         const newCells = generateNewCellsForMove(cells, selectedCell.id, selectedMove)
         setCells(newCells)
+        nextTurn()
         setMove({id: selectedMove, selected: selectedCell.id})
+    }
+
+    function nextTurn() {
+        setTurn(turn + 1)
     }
 
     return (
@@ -97,7 +105,7 @@ function Home() {
                     setCells={setCells}
                     setMove={setMove}
                     gameOver={gameOver}
-                    nextTurn={() => setTurn(turn + 1)}
+                    nextTurn={nextTurn}
                     visibleProbabilities={visibleProbabilities}
                 />
             </div>

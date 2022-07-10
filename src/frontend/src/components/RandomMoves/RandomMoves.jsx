@@ -19,7 +19,7 @@ function RandomMoves({loading, action, gameOver}) {
     return (
         <div className="model_form">
             <AnimatedButton
-                value="Single Random Move"
+                value="Random Move"
                 isLoading={loading}
                 onClick={action}
                 disabled={isActive}
