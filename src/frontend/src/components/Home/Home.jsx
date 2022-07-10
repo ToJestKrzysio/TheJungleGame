@@ -6,6 +6,8 @@ import NewGame from "../NewGame/NewGame";
 import {fetchBoardState, postMove, postNewGame} from "../../utils/helpers";
 import {useEffect, useState} from "react";
 import UpdateBoard from "../UpdateBoard/UpdateBoard";
+import ProbabilityToggle from "../ProbabilityToggle/ProbabilityToggle";
+import useToggleState from "../../hooks/useToggleState";
 
 
 function Home() {
@@ -19,6 +21,7 @@ function Home() {
     const [move, setMove] = useState(null);
     const [newGameLoading, setNewGameLoading] = useState(false);
     const [boardUpdateLoading, setBoardUpdateLoading] = useState(true);
+    const [visibleProbabilities, toggleVisibleProbabilities] = useToggleState(false)
 
     function createDefaultCells() {
         return [...Array(rows * cols)]
@@ -83,8 +86,9 @@ function Home() {
                     cells={cells}
                     setCells={setCells}
                     setMove={setMove}
-                    gameOver = {gameOver}
+                    gameOver={gameOver}
                     nextTurn={() => setTurn(turn + 1)}
+                    visibleProbabilities={visibleProbabilities}
                 />
             </div>
             <div className="NavigationColumn">
@@ -92,6 +96,7 @@ function Home() {
                     <h2>Current Board Value: {value.toFixed(2)}</h2>
                     <h3>Turn: {turn}</h3>
                 </div>
+                <ProbabilityToggle visible={visibleProbabilities} toggleVisible={toggleVisibleProbabilities}/>
                 <ModelSelect/>
                 <EvaluationsSelect/>
                 <div className="NavigationColumn__footer">

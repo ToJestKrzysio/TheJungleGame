@@ -1,6 +1,6 @@
 import "./BoardCell.scss"
 
-function BoardCell({unit, selected, probability, isSelected, isValidMove, onClick:handleClick}) {
+function BoardCell({unit, selected, probability, isSelected, isValidMove, onClick:handleClick, visibleProbabilities}) {
 
     const cellClasses = ["cell"]
     const unitClasses = ["cell__unit"]
@@ -22,11 +22,13 @@ function BoardCell({unit, selected, probability, isSelected, isValidMove, onClic
     let unit_value = ""
     unit_value += unit.value ? unit.value : ""
 
-    let probabilityValue
-    if (isValidMove) {
-        probabilityValue = probability[selected] !== undefined ? probability[selected].toFixed(2) : ""
-    } else {
-        probabilityValue = probability.value ? probability.value.toFixed(2) : ""
+    let probabilityValue = ""
+    if (visibleProbabilities) {
+        if (isValidMove) {
+            probabilityValue = probability[selected] !== undefined ? probability[selected].toFixed(2) : ""
+        } else {
+            probabilityValue = probability.value ? probability.value.toFixed(2) : ""
+        }
     }
 
     return (
