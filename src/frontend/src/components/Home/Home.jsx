@@ -9,7 +9,7 @@ import UpdateBoard from "../UpdateBoard/UpdateBoard";
 import ProbabilityToggle from "../ProbabilityToggle/ProbabilityToggle";
 import useToggleState from "../../hooks/useToggleState";
 import AnimatedButton from "../AnimatedButton/AnimatedButton";
-
+import generateNewCellsForMove from "../../utils/generateNewCellsForMove";
 
 function Home() {
     const rows = 9;
@@ -84,6 +84,8 @@ function Home() {
         const validUnits = cells.filter(cell => cell.unit.value && cell.unit.moves.length)
         const selectedCell = validUnits[Math.floor(Math.random() * validUnits.length)]
         const selectedMove = selectedCell.unit.moves[Math.floor(Math.random() * selectedCell.unit.moves.length)]
+        const newCells = generateNewCellsForMove(cells, selectedCell.id, selectedMove)
+        setCells(newCells)
         setMove({id: selectedMove, selected: selectedCell.id})
     }
 
