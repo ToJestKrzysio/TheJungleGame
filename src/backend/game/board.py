@@ -39,6 +39,7 @@ class Board(np.ndarray):
     value: float = 0
     outcome: float = 0
     model: Optional[AbstractModel]
+    model_black: Optional[AbstractModel]
 
     def __new__(cls, cells: np.ndarray | List[List[Cell]]):
         obj = np.asarray(cells, dtype=Cell).view(cls)
@@ -216,6 +217,7 @@ class Board(np.ndarray):
         ]
         new_board = Board(cells)
         new_board.model = ValuePolicyModel()
+        new_board.model_black = ValuePolicyModel()
         return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
@@ -252,7 +254,10 @@ class Board(np.ndarray):
                 f"Provided model '{type(self.model)}' is not of type 'AbstractModel'.")
         mask = self.get_move_mask()
         tensor = self.to_tensor()
-        self.value, policy = self.model.predict(tensor, mask)
+        if self.white_move:
+            self.value, policy = self.model.predict(tensor, mask)
+        else:
+            self.value, policy = self.model_black.predict(tensor, mask)
         return self.value, policy
 
     def get_move_mask(self) -> np.ndarray:
@@ -446,8 +451,7 @@ class BoardMove:
         board.move_count = self.board.move_count + 1
         board.previous_board = self.board
         board.model = self.board.model
-        # TODO switching models between moves
-
+        board.model_black = self.board.model_black
         return board
 
     @staticmethod

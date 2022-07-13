@@ -48,8 +48,12 @@ class ModelTrainer:
         self.model = ValuePolicyModel()
         self.model.set_name(model_base_name)
 
+        model_base_name_2 = self.training_kwargs.get("MODEL_2_BASE_NAME", "model")
+        self.model_2 = ValuePolicyModel()
+        self.model_2.set_name(model_base_name_2)
+
     def __call__(self, generate_data=True, generate_plots=False):
-        history, best_checkpoint_filepath = None, None
+        history, checkpoint_filepath = None, None
 
         for iteration_id in range(
                 self.starting_iteration, self.starting_iteration + self.training_iterations):
@@ -74,6 +78,19 @@ class ModelTrainer:
             if generate_plots:
                 source = f"./data/history/{self.model.name}"
                 destination = f"./data/plots/{self.model.name}"
+                generate_all_plots(source, destination)
+
+            model_2_iteration_id = self.model_2.load(-1)
+            history_2, checkpoint_filepath_2 = train_nn(
+                training_data, self.model_2, iteration=model_2_iteration_id, **self.nn_kwargs)
+
+            self.model_2.load_checkpoint(checkpoint_filepath_2)
+            self.model_2.save(filename=str(model_2_iteration_id + 1))
+            self.save_history(history=history_2, iteration=model_2_iteration_id)
+
+            if generate_plots:
+                source = f"./data/history/{self.model_2.name}"
+                destination = f"./data/plots/{self.model_2.name}"
                 generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
@@ -112,6 +129,7 @@ class ModelTrainer:
                         str(self.terminate_counter),
                         str(self.rollouts_per_game),
                         str(self.model.name),
+                        str(self.model_2.name),
                         str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX"))
                     ])
             )
@@ -152,13 +170,14 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 16,
-        "TRAINING_START_ITERATION": 9,
+        "TRAINING_ITERATIONS": 3,
+        "TRAINING_START_ITERATION": 0,
         "TRAINING_PREVIOUS": 0,
         "INPUT_DIR": "data/training/",
         "OUTPUT_DIR": "data/",
         "MAX_PROCESSES": 10,
-        "MODEL_BASE_NAME": "robust_single_model",
+        "MODEL_BASE_NAME": "rsm_2",
+        "MODEL_2_BASE_NAME": "rsm_3",
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }

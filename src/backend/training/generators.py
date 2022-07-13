@@ -28,10 +28,14 @@ class GameDataGenerator:
         self.terminate_count = game_kwargs.get("TERMINATE_COUNTER", 1000)
         self.training_iteration = game_kwargs.get("TRAINING_ITERATION", -1)
         self.mcts_kwargs = mcts_kwargs
-        self.model_name = game_kwargs.get("MODEL_NAME", "first_model")
+        self.model_name_1 = game_kwargs.get("MODEL_NAME_1", "first_model")
+        self.model_name_2 = game_kwargs.get("MODEL_NAME_2", "first_model")
         self.model = ValuePolicyModel()
-        self.model.set_name(self.model_name)
+        self.model.set_name(self.model_name_1)
         self.model.load(self.training_iteration)
+        self.model_enemy = ValuePolicyModel()
+        self.model_enemy.set_name(self.model_name_2)
+        self.model_enemy.load(self.training_iteration)
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
         self.iteration_dir_path = os.path.join("data/training", self.model.name,
@@ -47,6 +51,9 @@ class GameDataGenerator:
         print(f"Starting game {game_id + 1} of {self.num_games}")
 
         env = Board.initialize()
+        env.model = self.model
+        env.model_black = self.model_enemy
+
         incomplete_experiences = []
         game_over = env.game_over
         outcome = None
@@ -234,14 +241,16 @@ if __name__ == '__main__':
     TRAINING_ITERATION = int(sys.argv[2])
     TERMINATE_COUNTER = int(sys.argv[3])
     MAX_EVALUATIONS = int(sys.argv[4])
-    MODEL_NAME = str(sys.argv[5])
-    CHILD_SELECTION = str(sys.argv[6])
+    MODEL_NAME_1 = str(sys.argv[5])
+    MODEL_NAME_2 = str(sys.argv[6])
+    CHILD_SELECTION = str(sys.argv[7])
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
         "TRAINING_ITERATION": TRAINING_ITERATION,
         "TERMINATE_COUNTER": TERMINATE_COUNTER,
-        "MODEL_NAME": MODEL_NAME,
+        "MODEL_NAME_1": MODEL_NAME_1,
+        "MODEL_NAME_2": MODEL_NAME_2,
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,
