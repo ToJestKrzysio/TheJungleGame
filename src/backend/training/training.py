@@ -45,11 +45,15 @@ class ModelTrainer:
         self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
 
         model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
-        self.model = ValuePolicyModel()
-        self.model.set_name(model_base_name)
+        self.model_white = ValuePolicyModel()
+        self.model_white.set_name(model_base_name)
+
+        model_base_name_2 = self.training_kwargs.get("MODEL_2_BASE_NAME", "model")
+        self.model_black = ValuePolicyModel()
+        self.model_black.set_name(model_base_name_2)
 
     def __call__(self, generate_data=True, generate_plots=False):
-        history, best_checkpoint_filepath = None, None
+        history, checkpoint_filepath = None, None
 
         for iteration_id in range(
                 self.starting_iteration, self.starting_iteration + self.training_iterations):
@@ -63,17 +67,32 @@ class ModelTrainer:
                 input_dir = self.get_input_dir(iteration=iteration_id)
                 training_data.extend(self.load_training_data(input_dir))
 
-            self.model.load(filename=iteration_id)
+            self.model_white.load(filename=iteration_id)
             history, checkpoint_filepath = train_nn(
-                training_data, self.model, iteration=iteration_id, **self.nn_kwargs)
+                training_data, self.model_white, iteration=iteration_id, **self.nn_kwargs)
 
-            self.model.load_checkpoint(checkpoint_filepath)
-            self.model.save(filename=str(iteration_id + 1))
-            self.save_history(history=history, iteration=iteration_id)
+            self.model_white.load_checkpoint(checkpoint_filepath)
+            self.model_white.save(filename=str(iteration_id + 1))
+            self.save_history(history=history, iteration=iteration_id, name=self.model_white.name)
 
             if generate_plots:
-                source = f"./data/history/{self.model.name}"
-                destination = f"./data/plots/{self.model.name}"
+                source = f"../data/history/{self.model_white.name}"
+                destination = f"../data/plots/{self.model_white.name}"
+                generate_all_plots(source, destination)
+
+            model_black_iteration_id = self.model_black.load(-1)
+            history_black, checkpoint_filepath_black = train_nn(
+                training_data, self.model_black, iteration=model_black_iteration_id,
+                **self.nn_kwargs)
+
+            self.model_black.load_checkpoint(checkpoint_filepath_black)
+            self.model_black.save(filename=str(model_black_iteration_id + 1))
+            self.save_history(history=history_black, iteration=model_black_iteration_id,
+                              name=self.model_black.name)
+
+            if generate_plots:
+                source = f"../data/history/{self.model_black.name}"
+                destination = f"../data/plots/{self.model_black.name}"
                 generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
@@ -102,16 +121,17 @@ class ModelTrainer:
         processes = []
         logging.debug("Starting Data generation")
         for idx in range(self.max_processes):
-            logging.debug(os.listdir())
+            logging.warning(os.listdir())
             processes.append(
                 subprocess.Popen(
                     [
-                        "python", "training/generators.py",
+                        "python", "../training/generators.py",
                         str(games),
                         str(iteration),
                         str(self.terminate_counter),
                         str(self.rollouts_per_game),
-                        str(self.model.name),
+                        str(self.model_white.name),
+                        str(self.model_black.name),
                         str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX"))
                     ])
             )
@@ -130,21 +150,23 @@ class ModelTrainer:
         :return: Relative path to directory from base dir.
         """
         dir_name = f"iteration_{iteration}"
-        return os.path.join(self.input_data_base_dir, self.model.name, dir_name)
+        return os.path.join(self.input_data_base_dir, self.model_white.name, dir_name)
 
-    def save_history(self, history: History, iteration: int) -> None:
+    def save_history(self, history: History, iteration: int, name: str) -> None:
         """
         Saves keras History to disc.
 
         :param history: History to save.
         :param iteration: Number of iteration at which save occurs.
+        :param name: Name of the model used for saving.
+
         :return: None
         """
-        base_path = os.path.join(self.output_base_dir, "history", self.model.name)
+        base_path = os.path.join(self.output_base_dir, "history", name)
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
-        filepath = os.path.join(self.output_base_dir, "history", self.model.name, filename)
+        filepath = os.path.join(base_path, filename)
         with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
             json.dump(history.history, file_)
@@ -152,15 +174,16 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 16,
-        "TRAINING_START_ITERATION": 9,
+        "TRAINING_ITERATIONS": 1,
+        "TRAINING_START_ITERATION": 0,
         "TRAINING_PREVIOUS": 0,
-        "INPUT_DIR": "data/training/",
-        "OUTPUT_DIR": "data/",
+        "INPUT_DIR": "../data/training/",
+        "OUTPUT_DIR": "../data/",
         "MAX_PROCESSES": 10,
-        "MODEL_BASE_NAME": "robust_single_model",
-        "GAMES_PER_ITERATION": 200,
-        "ROLLOUTS_PER_GAME": 300,
+        "MODEL_BASE_NAME": "rsm_2",
+        "MODEL_2_BASE_NAME": "rsm_3",
+        "GAMES_PER_ITERATION": 10,
+        "ROLLOUTS_PER_GAME": 30,
     }
     game_kwargs = {}
     mcts_kwargs = {
@@ -172,4 +195,4 @@ if __name__ == '__main__':
     }
 
     model_trainer = ModelTrainer(training_kwargs, game_kwargs, mcts_kwargs, nn_kwargs)
-    model_trainer(generate_data=True, generate_plots=True)
+    model_trainer(generate_data=False, generate_plots=True)

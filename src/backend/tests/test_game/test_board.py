@@ -469,8 +469,11 @@ class TestBoardMove:
         selected_move = Mock()
         BoardMove.__call__(board_move_mock, unit_position, selected_move)
 
-        board_move_mock.update_neighbours.assert_called_once_with(
-            board=new_board_mock, position=new_position_mock
+        board_move_mock.update_neighbours.has_calls(
+            [
+                call(board=new_board_mock, position=new_position_mock),
+                call(board=new_board_mock, position=unit_position),
+            ]
         )
 
     def test__call__update_repetitions(self):
@@ -510,11 +513,12 @@ class TestBoardMove:
     @pytest.mark.parametrize("selected_move", ALL_MOVES)
     @pytest.mark.parametrize("selected_unit", ALL_UNITS)
     def test_validate_move_selected_invalid_move(self, selected_unit, selected_move):
-        board_mock = Mock()
+        board_mock = Mock(positions=MagicMock())
         other_moves = ALL_MOVES.copy()
         other_moves.remove(selected_move)
         board_mock.moves = {selected_unit: other_moves}
         board_move_mock = Mock(board=board_mock)
+        board_mock.positions.__getitem__.return_value = "13"
 
         with pytest.raises(Exception, match="Selected move is not valid."):
             BoardMove.validate_move(board_move_mock, selected_unit, selected_move)
@@ -810,10 +814,11 @@ class TestBoardSerializer:
         assert list(result["unit"].keys()) == ["white", "value", "moves"]
         assert list(result["trap"].keys()) == ["white", "value"]
 
-    @patch(f"{PATH}.serialize_cell")
+    @patch(f"{PATH}._serialize_cell")
     def test_serialize_board(self, serialize_cell_patch):
         cells = [[Mock(), Mock()], [Mock(), Mock()]]
         serialized_cell = {
+            "probability": 0.42,
             "unit": {
                 "white": True,
                 "value": 1,
@@ -826,12 +831,13 @@ class TestBoardSerializer:
             "water": False,
         }
 
-        board_mock = MagicMock(shape=(2, 2))
+        serializer_mock = Mock(serialize_policy=Mock(return_value=[0.42] * 4))
+        board_mock = MagicMock(shape=(2, 2), serializer=serializer_mock)
         board_mock.__iter__.return_value = cells
 
         serialize_cell_patch.return_value = serialized_cell
 
         result = BoardSerializer.serialize_board(board_mock)
 
-        expected = [[serialized_cell, serialized_cell], [serialized_cell, serialized_cell]]
+        expected = [serialized_cell, serialized_cell, serialized_cell, serialized_cell]
         assert result == expected

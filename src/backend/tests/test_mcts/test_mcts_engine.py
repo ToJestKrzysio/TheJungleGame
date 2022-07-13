@@ -56,7 +56,8 @@ class TestRoot:
         child_nodes = [child_node_1, child_node_2, child_node_3, child_node_4]
         node = mock.Mock()
         node.child_nodes = child_nodes
-        root_mock = mock.Mock(spec=mcts.Root, node=node)
+        root_mock = mock.Mock(spec=mcts.Root, node=node, child_selection="MAX")
+        root_mock.find_max_node.return_value = child_nodes[index]
 
         best_node = mcts.Root.find_best_node(root_mock)
 

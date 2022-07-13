@@ -25,7 +25,7 @@ model.set_name(storage["model"])
 model.load(storage["version"])
 
 storage.board = Board.load(storage["state"])
-storage.board.model = model
+storage.board.model_white = model
 logging.warning("Completed initial setup")
 
 

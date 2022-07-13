@@ -60,7 +60,7 @@ class ValuePolicyModel(AbstractModel):
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self._create_model()
-        self.base_dir = kwargs.get("BASE_DIR", "data/models")
+        self.base_dir = kwargs.get("BASE_DIR", "../data/models")
 
         self._cache = {}
 
@@ -90,7 +90,7 @@ class ValuePolicyModel(AbstractModel):
     def set_name(self, name: str) -> None:
         self.name = name
 
-    def load(self, filename: int = -1) -> None:
+    def load(self, filename: int = -1) -> int:
         self._cache.clear()
 
         load_dir = os.path.join(self.base_dir, self.name)
@@ -100,6 +100,7 @@ class ValuePolicyModel(AbstractModel):
         filepath = os.path.join(load_dir, str(filename))
         self.model = load_model(filepath)
         logging.info(f"Loaded karas model from '{filepath}'")
+        return int(filename)
 
     def load_checkpoint(self, filepath: str) -> None:
         self._cache.clear()
@@ -206,7 +207,7 @@ value_policy_model = ValuePolicyModel()
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    name = "robust_single_model"
+    name = "rsm_3"
     kwargs = {"BASE_DIR": "../data/models"}
     model = ValuePolicyModel(**kwargs)
     model.set_name(name)
