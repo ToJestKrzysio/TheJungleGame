@@ -11,7 +11,7 @@ import numpy as np
 
 from mcts import Root, Node
 from game import Board, ValuePolicyModel
-from .helpers import get_timestamp
+from helpers import get_timestamp
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
 Experience = namedtuple("Experience", ["state", "probability", "q", "reward"])
@@ -40,7 +40,7 @@ class GameDataGenerator:
         self.model_black.load(self.training_iteration)
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
-        self.iteration_dir_path = os.path.join("data/training", self.model_white.name,
+        self.iteration_dir_path = os.path.join("../data/training", self.model_white.name,
                                                self.iteration_dir_name)
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 
