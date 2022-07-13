@@ -53,8 +53,8 @@ class Storage:
         """
         name = self["model"]
         version = self["version"]
-        self.board.model.set_name(name)
-        self.board.model.load(version)
+        self.board.model_white.set_name(name)
+        self.board.model_white.load(version)
         logging.debug(f"Loaded model '{name}' version {version}.")
 
     def save(self) -> None:

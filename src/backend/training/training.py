@@ -45,12 +45,12 @@ class ModelTrainer:
         self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
 
         model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
-        self.model = ValuePolicyModel()
-        self.model.set_name(model_base_name)
+        self.model_white = ValuePolicyModel()
+        self.model_white.set_name(model_base_name)
 
         model_base_name_2 = self.training_kwargs.get("MODEL_2_BASE_NAME", "model")
-        self.model_2 = ValuePolicyModel()
-        self.model_2.set_name(model_base_name_2)
+        self.model_black = ValuePolicyModel()
+        self.model_black.set_name(model_base_name_2)
 
     def __call__(self, generate_data=True, generate_plots=False):
         history, checkpoint_filepath = None, None
@@ -67,30 +67,31 @@ class ModelTrainer:
                 input_dir = self.get_input_dir(iteration=iteration_id)
                 training_data.extend(self.load_training_data(input_dir))
 
-            self.model.load(filename=iteration_id)
+            self.model_white.load(filename=iteration_id)
             history, checkpoint_filepath = train_nn(
-                training_data, self.model, iteration=iteration_id, **self.nn_kwargs)
+                training_data, self.model_white, iteration=iteration_id, **self.nn_kwargs)
 
-            self.model.load_checkpoint(checkpoint_filepath)
-            self.model.save(filename=str(iteration_id + 1))
+            self.model_white.load_checkpoint(checkpoint_filepath)
+            self.model_white.save(filename=str(iteration_id + 1))
             self.save_history(history=history, iteration=iteration_id)
 
             if generate_plots:
-                source = f"./data/history/{self.model.name}"
-                destination = f"./data/plots/{self.model.name}"
+                source = f"./data/history/{self.model_white.name}"
+                destination = f"./data/plots/{self.model_white.name}"
                 generate_all_plots(source, destination)
 
-            model_2_iteration_id = self.model_2.load(-1)
-            history_2, checkpoint_filepath_2 = train_nn(
-                training_data, self.model_2, iteration=model_2_iteration_id, **self.nn_kwargs)
+            model_black_iteration_id = self.model_black.load(-1)
+            history_black, checkpoint_filepath_black = train_nn(
+                training_data, self.model_black, iteration=model_black_iteration_id,
+                **self.nn_kwargs)
 
-            self.model_2.load_checkpoint(checkpoint_filepath_2)
-            self.model_2.save(filename=str(model_2_iteration_id + 1))
-            self.save_history(history=history_2, iteration=model_2_iteration_id)
+            self.model_black.load_checkpoint(checkpoint_filepath_black)
+            self.model_black.save(filename=str(checkpoint_filepath_black + 1))
+            self.save_history(history=history_black, iteration=model_black_iteration_id)
 
             if generate_plots:
-                source = f"./data/history/{self.model_2.name}"
-                destination = f"./data/plots/{self.model_2.name}"
+                source = f"./data/history/{self.model_black.name}"
+                destination = f"./data/plots/{self.model_black.name}"
                 generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
@@ -128,8 +129,8 @@ class ModelTrainer:
                         str(iteration),
                         str(self.terminate_counter),
                         str(self.rollouts_per_game),
-                        str(self.model.name),
-                        str(self.model_2.name),
+                        str(self.model_white.name),
+                        str(self.model_black.name),
                         str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX"))
                     ])
             )
@@ -148,7 +149,7 @@ class ModelTrainer:
         :return: Relative path to directory from base dir.
         """
         dir_name = f"iteration_{iteration}"
-        return os.path.join(self.input_data_base_dir, self.model.name, dir_name)
+        return os.path.join(self.input_data_base_dir, self.model_white.name, dir_name)
 
     def save_history(self, history: History, iteration: int) -> None:
         """
@@ -158,11 +159,11 @@ class ModelTrainer:
         :param iteration: Number of iteration at which save occurs.
         :return: None
         """
-        base_path = os.path.join(self.output_base_dir, "history", self.model.name)
+        base_path = os.path.join(self.output_base_dir, "history", self.model_white.name)
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
-        filepath = os.path.join(self.output_base_dir, "history", self.model.name, filename)
+        filepath = os.path.join(self.output_base_dir, "history", self.model_white.name, filename)
         with open(filepath, "w") as file_:
             logging.info(f"Saving training history to file {filename}.")
             json.dump(history.history, file_)
