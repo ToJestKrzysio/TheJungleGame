@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import Counter, deque, namedtuple
 from copy import copy, deepcopy
 from itertools import product
@@ -121,8 +122,7 @@ class Board(np.ndarray):
     def validate_jump_move(self, position: Position, move: unit_moves.Move) -> bool:
         """
         Checks if jump is considered valid.
-        Jump is valid if all water cells along its path are empty and land position across the
-        water can be captured by the animal.
+        Jump is valid if all water cells along its path are empty.
 
         :param position: Position of first water cell as tuple [x_position, y_position].
         :param move: Move instance.
@@ -131,9 +131,9 @@ class Board(np.ndarray):
         """
         xs = tuple(range(position.x, position.x + move.x - move.sign, move.sign)) or (position.x,)
         ys = tuple(range(position.y, position.y + move.y - move.sign, move.sign)) or (position.y,)
-        water_positions = product(xs, ys)
-        water_cells = [self[position] for position in water_positions]
-        return not any(water_cells)
+        positions = product(ys, xs)
+        water_cells = [self[position] for position in positions]
+        return not any(water_cells) and all(map(lambda x: x.water, water_cells))
 
     def get_repetitions(self) -> Tuple[int, int]:
         """ Get number of repetitions for player and the opponent. """
@@ -256,6 +256,7 @@ class Board(np.ndarray):
         if not isinstance(model, AbstractModel):
             raise ValueError(f"Provided {model_type} model '{type(self.model_white)}' is not of "
                              f"type 'AbstractModel'.")
+
         mask = self.get_move_mask()
         tensor = self.to_tensor()
         self.value, policy = model.predict(tensor, mask)

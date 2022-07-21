@@ -121,7 +121,6 @@ class ModelTrainer:
         processes = []
         logging.debug("Starting Data generation")
         for idx in range(self.max_processes):
-            logging.warning(os.listdir())
             processes.append(
                 subprocess.Popen(
                     [
@@ -174,8 +173,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 1,
-        "TRAINING_START_ITERATION": 10,
+        "TRAINING_ITERATIONS": 4,
+        "TRAINING_START_ITERATION": 11,
         "TRAINING_PREVIOUS": 0,
         "INPUT_DIR": "../data/training/",
         "OUTPUT_DIR": "../data/",

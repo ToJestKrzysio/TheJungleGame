@@ -75,9 +75,11 @@ class NetworkPolicy(AbstractPolicy):
     def _set_child_probabilities(node: "Node", probability_planes: np.array):
         for child_node in node.child_nodes:
             layer = child_node.unit_move.move.value
-            y = child_node.unit_move.move.y
-            x = child_node.unit_move.move.x
-            child_node.prior_probability = probability_planes[y, x, layer]
+            unit, move = child_node.unit_move
+            position = node.board.positions[unit]
+            new_position = position + move
+            child_node.prior_probability = probability_planes[
+                new_position.y, new_position.x, layer]
         logging.debug(
             f"Set child probabilities to f{[cn.prior_probability for cn in node.child_nodes]}")
 

@@ -18,6 +18,9 @@ class Move(NamedTuple):
     def __str__(self):
         return f"{self.__class__.__name__}(x={self.x}, y={self.y})"
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(x={self.x}, y={self.y}, value={self.value})"
+
 
 class UnitMove(NamedTuple):
     unit: Unit
@@ -60,7 +63,7 @@ def get_move_by_values(x: int, y: int) -> Move:
         (1, 0): right,
         (0, 4): forward_jump,
         (0, -4): backward_jump,
-        (3, 0): left_jump,
-        (-3, 0): right_jump,
+        (-3, 0): left_jump,
+        (3, 0): right_jump,
     }
     return value_mappings.get((x, y), invalid_move)
