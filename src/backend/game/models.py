@@ -1,14 +1,18 @@
 import logging
 import os
+import random
 from abc import ABC, abstractmethod
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, Optional, List
 
 import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
 from tensorflow.keras.models import load_model
 
+from game.a_star import AStar
+from game import Position, get_move_by_values
+
 if TYPE_CHECKING:
-    from game import BoardTensor
+    from game import Board, BoardTensor, Unit
 
 
 class AbstractModel(ABC):
@@ -60,7 +64,7 @@ class ValuePolicyModel(AbstractModel):
         self.output_shape = (9, 7, 8)
         self.conv_blocks = kwargs.get("CONVOLUTIONAL_BLOCKS", 6)
         self.model = self._create_model()
-        self.base_dir = kwargs.get("BASE_DIR", "data/models")
+        self.base_dir = kwargs.get("BASE_DIR", "../data")
 
         self._cache = {}
 
@@ -93,8 +97,7 @@ class ValuePolicyModel(AbstractModel):
     def load(self, filename: int = -1) -> int:
         self._cache.clear()
 
-        load_dir = os.path.join(self.base_dir, self.name)
-        print(os.listdir(load_dir))
+        load_dir = os.path.join(self.base_dir, "models", self.name)
         if filename == -1:
             filename = max(os.listdir(load_dir))
 
@@ -109,7 +112,7 @@ class ValuePolicyModel(AbstractModel):
         logging.info(f"Loaded karas checkpoint data from '{filepath}'")
 
     def save(self, filename: str) -> None:
-        filepath = os.path.join(self.base_dir, self.name, filename)
+        filepath = os.path.join(self.base_dir, "models", self.name, filename)
         self.model.save(filepath)
         logging.info(f"Saved karas model to '{filepath}'")
 
@@ -204,7 +207,52 @@ class ValuePolicyModel(AbstractModel):
         return self._cache[tensor_key]
 
 
-value_policy_model = ValuePolicyModel()
+class AStarModel:
+    units: Optional[List["Unit"]]
+
+    def __init__(self):
+        super().__init__()
+        self.units = None
+
+    def _get_unit(self, board: "Board") -> "Unit":
+        for unit in self.units:
+            if unit in board.positions.keys():
+                return unit
+
+    def predict(self, board: "Board") -> Tuple[float, np.array]:
+        if self.units is None:
+            units = [unit for unit in board.positions.keys() if unit.white is board.white_move]
+            self.units = [unit for unit in units if unit.value > 1]
+            random.shuffle(self.units)
+
+        unit = self._get_unit(board)
+        search = AStar(board, unit, Position(8, 3))
+        path = search()
+        idx = min(len(path) - 1, 1)
+        move_pos = path[idx].board.positions[unit] - board.positions[unit]
+        move = get_move_by_values(y=move_pos.y, x=move_pos.x)
+        new_position = board.positions[unit] + move
+
+        policy = np.zeros(shape=(9, 7, 8), dtype=float)
+        policy[new_position.y, new_position.x, move.value] = 1
+
+        whites = len([unit for unit in board.positions if unit.white is board.white_move])
+        blacks = len(board.positions) - whites
+        value = (whites - blacks) / 8 if board.white_move else (blacks - whites) / 8
+        return value, policy
+
+    def set_name(self, name: str) -> None:
+        pass
+
+    def load(self, filename: str) -> None:
+        pass
+
+    def load_checkpoint(self, filepath: str) -> None:
+        pass
+
+    def save(self, filename: str) -> None:
+        pass
+
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON

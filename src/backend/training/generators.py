@@ -30,6 +30,7 @@ class GameDataGenerator:
         self.mcts_kwargs = mcts_kwargs
         self.model_name_1 = game_kwargs.get("MODEL_WHITE", "first_model")
         self.model_name_2 = game_kwargs.get("MODEL_BLACK", "first_model")
+        self.base_dir = game_kwargs.get("BASE_DIR", "../data")
 
         self.model_white = ValuePolicyModel()
         self.model_white.set_name(self.model_name_1)
@@ -37,10 +38,10 @@ class GameDataGenerator:
 
         self.model_black = ValuePolicyModel()
         self.model_black.set_name(self.model_name_2)
-        self.model_black.load(self.training_iteration)
+        self.model_black.load()
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
-        self.iteration_dir_path = os.path.join("../data/training", self.model_white.name,
+        self.iteration_dir_path = os.path.join(self.base_dir, "training", self.model_white.name,
                                                self.iteration_dir_name)
         os.makedirs(self.iteration_dir_path, exist_ok=True)
 
@@ -93,7 +94,6 @@ class GameDataGenerator:
                 )
 
                 incomplete_experiences.append(new_incomplete_experience)
-                # _, outcome = new_env.find_outcome()
                 outcome = 0
             else:
                 game_over = new_env.game_over
@@ -246,6 +246,7 @@ if __name__ == '__main__':
     MODEL_WHITE = str(sys.argv[5])
     MODEL_BLACK = str(sys.argv[6])
     CHILD_SELECTION = str(sys.argv[7])
+    BASE_DIR = str(sys.argv[8])
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
@@ -253,6 +254,7 @@ if __name__ == '__main__':
         "TERMINATE_COUNTER": TERMINATE_COUNTER,
         "MODEL_WHITE": MODEL_WHITE,
         "MODEL_BLACK": MODEL_BLACK,
+        "BASE_DIR": BASE_DIR
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,

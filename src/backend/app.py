@@ -20,7 +20,7 @@ logging.warning("Running initial setup")
 app = Flask(__name__)
 storage = Storage()
 
-model = ValuePolicyModel()
+model = ValuePolicyModel(**{"BASE_DIR": "data"})
 model.set_name(storage["model"])
 model.load(storage["version"])
 

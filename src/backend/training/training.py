@@ -33,8 +33,8 @@ class ModelTrainer:
 
         self.training_iterations = self.training_kwargs.get("TRAINING_ITERATIONS", 1)
         self.starting_iteration = self.training_kwargs.get("TRAINING_START_ITERATION", 0)
-        self.input_data_base_dir = self.training_kwargs.get("INPUT_DIR", "data/training/")
-        self.output_base_dir = self.training_kwargs.get("OUTPUT_DIR", "data")
+        self.base_dir = self.training_kwargs.get("BASE_DIR", "../data")
+        self.nn_kwargs["BASE_DIR"] = self.base_dir
         self.max_processes = self.training_kwargs.get("MAX_PROCESSES", 1)
 
         # Additional data added to training data from previous iterations
@@ -44,6 +44,7 @@ class ModelTrainer:
         self.rollouts_per_game = self.training_kwargs.get("ROLLOUTS_PER_GAME", 1000)
         self.terminate_counter = self.training_kwargs.get("TERMINATE_COUNTER", 50)
 
+        self.dual_network = self.training_kwargs.get("DUAL_NETWORK", True)
         model_base_name = self.training_kwargs.get("MODEL_BASE_NAME", "model")
         self.model_white = ValuePolicyModel()
         self.model_white.set_name(model_base_name)
@@ -58,8 +59,9 @@ class ModelTrainer:
         for iteration_id in range(
                 self.starting_iteration, self.starting_iteration + self.training_iterations):
 
-            if generate_data:
-                self.generate_data(iteration=iteration_id)
+            errors = self.generate_data(iteration=iteration_id) if generate_data else False
+            if errors:
+                raise RuntimeError("Data generation failed")
 
             training_data = []
             for data_iteration_id in range(
@@ -76,24 +78,25 @@ class ModelTrainer:
             self.save_history(history=history, iteration=iteration_id, name=self.model_white.name)
 
             if generate_plots:
-                source = f"../data/history/{self.model_white.name}"
-                destination = f"../data/plots/{self.model_white.name}"
+                source = os.path.join(self.base_dir, "history", self.model_white.name)
+                destination = os.path.join(self.base_dir, "plots", self.model_white.name)
                 generate_all_plots(source, destination)
 
-            model_black_iteration_id = self.model_black.load(-1)
-            history_black, checkpoint_filepath_black = train_nn(
-                training_data, self.model_black, iteration=model_black_iteration_id,
-                **self.nn_kwargs)
+            if self.dual_network:
+                model_black_iteration_id = self.model_black.load(-1)
+                history_black, checkpoint_filepath_black = train_nn(
+                    training_data, self.model_black, iteration=model_black_iteration_id,
+                    **self.nn_kwargs)
 
-            self.model_black.load_checkpoint(checkpoint_filepath_black)
-            self.model_black.save(filename=str(model_black_iteration_id + 1))
-            self.save_history(history=history_black, iteration=model_black_iteration_id,
-                              name=self.model_black.name)
+                self.model_black.load_checkpoint(checkpoint_filepath_black)
+                self.model_black.save(filename=str(model_black_iteration_id + 1))
+                self.save_history(history=history_black, iteration=model_black_iteration_id,
+                                  name=self.model_black.name)
 
-            if generate_plots:
-                source = f"../data/history/{self.model_black.name}"
-                destination = f"../data/plots/{self.model_black.name}"
-                generate_all_plots(source, destination)
+                if generate_plots:
+                    source = os.path.join(self.base_dir, "history", self.model_black.name)
+                    destination = os.path.join(self.base_dir, "plots", self.model_black.name)
+                    generate_all_plots(source, destination)
 
         return history, checkpoint_filepath
 
@@ -121,7 +124,6 @@ class ModelTrainer:
         processes = []
         logging.debug("Starting Data generation")
         for idx in range(self.max_processes):
-            logging.warning(os.listdir())
             processes.append(
                 subprocess.Popen(
                     [
@@ -132,14 +134,17 @@ class ModelTrainer:
                         str(self.rollouts_per_game),
                         str(self.model_white.name),
                         str(self.model_black.name),
-                        str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX"))
+                        str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX")),
+                        str(self.base_dir)
                     ])
             )
 
+        error = False
         for process in processes:
             logging.debug(f"Starting data generation using process {process.pid}")
-            process.wait()
+            error += bool(process.wait())
             logging.debug(f"Completed data generation using process {process.pid}")
+        return error
 
     def get_input_dir(self, iteration: int) -> str:
         """
@@ -150,7 +155,7 @@ class ModelTrainer:
         :return: Relative path to directory from base dir.
         """
         dir_name = f"iteration_{iteration}"
-        return os.path.join(self.input_data_base_dir, self.model_white.name, dir_name)
+        return os.path.join(self.base_dir, "training", self.model_white.name, dir_name)
 
     def save_history(self, history: History, iteration: int, name: str) -> None:
         """
@@ -162,7 +167,7 @@ class ModelTrainer:
 
         :return: None
         """
-        base_path = os.path.join(self.output_base_dir, "history", name)
+        base_path = os.path.join(self.base_dir, "history", name)
         os.makedirs(base_path, exist_ok=True)
 
         filename = f"{get_timestamp()}_{iteration}.json"
@@ -175,15 +180,15 @@ class ModelTrainer:
 if __name__ == '__main__':
     training_kwargs = {
         "TRAINING_ITERATIONS": 1,
-        "TRAINING_START_ITERATION": 10,
+        "TRAINING_START_ITERATION": 11,
         "TRAINING_PREVIOUS": 0,
-        "INPUT_DIR": "../data/training/",
-        "OUTPUT_DIR": "../data/",
+        "BASE_DIR": "../data/",
         "MAX_PROCESSES": 10,
         "MODEL_BASE_NAME": "rsm_2",
         "MODEL_2_BASE_NAME": "rsm_3",
-        "GAMES_PER_ITERATION": 200,
-        "ROLLOUTS_PER_GAME": 300,
+        "DUAL_NETWORK": False,
+        "GAMES_PER_ITERATION": 10,
+        "ROLLOUTS_PER_GAME": 10,
     }
     game_kwargs = {}
     mcts_kwargs = {

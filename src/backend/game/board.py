@@ -8,14 +8,12 @@ from typing import Dict, List, Set, Tuple, Iterable, Optional, TYPE_CHECKING
 
 import numpy as np
 
-from game import AbstractModel, Cell, MoveNotPossibleError, unit, get_unit, \
-    ValuePolicyModel
+from game import Cell, MoveNotPossibleError, unit, get_unit, AbstractModel, ValuePolicyModel, \
+    AStarModel, Position
 from game import moves as unit_moves
 
 if TYPE_CHECKING:
     from mcts import Node, Root
-
-Position = namedtuple("Position", ["y", "x"])
 
 
 class Board(np.ndarray):
@@ -124,8 +122,7 @@ class Board(np.ndarray):
     def validate_jump_move(self, position: Position, move: unit_moves.Move) -> bool:
         """
         Checks if jump is considered valid.
-        Jump is valid if all water cells along its path are empty and land position across the
-        water can be captured by the animal.
+        Jump is valid if all water cells along its path are empty.
 
         :param position: Position of first water cell as tuple [x_position, y_position].
         :param move: Move instance.
@@ -134,9 +131,9 @@ class Board(np.ndarray):
         """
         xs = tuple(range(position.x, position.x + move.x - move.sign, move.sign)) or (position.x,)
         ys = tuple(range(position.y, position.y + move.y - move.sign, move.sign)) or (position.y,)
-        water_positions = product(xs, ys)
-        water_cells = [self[position] for position in water_positions]
-        return not any(water_cells)
+        positions = product(ys, xs)
+        water_cells = [self[position] for position in positions]
+        return not any(water_cells) and all(map(lambda x: x.water, water_cells))
 
     def get_repetitions(self) -> Tuple[int, int]:
         """ Get number of repetitions for player and the opponent. """
@@ -217,10 +214,10 @@ class Board(np.ndarray):
         ]
         new_board = Board(cells)
         new_board.model_white = ValuePolicyModel()
-        new_board.model_black = ValuePolicyModel()
+        new_board.model_black = AStarModel()
         return new_board
 
-    def move(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+    def move(self, unit_position: Position, selected_move: unit_moves.Move, **kwargs) -> Board:
         """
         Executes move using move_board instance.
 
@@ -240,7 +237,7 @@ class Board(np.ndarray):
         ]
         """
         board_move = BoardMove(self)
-        new_board = board_move(unit_position=unit_position, selected_move=selected_move)
+        new_board = board_move(unit_position=unit_position, selected_move=selected_move, **kwargs)
         _, new_board.outcome = new_board.find_outcome()
         return new_board
 
@@ -249,15 +246,20 @@ class Board(np.ndarray):
         return BoardTensor(self)
 
     def predict(self) -> Tuple[float, np.ndarray]:
-        if not isinstance(self.model_white, AbstractModel):
-            raise ValueError(
-                f"Provided model '{type(self.model_white)}' is not of type 'AbstractModel'.")
+        model, model_type = (self.model_white, "white") if self.white_move else (
+            self.model_black, "black")
+
+        if isinstance(model, AStarModel):
+            self.value, policy = model.predict(self)
+            return self.value, policy
+
+        if not isinstance(model, AbstractModel):
+            raise ValueError(f"Provided {model_type} model '{type(self.model_white)}' is not of "
+                             f"type 'AbstractModel'.")
+
         mask = self.get_move_mask()
         tensor = self.to_tensor()
-        if self.white_move:
-            self.value, policy = self.model_white.predict(tensor, mask)
-        else:
-            self.value, policy = self.model_black.predict(tensor, mask)
+        self.value, policy = model.predict(tensor, mask)
         return self.value, policy
 
     def get_move_mask(self) -> np.ndarray:
@@ -292,6 +294,33 @@ class Board(np.ndarray):
 class BoardTensor(np.ndarray):
 
     def __new__(cls, board: Board):
+        """
+        Stores Board State Data over the following planes,
+        board tensor is always presented from the perspective of the current player.
+
+        #0  Current player Traps
+        #1  Current player Den
+        #2  Current player Mouse
+        #3  Current player Dog
+        #4  Current player Wolf
+        #5  Current player Leopard
+        #6  Current player Tiger
+        #7  Current player Lion
+        #8  Current player Elephant
+        #9  Current player repetitions
+        #10 Enemy player Traps
+        #11 Enemy player Den
+        #12 Enemy player Mouse
+        #13 Enemy player Dog
+        #14 Enemy player Wolf
+        #15 Enemy player Leopard
+        #16 Enemy player Tiger
+        #17 Enemy player Lion
+        #18 Enemy player Elephant
+        #19 Enemy player repetitions
+        #20 Is white player
+        #21 Total move counter
+        """
         STEP_BOARDS = 22
         NO_STEPS = 1
         if not isinstance(board, Board):
@@ -369,7 +398,12 @@ class BoardMove:
     def __init__(self, board: Board):
         self.board = board
 
-    def __call__(self, unit_position: Position, selected_move: unit_moves.Move) -> Board:
+    def __call__(
+            self,
+            unit_position: Position,
+            selected_move: unit_moves.Move,
+            ignore_turn: bool = False
+    ) -> Board:
         """
         Executes move for a selected unit by executing following steps.
 
@@ -392,7 +426,8 @@ class BoardMove:
         selected_unit = self.board[unit_position].occupant
 
         self.validate_move(selected_unit=selected_unit, selected_move=selected_move)
-        self.validate_player_piece(selected_unit=selected_unit)
+        if not ignore_turn:
+            self.validate_player_piece(selected_unit=selected_unit)
 
         new_board = self.copy_board(positions=(unit_position, new_position))
 

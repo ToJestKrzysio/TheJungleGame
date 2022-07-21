@@ -45,6 +45,10 @@ class Node(object):
     def __repr__(self):
         return f"Moved {self.unit_move.unit} by {self.unit_move.move}"
 
+    def __str__(self):
+        return (f"Node(total_value={self.total_value}, visits={self.visits}, "
+                f"prior_probability={self.prior_probability})")
+
     def evaluate(self) -> None:
         """ Calls current policy. """
         self.policy_strategy(self)
