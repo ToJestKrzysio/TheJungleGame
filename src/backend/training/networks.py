@@ -59,6 +59,7 @@ def train_nn(data, model_instance: "AbstractModel", iteration: int = -1, **kwarg
     batch_size = kwargs.get("BATCH_SIZE", 32)
     patience = kwargs.get("TRAINING_PATIENCE", 6)
     min_delta = kwargs.get("TRAINING_MIN_DELTA", 0.01)
+    base_dir = kwargs.get("BASE_DIR", "../data")
 
     early_stop = tf.keras.callbacks.EarlyStopping(
         monitor='loss',
@@ -69,7 +70,7 @@ def train_nn(data, model_instance: "AbstractModel", iteration: int = -1, **kwarg
     )
 
     filename = f"{get_timestamp()}_iteration_{iteration}.h5"
-    checkpoint_filepath = os.path.join(f"data/checkpoints/", model_instance.name, filename)
+    checkpoint_filepath = os.path.join(base_dir, "checkpoints", model_instance.name, filename)
     save_best_model = callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         monitor="val_loss",
