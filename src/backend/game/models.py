@@ -1,14 +1,18 @@
 import logging
 import os
+import random
 from abc import ABC, abstractmethod
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, Optional
 
 import numpy as np
 from tensorflow.keras import regularizers, optimizers, layers, Model
 from tensorflow.keras.models import load_model
 
+from game.a_star import AStar
+from game import Position
+
 if TYPE_CHECKING:
-    from game import BoardTensor
+    from game import Board, BoardTensor, Unit
 
 
 class AbstractModel(ABC):
@@ -94,7 +98,6 @@ class ValuePolicyModel(AbstractModel):
         self._cache.clear()
 
         load_dir = os.path.join(self.base_dir, self.name)
-        print(os.listdir(load_dir))
         if filename == -1:
             filename = max(os.listdir(load_dir))
 
@@ -204,7 +207,44 @@ class ValuePolicyModel(AbstractModel):
         return self._cache[tensor_key]
 
 
-value_policy_model = ValuePolicyModel()
+class AStarModel:
+    unit_plane: Optional[int]
+    unit: Optional["Unit"]
+
+    def __init__(self):
+        super().__init__()
+        self.unit = None
+
+    def predict(self, board: "Board") -> Tuple[float, np.array]:
+        if self.unit is None or board.positions.get(self.unit) is None:
+            units = [unit for unit in board.positions.keys() if unit.white is board.white_move]
+            self.unit = random.choice(units)
+            logging.debug(f"{self.unit} was selected as A* unit.")
+
+        search = AStar(board, self.unit, Position(0, 3))
+        path = search()
+        new_position = board.positions[self.unit] + path[0]
+
+        policy = np.zeros(shape=(9, 7, 8), dtype=float)
+        policy[new_position.y, new_position.x, path[0].value] = 1
+
+        # whites = sum(1 for unit in board.positions if unit.white is board.white_move)
+        # blacks = sum(1 for unit in board.positions if unit.white is not board.white_move)
+        # value = (whites - blacks) / 8 if board.white_move else (blacks - whites) / 8
+        return 0, policy
+
+    def set_name(self, name: str) -> None:
+        pass
+
+    def load(self, filename: str) -> None:
+        pass
+
+    def load_checkpoint(self, filepath: str) -> None:
+        pass
+
+    def save(self, filename: str) -> None:
+        pass
+
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
