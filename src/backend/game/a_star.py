@@ -22,7 +22,7 @@ class Node:
         self.value = 0 if parent is None else parent.value + 1
 
     def __hash__(self):
-        y, x = self.board.positions[self.unit]
+        y, x = self.board.positions.get(self.unit, (0, 0))
         return y * 10 + x
 
     def __eq__(self, other: Node):

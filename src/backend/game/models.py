@@ -228,7 +228,8 @@ class AStarModel:
         unit = self._get_unit(board)
         search = AStar(board, unit, Position(8, 3))
         path = search()
-        move_pos = path[1].board.positions[unit] - board.positions[unit]
+        idx = min(len(path) - 1, 1)
+        move_pos = path[idx].board.positions[unit] - board.positions[unit]
         move = get_move_by_values(y=move_pos.y, x=move_pos.x)
         new_position = board.positions[unit] + move
 
