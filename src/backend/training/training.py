@@ -179,16 +179,16 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 1,
-        "TRAINING_START_ITERATION": 11,
+        "TRAINING_ITERATIONS": 2,
+        "TRAINING_START_ITERATION": 0,
         "TRAINING_PREVIOUS": 0,
         "BASE_DIR": "../data/",
         "MAX_PROCESSES": 10,
-        "MODEL_BASE_NAME": "rsm_2",
-        "MODEL_2_BASE_NAME": "rsm_3",
-        "DUAL_NETWORK": False,
-        "GAMES_PER_ITERATION": 10,
-        "ROLLOUTS_PER_GAME": 10,
+        "MODEL_BASE_NAME": "rsm_4",
+        "MODEL_2_BASE_NAME": "rsm_5",
+        "DUAL_NETWORK": True,
+        "GAMES_PER_ITERATION": 200,
+        "ROLLOUTS_PER_GAME": 300,
     }
     game_kwargs = {}
     mcts_kwargs = {

@@ -256,8 +256,8 @@ class AStarModel:
 
 if __name__ == '__main__':
     # RUN TO GENERATE NEW MODEL TO TRAIN ON
-    name = "rsm_3"
-    kwargs = {"BASE_DIR": "../data/models"}
+    name = "rsm_5"
+    kwargs = {"BASE_DIR": "../data"}
     model = ValuePolicyModel(**kwargs)
     model.set_name(name)
     model.save("0")

@@ -214,7 +214,8 @@ class Board(np.ndarray):
         ]
         new_board = Board(cells)
         new_board.model_white = ValuePolicyModel()
-        new_board.model_black = AStarModel()
+        new_board.model_black = ValuePolicyModel()
+        # new_board.model_black = AStarModel()   # TODO simple switch of models
         return new_board
 
     def move(self, unit_position: Position, selected_move: unit_moves.Move, **kwargs) -> Board:
