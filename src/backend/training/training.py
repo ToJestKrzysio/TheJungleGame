@@ -179,8 +179,8 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 2,
-        "TRAINING_START_ITERATION": 0,
+        "TRAINING_ITERATIONS": 7,
+        "TRAINING_START_ITERATION": 23,
         "TRAINING_PREVIOUS": 0,
         "BASE_DIR": "../data/",
         "MAX_PROCESSES": 10,
