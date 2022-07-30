@@ -10,7 +10,7 @@ from tensorflow.keras import models
 import numpy as np
 
 from mcts import Root, Node
-from game import Board, ValuePolicyModel
+from game import Board, ValuePolicyModel, AStarModel
 from helpers import get_timestamp
 
 IncompleteExperience = namedtuple("Experience", ["state", "probability", "q"])
@@ -31,14 +31,18 @@ class GameDataGenerator:
         self.model_name_1 = game_kwargs.get("MODEL_WHITE", "first_model")
         self.model_name_2 = game_kwargs.get("MODEL_BLACK", "first_model")
         self.base_dir = game_kwargs.get("BASE_DIR", "../data")
+        self.dual_network = game_kwargs.get("DUAL_NETWORK", True)
 
         self.model_white = ValuePolicyModel()
         self.model_white.set_name(self.model_name_1)
         self.model_white.load(self.training_iteration)
 
-        self.model_black = ValuePolicyModel()
-        self.model_black.set_name(self.model_name_2)
-        self.model_black.load()
+        if self.dual_network:
+            self.model_black = ValuePolicyModel()
+            self.model_black.set_name(self.model_name_2)
+            self.model_black.load()
+        else:
+            self.model_black = AStarModel()
 
         self.iteration_dir_name = f"iteration_{self.training_iteration}"
         self.iteration_dir_path = os.path.join(self.base_dir, "training", self.model_white.name,
@@ -160,7 +164,7 @@ class GameDataGenerator:
         Generates probability planes based on the number of child node visits. More visits indicate
         higher possibility of finding a better reward in the given node.
 
-        :param mcts: Instance of MCTS class storing tree generated during evaluation phase.
+        :param mcts_root: Instance of MCTS class storing tree generated during evaluation phase.
 
         :return: Probability planes represented as ndarray.
         """
@@ -192,50 +196,6 @@ class GameDataGenerator:
         return planes
 
 
-class TournamentDataGenerator:
-
-    def __init__(self, tournament_kwargs, mcts_kwargs):
-        """ Loads neural networks and sets up generator parameters. """
-        self.network_model_1 = models.load_model(tournament_kwargs["NETWORK_MODEL_1"])
-        self.network_model_2 = models.load_model(tournament_kwargs["NETWORK_MODEL_2"])
-        self.NUMBER_OF_GAMES = tournament_kwargs.get("TOURNAMENT_GAMES", 2)
-        self.mcts_kwargs = mcts_kwargs
-
-    def _get_player_networks(self) -> Tuple[keras.Model, keras.Model]:
-        while True:
-            yield (self.network_model_1, self.network_model_2), (1, 2)
-            yield (self.network_model_2, self.network_model_1), (2, 1)
-
-    def generate(self):
-        outcomes = []
-        for game_number in range(self.NUMBER_OF_GAMES):
-            (network_1, network_2), order = self._get_player_networks()
-            outcome, move_count = self._play_tournament_game(network_1, network_2)
-            outcomes.append((game_number, outcome, move_count, *order))
-        # self._save_results()
-
-    @staticmethod
-    def _play_tournament_game(network_1: keras.Model, network_2: keras.Model) -> Tuple[float, int]:
-        get_network_model = cycle([network_1, network_2])
-
-        env = Board.initialize()
-        print("Starting new game.")
-
-        while not env.game_over:
-            current_network_model = next(get_network_model)
-
-            mcts_engine = Root(env)
-            best_node, best_move = mcts_engine.evaluate()
-            unit, selected_move = best_move
-            current_position = env.positions[unit]
-            env = env.unit_move(current_position, selected_move)
-
-        _, outcome = env.find_outcome()
-        print(f"Game finished with result {outcome} after {env.move_count} moves.")
-
-        return outcome, env.move_count
-
-
 if __name__ == '__main__':
     import sys
 
@@ -247,6 +207,7 @@ if __name__ == '__main__':
     MODEL_BLACK = str(sys.argv[6])
     CHILD_SELECTION = str(sys.argv[7])
     BASE_DIR = str(sys.argv[8])
+    DUAL_NETWORK = bool(int(sys.argv[9]))
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
@@ -254,7 +215,8 @@ if __name__ == '__main__':
         "TERMINATE_COUNTER": TERMINATE_COUNTER,
         "MODEL_WHITE": MODEL_WHITE,
         "MODEL_BLACK": MODEL_BLACK,
-        "BASE_DIR": BASE_DIR
+        "BASE_DIR": BASE_DIR,
+        "DUAL_NETWORK": DUAL_NETWORK,
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,

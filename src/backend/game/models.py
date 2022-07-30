@@ -212,6 +212,7 @@ class AStarModel:
 
     def __init__(self):
         super().__init__()
+        self.name = "a_star"
         self.units = None
 
     def _get_unit(self, board: "Board") -> "Unit":
@@ -242,10 +243,11 @@ class AStarModel:
         return value, policy
 
     def set_name(self, name: str) -> None:
-        pass
+        self.name = name
 
-    def load(self, filename: str) -> None:
-        pass
+    @staticmethod
+    def load(filename: str) -> int:
+        return 0
 
     def load_checkpoint(self, filepath: str) -> None:
         pass

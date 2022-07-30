@@ -11,7 +11,7 @@ from typing import List
 from keras.callbacks import History
 
 from networks import train_nn
-from game.models import ValuePolicyModel
+from game.models import ValuePolicyModel, AStarModel
 from generators import Experience
 from helpers import get_timestamp
 from utils.plots import generate_all_plots
@@ -49,9 +49,13 @@ class ModelTrainer:
         self.model_white = ValuePolicyModel()
         self.model_white.set_name(model_base_name)
 
-        model_base_name_2 = self.training_kwargs.get("MODEL_2_BASE_NAME", "model")
-        self.model_black = ValuePolicyModel()
-        self.model_black.set_name(model_base_name_2)
+        if self.dual_network:
+            self.model_black = ValuePolicyModel()
+            model_base_name_2 = self.training_kwargs.get("MODEL_2_BASE_NAME", "model")
+            self.model_black.set_name(model_base_name_2)
+        else:
+            self.model_black = AStarModel()
+            self.model_black.set_name("dummy_model")
 
     def __call__(self, generate_data=True, generate_plots=False):
         history, checkpoint_filepath = None, None
@@ -135,7 +139,8 @@ class ModelTrainer:
                         str(self.model_white.name),
                         str(self.model_black.name),
                         str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX")),
-                        str(self.base_dir)
+                        str(self.base_dir),
+                        str(int(self.dual_network))
                     ])
             )
 
@@ -179,14 +184,14 @@ class ModelTrainer:
 
 if __name__ == '__main__':
     training_kwargs = {
-        "TRAINING_ITERATIONS": 7,
-        "TRAINING_START_ITERATION": 23,
+        "TRAINING_ITERATIONS": 2,
+        "TRAINING_START_ITERATION": 30,
         "TRAINING_PREVIOUS": 0,
         "BASE_DIR": "../data/",
         "MAX_PROCESSES": 10,
         "MODEL_BASE_NAME": "rsm_4",
         "MODEL_2_BASE_NAME": "rsm_5",
-        "DUAL_NETWORK": True,
+        "DUAL_NETWORK": False,
         "GAMES_PER_ITERATION": 200,
         "ROLLOUTS_PER_GAME": 300,
     }
