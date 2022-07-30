@@ -32,6 +32,7 @@ class GameDataGenerator:
         self.model_name_2 = game_kwargs.get("MODEL_BLACK", "first_model")
         self.base_dir = game_kwargs.get("BASE_DIR", "../data")
         self.dual_network = game_kwargs.get("DUAL_NETWORK", True)
+        self.generator_id = game_kwargs.get("GENERATOR_ID", -1)
 
         self.model_white = ValuePolicyModel()
         self.model_white.set_name(self.model_name_1)
@@ -53,9 +54,9 @@ class GameDataGenerator:
         return [self._generate(game_id) for game_id in range(self.num_games)]
 
     def _generate(self, game_id) -> str:
-
-        logging.info(f"Starting game {game_id + 1} of {self.num_games}")
-        print(f"Starting game {game_id + 1} of {self.num_games}")
+        message = f"GID {self.generator_id} -- Starting game {game_id + 1} of {self.num_games}"
+        logging.info(message)
+        print(message)
 
         env = Board.initialize()
         env.model_white = self.model_white
@@ -108,8 +109,10 @@ class GameDataGenerator:
 
         experiences = self.create_experiences(incomplete_experiences, outcome)
 
-        logging.info(f"Game finished with result {outcome} after {env.move_count} moves")
-        print(f"Game finished with result {outcome} after {env.move_count} moves.")
+        message = (f"GID {self.generator_id} -- Game finished with result {outcome} after "
+                   f"{env.move_count} moves")
+        logging.info(message)
+        print(message)
 
         return self._save_memory_file(experiences, game_id)
 
@@ -208,6 +211,7 @@ if __name__ == '__main__':
     CHILD_SELECTION = str(sys.argv[7])
     BASE_DIR = str(sys.argv[8])
     DUAL_NETWORK = bool(int(sys.argv[9]))
+    GENERATOR_ID = int(sys.argv[10])
 
     game_kwargs = {
         "NUMBER_OF_GAMES": NUMBER_OF_GAMES,
@@ -217,6 +221,7 @@ if __name__ == '__main__':
         "MODEL_BLACK": MODEL_BLACK,
         "BASE_DIR": BASE_DIR,
         "DUAL_NETWORK": DUAL_NETWORK,
+        "GENERATOR_ID": GENERATOR_ID,
     }
     mcts_kwargs = {
         "MAX_EVALUATIONS": MAX_EVALUATIONS,

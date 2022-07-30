@@ -140,7 +140,8 @@ class ModelTrainer:
                         str(self.model_black.name),
                         str(self.mcts_kwargs.get("CHILD_SELECTION", "MAX")),
                         str(self.base_dir),
-                        str(int(self.dual_network))
+                        str(int(self.dual_network)),
+                        str(idx),
                     ])
             )
 
