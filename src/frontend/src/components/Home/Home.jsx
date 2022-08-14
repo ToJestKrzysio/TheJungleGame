@@ -52,6 +52,19 @@ function Home() {
             .finally(() => setBoardUpdateLoading(false))
     }, [move])
 
+    useEffect(() => updateTitle(gameOver, turn), [gameOver, turn])
+
+    function updateTitle(game_over, turn) {
+        if (game_over === 1) {
+            document.title = `White player won after ${turn} turns`
+        } else if (game_over === -1) {
+            document.title = `Black player won after ${turn} turns`
+        } else {
+            document.title = `Turn: ${turn}`
+        }
+
+    }
+
     function updateBoardState(cb = () => null) {
         fetchBoardState()
             .then(data => {
@@ -83,14 +96,20 @@ function Home() {
     function moveRandomUnit() {
         const validUnits = cells.filter(cell => cell.unit.value && cell.unit.moves.length)
         const selectedCell = validUnits[Math.floor(Math.random() * validUnits.length)]
-        // const selectedMove = selectedCell.unit.moves[Math.floor(Math.random() * selectedCell.unit.moves.length)]
-        console.log(selectedCell);
-        const selectedMove = Math.min(...selectedCell.unit.moves)
 
-        const newCells = generateNewCellsForMove(cells, selectedCell.id, selectedMove)
+        const best_move = {move: 0, value: 100}
+        selectedCell.unit.moves.forEach((position) => {
+            const distance = Math.abs(position % 7 - 3) + Math.floor(position / 7)
+            if (distance < best_move.value) {
+                best_move.move = position
+                best_move.value = distance
+            }
+        })
+
+        const newCells = generateNewCellsForMove(cells, selectedCell.id, best_move.move)
         setCells(newCells)
         nextTurn()
-        setMove({id: selectedMove, selected: selectedCell.id})
+        setMove({id: best_move.move, selected: selectedCell.id})
     }
 
     function nextTurn() {
