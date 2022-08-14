@@ -1,0 +1,173 @@
+services:
+  backend1:
+    build:
+      context: ./src/backend
+    ports:
+      - "5001:5000"
+    networks:
+      - backend-network-1
+    restart: "on-failure"
+  frontend1:
+    build:
+      context: ./src/frontend
+    ports:
+      - "3001:3000"
+    networks:
+      - frontend-network-1
+      - backend-network-1
+    volumes:
+      - ./src/frontend/:/code/
+  proxy1:
+    build:
+      context: ./src/proxy1
+    ports:
+      - "8001:80"
+    networks:
+      - frontend-network-1
+      - backend-network-1
+    depends_on:
+      - backend1
+      - frontend1
+
+  backend2:
+    build:
+      context: ./src/backend
+    ports:
+      - "5002:5000"
+    networks:
+      - backend-network-2
+    restart: "on-failure"
+  frontend2:
+    build:
+      context: ./src/frontend
+    ports:
+      - "3002:3000"
+    networks:
+      - frontend-network-2
+      - backend-network-2
+    volumes:
+      - ./src/frontend/:/code/
+  proxy2:
+    build:
+      context: ./src/proxy2
+    ports:
+      - "8002:80"
+    networks:
+      - frontend-network-2
+      - backend-network-2
+    depends_on:
+      - backend2
+      - frontend2
+
+  backend3:
+    build:
+      context: ./src/backend
+    ports:
+      - "5003:5000"
+    networks:
+      - backend-network-3
+    restart: "on-failure"
+  frontend3:
+    build:
+      context: ./src/frontend
+    ports:
+      - "3003:3000"
+    networks:
+      - frontend-network-3
+      - backend-network-3
+    volumes:
+      - ./src/frontend/:/code/
+  proxy3:
+    build:
+      context: ./src/proxy3
+    ports:
+      - "8003:80"
+    networks:
+      - frontend-network-3
+      - backend-network-3
+    depends_on:
+      - backend3
+      - frontend3
+
+  backend4:
+    build:
+      context: ./src/backend
+    ports:
+      - "5004:5000"
+    networks:
+      - backend-network-4
+    restart: "on-failure"
+  frontend4:
+    build:
+      context: ./src/frontend
+    ports:
+      - "3004:3000"
+    networks:
+      - frontend-network-4
+      - backend-network-4
+    volumes:
+      - ./src/frontend/:/code/
+  proxy4:
+    build:
+      context: ./src/proxy4
+    ports:
+      - "8004:80"
+    networks:
+      - frontend-network-4
+      - backend-network-4
+    depends_on:
+      - backend4
+      - frontend4
+
+  backend5:
+    build:
+      context: ./src/backend
+    ports:
+      - "5005:5000"
+    networks:
+      - backend-network-5
+    restart: "on-failure"
+  frontend5:
+    build:
+      context: ./src/frontend
+    ports:
+      - "3005:3000"
+    networks:
+      - frontend-network-5
+      - backend-network-5
+    volumes:
+      - ./src/frontend/:/code/
+  proxy5:
+    build:
+      context: ./src/proxy5
+    ports:
+      - "8005:80"
+    networks:
+      - frontend-network-5
+      - backend-network-5
+    depends_on:
+      - backend5
+      - frontend5
+
+networks:
+  backend-network-1:
+    driver: bridge
+  backend-network-2:
+    driver: bridge
+  backend-network-3:
+    driver: bridge
+  backend-network-4:
+    driver: bridge
+  backend-network-5:
+    driver: bridge
+
+  frontend-network-1:
+    driver: bridge
+  frontend-network-2:
+    driver: bridge
+  frontend-network-3:
+    driver: bridge
+  frontend-network-4:
+    driver: bridge
+  frontend-network-5:
+    driver: bridge
